@@ -85,5 +85,33 @@ export class authController {
         }
     }
 
+    refreshSession = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            res.status(200).json({
+                success: true,
+                message: "Session refreshed successfully",
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
+    validate_token = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            res.status(200).json({
+                success: true,
+                message: "Token is valid",
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 }; 

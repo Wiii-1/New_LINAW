@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 
 import { errorHandler  } from './shared/middleware/errorHandler.js';
+import cookieParser from 'cookie-parser';
 
 export const app = express();
 
@@ -14,3 +15,6 @@ app.use(express.json());
 // routes
 
 app.use(errorHandler)
+
+app.use(cookieParser());
+
