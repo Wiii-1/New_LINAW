@@ -1,15 +1,17 @@
 import jwt from "jsonwebtoken"
 import { env } from "./../../config/env.js"
 
-interface TokenPayload {
+interface AccessTokenPayload {
+    user_id:string
+}
 
-    userID:string,
-    role:string
-
+interface RefreshTokenPayload {
+    user_id:string,
+    session_id:string
 }
 
 export function generateAccessToken (
-    payload:TokenPayload
+    payload:AccessTokenPayload
 ) {
 
     return jwt.sign(
@@ -24,7 +26,7 @@ export function generateAccessToken (
 }
 
 export function generateRefreshToken(
-    payload:TokenPayload
+    payload: RefreshTokenPayload        
 ){
 
     return jwt.sign(
@@ -36,4 +38,13 @@ export function generateRefreshToken(
         }
     )
     
+}
+
+export function verifyRefreshToken (
+    token:string
+) {
+    return jwt.verify(
+        token,
+        env.JWT_REFRESH_SECRET
+    ) as RefreshTokenPayload;
 }

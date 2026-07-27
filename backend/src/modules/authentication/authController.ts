@@ -1,29 +1,30 @@
 import { Request, Response, NextFunction } from "express";
-// import { authService } from "./authServices.js";
+import { z } from "zod"
+import { AuthService } from "./authServices.js";
+import { signupInput, loginInput, signupSchema, findByIdSchema, loginSchema, logoutSchema } from "./authValidator.js";
+import { AuthRepository } from "./authRepository.js";
 
-type createUserbody = {
-    full_name:string;
-    email: string;
-};
-
-type UserParams = {
-    id:string;
-};
-
-export class authController {
-    //constructor(private service = new authService()) {}
+export class AuthController {
+    constructor(private service: AuthService) {
+        this.service = service
+    }   
 
     getUserById = async (
-        req: Request <UserParams>, 
+        req: Request,
         res: Response, 
         next:NextFunction
-    ) => {
+    ): Promise<void> => {
         try {
-            const {id} = req.params;
+            
+            const id = findByIdSchema.parse(req.params.id)
+
+            const user = await this.service.findId(id)
+
             res.status(200).json({
                 id,
                 success: true,
-                message: "USER FOUND"
+                message: "USER FOUND",
+                data:user
             });
         }
         catch (err){
@@ -32,14 +33,18 @@ export class authController {
     };
 
     createUser = async (
-        req: Request <createUserbody>,
+        req: Request,
         res: Response,
         next: NextFunction
-    ) => {
+    ): Promise<void> => {
         try {
-            const { full_name, email } = req.body
+
+            const data = signupSchema.parse(req.body)
+
+            const result = await this.service.register(data)
+
             res.status(200).json({
-                full_name, email,
+                result,
                 success: true,
                 message: "Account created"
             })
@@ -49,13 +54,17 @@ export class authController {
     }
 
     loginUser = async (
-        req: Request <createUserbody > ,
+        req: Request,
         res: Response,
         next: NextFunction
-    ) => {
+    ): Promise <void>  => {
         try {
-            const { email } = req.body
+            const data = loginSchema.parse(req.body)
+
+            const result = await this.service.login(data)
+
             res.status(200).json({
+                result,
                 success: true,
                 message: "Login Successfully"
             })
@@ -68,29 +77,26 @@ export class authController {
         req: Request,
         res: Response,
         next: NextFunction
-    ) => {
+    ): Promise <void> => {
         try {
-            res.clearCookie("accessToken", {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
-            });
-
+            const data = logoutSchema.parse(req.body)
+            const result = await this.service.logout(data.sessionId)
             res.status(200).json({
                 success: true,
                 message: "Logged out successfully",
+                data: result,
             });
         } catch (error) {
             next(error);
         }
     }
 
-    refreshSession = async (
+    refreshToken = async (
         req: Request,
         res: Response,
         next: NextFunction
     ) => {
-        try {
+         try {
             res.status(200).json({
                 success: true,
                 message: "Session refreshed successfully",
@@ -114,4 +120,5 @@ export class authController {
             next(error);
         }
     }
+
 }; 

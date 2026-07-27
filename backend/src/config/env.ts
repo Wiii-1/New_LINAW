@@ -1,7 +1,10 @@
 import dotenv from "dotenv"
 import type { SignOptions } from "jsonwebtoken"
 
-dotenv.config()
+
+dotenv.config({
+    path:"/src/config/.env"
+})
 
 type JwtExpiresIn = SignOptions["expiresIn"]
 
@@ -9,7 +12,7 @@ const jwtAccessSecret = process.env.JWT_ACCESS_SECRET
 const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET
 
 if (!jwtAccessSecret) {
-    throw new Error("JWT_ACCESS_SECRET is required")
+    throw   new Error("JWT_ACCESS_SECRET is required")
 }
 
 if (!jwtRefreshSecret) {

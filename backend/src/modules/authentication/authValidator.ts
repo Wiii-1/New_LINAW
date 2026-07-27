@@ -1,6 +1,16 @@
 import { z } from 'zod';
 
 // ==========
+// Find by Id
+// ==========
+
+export const findByIdSchema = z.object ({
+    id: z 
+        .string()
+        .uuid("Invalid user Id")
+})
+
+// ==========
 // Signup validation schema
 // ==========
 
@@ -10,15 +20,15 @@ export const signupSchema = z.object ({
         .min(3, "Must have a minimum of 3 characters")
         .max(40,"First name too long"),
 
-    middle_initial: z
-        .string()
-        .min(1)
-        .max(1),
-
     last_name: z
         .string()
         .min(3, "Last must be 3 characters minimum ")
         .max(40, " Last name is too long"),
+
+    job_title: z
+        .string()
+        .min(3)
+        .max(20), 
 
     email: z
         .string()
@@ -28,7 +38,7 @@ export const signupSchema = z.object ({
 
     password: z 
         .string()
-        .min(12, "Pasword must be at least 12 characters")
+        .min(12, "Password must be at least 12 characters")
         .max(128, "Password is too long"),
 
     confirmPassword: z
@@ -50,7 +60,7 @@ export const loginSchema = z.object ({
         .string()
         .email("Invalid email")
         .trim()
-        .toLowerCase,
+        .toLowerCase(),
     
     password: z 
         .string()
@@ -63,7 +73,7 @@ export const loginSchema = z.object ({
 // ==========
 
 export const logoutSchema = z.object({
-    sessionId: z
+    session_Id: z
         .string()
         .uuid("Invalid session Id")
 })
@@ -72,12 +82,14 @@ export const logoutSchema = z.object({
 // Interface
 // ==========
 
-export type SigninInput =
+export type signupInput =
     z.infer<typeof signupSchema>
 
-export type LoginInput = 
+export type loginInput = 
     z.infer<typeof loginSchema>
 
 export type logoutUser = 
     z.infer<typeof logoutSchema>
 
+export type findById =
+    z.infer<typeof findByIdSchema>

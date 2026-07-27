@@ -1,15 +1,19 @@
 import { Router  } from "express";
-import { authController } from "./authController.js";
+import { AuthController } from "./authController.js";
+import { AuthService } from "./authServices.js";
+import { AuthRepository } from "./authRepository.js";
+import { authenticate } from "../../shared/middleware/authenticate.js";
 
 const router = Router();
-const controller = new authController();
+const service = new AuthService(new AuthRepository());
+const controller = new AuthController(service);
 
-router.get("/me", controller.getUserById);
 router.post("/signup", controller.createUser);
 router.post("/login", controller.loginUser);
-router.post("/logout", controller.logoutUser);
-router.post("/refresh", controller.refreshToken);
-router.post("validate_token", controller.validate_token);
+router.get("/:id", authenticate,controller.getUserById);
+router.post("/logout", authenticate, controller.logoutUser);
+router.post("/refresh", authenticate,controller.refreshToken);
+router.post("/validate_token", authenticate,controller.validate_token);
 
 export default router;
  
