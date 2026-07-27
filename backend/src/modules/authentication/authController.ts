@@ -1,8 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { z } from "zod"
 import { AuthService } from "./authServices.js";
-import { signupInput, loginInput, signupSchema, findByIdSchema, loginSchema, logoutSchema } from "./authValidator.js";
-import { AuthRepository } from "./authRepository.js";
+import { signupSchema, findByIdSchema, loginSchema, logoutSchema } from "./authValidator.js";
+
 
 export class AuthController {
     constructor(private service: AuthService) {
@@ -79,12 +78,27 @@ export class AuthController {
         next: NextFunction
     ): Promise <void> => {
         try {
-            const data = logoutSchema.parse(req.body)
-            const result = await this.service.logout(data.sessionId)
+            
+            const refreshToken = req.cookies.refreshToken
+
+            const result = await this.service.logout(refreshToken)
+
+            res.clearCookie("accessToken", {
+                httpOnly: true,
+                secure:process.env.NODE_ENV === "production",
+                sameSite: "strict"
+            })
+
+            res.clearCookie("refreshToken", {
+                httpOnly: true,
+                secure:process.env.NODE_ENV === "production",
+                sameSite: "strict"
+            })
+
             res.status(200).json({
                 success: true,
                 message: "Logged out successfully",
-                data: result,
+                result
             });
         } catch (error) {
             next(error);
@@ -95,11 +109,29 @@ export class AuthController {
         req: Request,
         res: Response,
         next: NextFunction
-    ) => {
+    ): Promise <void> => {
          try {
+
+            const refreshToken = req.cookies.refreshToken
+            
+            const token = await this.service.refresh(refreshToken)
+
+            res.clearCookie("accessToken", {
+                httpOnly: true,
+                secure:process.env.NODE_ENV === "production",
+                sameSite: "strict"
+            })
+
+            res.clearCookie("refreshToken", {
+                httpOnly: true,
+                secure:process.env.NODE_ENV === "production",
+                sameSite: "strict"
+            })
+
             res.status(200).json({
                 success: true,
                 message: "Session refreshed successfully",
+                token
             });
         } catch (error) {
             next(error);
