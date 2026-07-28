@@ -1,0 +1,39 @@
+import { z } from "zod"
+
+// =========
+// search audit schema
+// =========
+
+export const searchAuditSchema = z.object ({
+    purchase_order_id: z
+        .string
+})
+
+// =========
+// audit integrity schema
+// =========
+
+export const auditIntegritySchema = z.object({
+
+})
+
+// =========
+// internal cross module validation schema
+// =========
+
+export const crossModuleValidationSchema = z.object ({
+
+})
+
+// =========
+// Interface
+// =========
+
+export type searchAudit = 
+    z.infer<typeof searchAuditSchema>
+
+export type auditIntegrity = 
+    z.infer<typeof auditIntegritySchema>
+
+export type crossModuleValidation =
+    z.infer<typeof crossModuleValidationSchema>
