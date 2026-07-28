@@ -10,25 +10,6 @@ export class AuthService {
     constructor ( private repository: AuthRepository ) {}
     
     async register (data: signupInput){
-                
-        /* 
-            procress: 
-
-            1. receives validated user signs data
-
-            2. check for exitings emails in the database
-
-            3. password hashes
-
-            4. create tenant Id
-
-            5. create user profile
-        
-            6. create user credential
-
-            7. return response
-
-        */
 
         const {
             first_name,
@@ -71,33 +52,7 @@ export class AuthService {
     }
 
     async login (data: loginInput) {
-        /* 
-        
-            process:
 
-            1. receives validated data 
-
-            2. find user by email
-
-            3. check if user exist
-
-            4. retrieve hashed password
-
-            5. compare submitted password
-                if password do not match reject
-
-            6. generate refresh token hash
-
-            7. create user session
-
-            8. generate access token
-
-            9. generate refresh token
-
-            10. store refresh token
-
-            11. return token
-        */
         const expiresAt = new Date()
 
         expiresAt.setDate(
@@ -154,6 +109,7 @@ export class AuthService {
     }
 
     async findId(user: findById) {
+
         const {
             id
         } = user
@@ -171,20 +127,6 @@ export class AuthService {
 
     async logout(refreshToken: string) {
 
-        /*
-            User requests logout
-                    |
-                    v
-            Find the session
-                    |
-                    v
-            Mark session as dead
-                    |
-                    v
-            Future refresh attempts fail
-        
-        */
-
         const payload = verifyRefreshToken(refreshToken)
 
         const session = await this.repository.findSessionById(payload.session_id)
@@ -201,27 +143,6 @@ export class AuthService {
     }
 
     async refresh(refreshToken: string) {
-
-        /*
-        
-            User presents refresh token
-                    |
-                    v
-            Check if token is legitimate
-                    |
-                    v
-            Find the session it belongs to
-                    |
-                    v
-            Check if session is still alive
-                    |
-                    v
-            Create new access token
-                    |
-                    v
-            Replace refresh token if rotating
-
-        */
 
         const payload = verifyRefreshToken(refreshToken)
 

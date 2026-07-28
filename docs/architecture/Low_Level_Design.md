@@ -2030,35 +2030,37 @@ Audit Trail
 
 ### Responsibilities
 
-- Record significant user and system actions performed within the application.
-- Maintain a chronological and tamper-evident history of transactions and record changes.
-- Generate cryptographic hashes of audit records for blockchain verification.
-- Store blockchain transaction references associated with verified audit trail entries.
-- Allow authorized users to view and verify audit records and related blockchain status.
+- Record completed procurement transactions for audit purposes.
+- Generate cryptographic hashes from finalized transaction records.
+- Submit completed transaction hashes to the blockchain network for immutable verification.
+- Store blockchain transaction references associated with verified transactions.
+- Allow authorized users to verify the integrity of completed transactions through blockchain validation.
 
 ### Module Dependencies
 
-- Depends On: Authentication, `users`, `companies`, all transactional modules, and the configured blockchain network.
+- Depends On: Authentication, `users`, `companies`, and the configured blockchain network.
 - Produces: `audit_trails`, `audit_trail_hashes`, and `audit_trail_blockchain_refs`.
 
 ---
 
 ### Functional Requirements
 
-- The system shall record important user and system actions as audit trail entries.
-- The system shall capture details such as user, action performed, affected module, affected record, timestamp, and related metadata.
-- The system shall generate a hash value for each audit trail entry or grouped audit transaction.
-- The system shall submit the generated hash to the configured blockchain network for verification.
-- The system shall store the resulting blockchain transaction reference together with the related audit trail record.
-- The system shall allow authorized users to view audit trail entries and their blockchain verification status.
-- The system shall allow authorized users to verify whether an audit trail entry matches its recorded blockchain hash.
-- The system shall restrict audit trail access to authorized users only.
+- The system shall create an audit record when a procurement transaction reaches completed status.
+- The system shall capture finalized transaction details including transaction ID, supplier, amount, completion timestamp, and related metadata.
+- The system shall generate a cryptographic hash from the completed transaction data.
+- The system shall submit the generated hash to the configured blockchain network.
+- The system shall store the blockchain transaction reference after successful blockchain submission.
+- The system shall allow authorized users to verify whether completed transaction data matches the blockchain-recorded hash.
+- The system shall prevent modification of blockchain-related audit fields after successful anchoring.
 
 ---
 
 ### Business Rules
 
-- Only significant user and system actions shall be recorded in the audit trail.
+- Only completed procurement transactions shall be recorded for blockchain verification.
+- A transaction must reach completed status before blockchain anchoring.
+- Once blockchain anchoring succeeds, blockchain reference fields cannot be modified.
+- Any modification to completed transaction data must invalidate blockchain verification.
 - Every audit trail entry must contain the acting user, action type, affected module, timestamp, and affected record reference when applicable.
 - An audit trail entry must not be editable or deletable through normal application functions.
 - Each audit trail entry or audit batch must generate a unique cryptographic hash before blockchain submission.
@@ -2072,55 +2074,99 @@ Audit Trail
 
 ### API Endpoints
 
-POST
-/api/audit-trails/verify/:auditId
-/api/audit-trails/blockchain-anchor
-
-GET
-/api/audit-trails
-/api/audit-trails/:auditId
-/api/audit-trails?module=procurement
-/api/audit-trails?status=verified
-/api/audit-trails?status=pending
-
----
+  GET /api/audit-trails/search
+  GET /api/audit-trails/:auditId/verify
+  ---
 
 ### Validation
 
-- user_id
-- action_type
-- module_name
 - record_id
+  - Required identifier of the procurement transaction being audited.
+
 - record_type
-- action_timestamp
+  - Must correspond to supported procurement records such as purchase orders.
+
+- source_module
+  - Must originate from authorized modules:
+    - Purchase Order Management
+    - Approval Workflow
+
+- event_type
+  - Must correspond to valid procurement lifecycle events:
+    - PURCHASE_ORDER_COMPLETED
+    - PAYMENT_CONFIRMED
+    - DELIVERY_CONFIRMED
+
+- transaction_snapshot
+  - Required finalized transaction data used for hash generation.
+
 - hash_value
-- blockchain_network
-- blockchain_tx_hash
-- Verification blocked if required audit data is incomplete
-- Blockchain anchoring blocked if hash value is missing
-- Blockchain transaction reference must be stored only after a successful submission response
-- Audit trail entry must contain valid module and action references
+  - Required before blockchain anchoring.
+  - Generated from the finalized transaction snapshot.
+
+- blockchain_reference
+  - Blockchain transaction references must only be stored after successful anchoring.
+
+- verification_request
+  - Audit verification is blocked if the audit record or blockchain reference is incomplete.
+
+- integrity_check
+  - Verification compares the current procurement transaction data against the blockchain-anchored hash.
+
+- unauthorized modification
+  - Audit records and blockchain reference fields cannot be modified after successful anchoring.
 
 ---
 
 ### Database Tables
 
 - **audit_trails**
-  - Stores the main audit trail records for significant user and system actions.
-  - Includes user identifier, action type, module name, affected record reference, timestamp, status, and metadata.
+  - Stores immutable audit records generated from completed procurement lifecycle events.
+  - Represents the finalized state of a procurement transaction at the time of auditing.
+  - Includes:
+    - audit identifier
+    - source module
+    - event type
+    - referenced transaction ID
+    - record type
+    - performed by user
+    - company identifier
+    - transaction snapshot metadata
+    - audit creation timestamp
+    - verification status
 
 - **audit_trail_hashes**
-  - Stores the cryptographic hash generated for an audit trail entry or audit batch.
-  - Used for integrity checking and blockchain verification.
+  - Stores cryptographic hashes generated from finalized procurement transaction snapshots.
+  - Used to verify that stored transaction data has not been modified after blockchain anchoring.
+  - Includes:
+    - audit identifier
+    - hash algorithm
+    - generated hash value
+    - hash generation timestamp
 
 - **audit_trail_blockchain_refs**
-  - Stores blockchain-related references linked to audit trail records.
-  - Includes blockchain network name, transaction hash, block number, verification status, and anchoring timestamp.
+  - Stores blockchain anchoring information associated with audit trail hashes.
+  - Contains references required to locate and verify the blockchain record.
+  - Includes:
+    - audit identifier
+    - blockchain network
+    - blockchain transaction hash
+    - block number
+    - anchoring timestamp
+    - blockchain verification status
 
 - **Referenced Existing Tables**
-  - `users` — stores the user account associated with the recorded action.
-  - `companies` — stores the company or organization related to the action where applicable.
-  - `rfqs`, `quotations`, `purchase_orders`, and other transactional tables — store the business records referenced by the audit trail.
+  - `users`
+    - Stores the user associated with procurement actions such as approval, completion, or confirmation.
+
+  - `companies`
+    - Stores the organization associated with the procurement transaction.
+
+  - `purchase_orders`
+    - Stores the primary procurement transaction referenced by the audit trail.
+
+  - `rfqs`, `quotations`, and other procurement tables
+    - Store related business records linked to the audited transaction.
 
 ---
 
@@ -2129,36 +2175,64 @@ GET
 ```mermaid
 sequenceDiagram
     actor User
-    participant UI as Application Module
+    participant PO as Purchase Order Module
     participant API as Backend API
     participant AUD as Audit Trail Module
-    participant DB as Database
+    participant DB as PostgreSQL Database
+    participant HASH as Hash Service
     participant BC as Blockchain Service
+    participant BESU as Hyperledger Besu Network
 
-    User->>UI: Perform transaction or update record
-    UI->>API: Submit request
-    API->>AUD: Record audit event
-    AUD->>DB: Save audit trail entry
-    DB-->>AUD: Audit trail entry saved
+    PO->>API: Update purchase order status
+    Note over PO: Status changes to COMPLETED, PAID, or DELIVERED
 
-    AUD->>AUD: Generate cryptographic hash
-    AUD->>BC: Submit hash to blockchain
-    BC-->>AUD: Return blockchain transaction reference
+    API->>AUD: Trigger audit event
+    AUD->>DB: Store audit trail snapshot
+    DB-->>AUD: Audit record saved
 
-    AUD->>DB: Save hash and blockchain reference
+    AUD->>HASH: Generate cryptographic hash
+    HASH-->>AUD: Return generated hash
+
+    AUD->>DB: Store audit hash
+    DB-->>AUD: Hash saved
+
+    AUD->>BC: Submit hash for blockchain anchoring
+    BC->>BESU: Store transaction hash
+    BESU-->>BC: Return blockchain transaction reference
+
+    BC-->>AUD: Return blockchain reference
+
+    AUD->>DB: Store blockchain reference
     DB-->>AUD: Blockchain reference saved
-    AUD-->>API: Return success status
-    API-->>UI: Display transaction result
 
-    User->>UI: Request audit verification
-    UI->>API: Verify audit trail entry
-    API->>AUD: Retrieve audit record and hash
-    AUD->>DB: Query audit record and blockchain reference
-    DB-->>AUD: Return audit data
-    AUD->>BC: Validate stored hash against blockchain reference
-    BC-->>AUD: Verification result
-    AUD-->>API: Return verification status
-    API-->>UI: Display audit verification result
+
+    User->>API: Search audit record
+    API->>AUD: Request audit transaction data
+    AUD->>DB: Retrieve audit record
+    DB-->>AUD: Return audit information
+    AUD-->>API: Return audit record
+    API-->>User: Display transaction audit details
+
+
+    User->>API: Request audit verification
+    API->>AUD: Verify audit integrity
+
+    AUD->>DB: Retrieve transaction snapshot and hash
+    DB-->>AUD: Return stored audit data
+
+    AUD->>HASH: Generate current transaction hash
+    HASH-->>AUD: Return calculated hash
+
+    AUD->>BC: Retrieve blockchain anchored hash
+    BC->>BESU: Query stored hash reference
+    BESU-->>BC: Return blockchain hash
+
+    BC-->>AUD: Return blockchain hash
+
+    AUD->>AUD: Compare database hash with blockchain hash
+
+    AUD-->>API: Return verification result
+    API-->>User: Display integrity status
 ```
 
 ---
