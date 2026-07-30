@@ -231,7 +231,7 @@ Authenticated user or session record not found
 User account already exists or authentication session is already revoked or in conflicting state
 
 422  
-Authentication validation failed
+email format invalid, password too short, missing required fields.
 
 500  
 Internal server error
@@ -535,10 +535,10 @@ Contains the business logic for user management operations. It registers compani
 #### userRepository
 
 Handles data access and database queries related to users, companies, roles, permissions, user-role mappings, and role-permission mappings.
-
+classes
 #### userValidator
 
-Validates request data for user management operations. It ensures company registration details, profile inputs, role references, permission references, and account status inputs are complete and correctly formatted before processing.
+Validates request data for user management operations. It ensures company registration details, profile inputs, role references, permission references, and account status inputs are complete anclassesd correctly formatted before processing.
 
 ---
 

@@ -1,10 +1,54 @@
-# backend 
-backend/src/config/.env
-backend/node_modules
-.vscode
-backend/pnpm-lock.yaml
-backend/pnpm-workspace.yaml
-backend/generated
-backend/.windsurf
-backend/.claude
-backend/.agents
+# =====================
+# Backend
+# =====================
+
+backend/node_modules/
+backend/generated/
+backend/.windsurf/
+backend/.claude/
+backend/.agents/
+backend/dist
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# =====================
+# blockchain_test_integration
+# =====================
+blockchain_test_integration/node_modules
+
+
+# =====================
+# Editor
+# =====================
+
+.vscode/
+
+
+# =====================
+# Blockchain
+# =====================
+
+# Besu runtime data
+procurement_blockchain/data/
+
+# Besu private keys
+procurement_blockchain/**/key
+procurement_blockchain/**/keys/
+procurement_blockchain/**/private*
+
+# Blockchain logs
+procurement_blockchain/**/*.log
+procurement_blockchain/logs/
+
+# Secrets
+secrets/
+
+# =====================
+# smart contract
+# =====================
+smart_contract/node_modules
+smart_contract/.env
+smart_contract/SC_Deployment.json

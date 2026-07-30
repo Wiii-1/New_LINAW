@@ -6,7 +6,7 @@ import { z } from "zod"
 
 export const searchAuditSchema = z.object ({
     purchase_order_id: z
-        .string
+        .string()
 })
 
 // =========
@@ -14,16 +14,14 @@ export const searchAuditSchema = z.object ({
 // =========
 
 export const auditIntegritySchema = z.object({
-
+    id: z
+        .string()
+        .uuid()
 })
 
 // =========
 // internal cross module validation schema
 // =========
-
-export const crossModuleValidationSchema = z.object ({
-
-})
 
 // =========
 // Interface
@@ -34,6 +32,3 @@ export type searchAudit =
 
 export type auditIntegrity = 
     z.infer<typeof auditIntegritySchema>
-
-export type crossModuleValidation =
-    z.infer<typeof crossModuleValidationSchema>
