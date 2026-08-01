@@ -1,10 +1,7 @@
 import dotenv from "dotenv"
 import type { SignOptions } from "jsonwebtoken"
 
-
-dotenv.config({
-    path:"/src/config/.env"
-})
+dotenv.config();
 
 type JwtExpiresIn = SignOptions["expiresIn"]
 
