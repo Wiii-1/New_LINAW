@@ -1267,7 +1267,7 @@ model AuditTrail {
 
   request_id String?
 
-  details_json Json?
+  snapshot_json Json?
 
   created_at DateTime @default(now()) @db.Timestamptz(6)
 

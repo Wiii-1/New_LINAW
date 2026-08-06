@@ -5,7 +5,7 @@ import { z } from "zod"
 // =========
 
 export const searchAuditSchema = z.object ({
-    purchase_order_id: z
+    id: z
         .string()
 })
 
@@ -19,13 +19,11 @@ export const auditIntegritySchema = z.object({
         .uuid()
 })
 
-// =========
-// internal cross module validation schema
-// =========
 
 // =========
 // Interface
 // =========
+
 
 export type searchAudit = 
     z.infer<typeof searchAuditSchema>

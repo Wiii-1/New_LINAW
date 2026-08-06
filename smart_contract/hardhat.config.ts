@@ -39,7 +39,8 @@ export default defineConfig({
       chainType: "l1",
       url: "http://localhost:8545",
       accounts: [
-        configVariable("BESU_PRIVATE_KEY")
+        configVariable("BESU_PRIVATE_KEY"),
+        process.env.DEPLOYER_PRIVATE_KEY!
       ],
     },
 

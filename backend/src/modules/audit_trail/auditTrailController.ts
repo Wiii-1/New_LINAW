@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction} from "express"
-import { auditTrailService } from "./auditTrailService.js"
+import { AuditTrailService } from "./auditTrailService.js"
 import { searchAuditSchema, auditIntegritySchema} from "./auditTrailValidator.js"
 
 export class auditTrailController {
-    constructor(private service: auditTrailService){
+    constructor(private readonly service: AuditTrailService){
         this.service = service
     }
 

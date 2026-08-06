@@ -305,3 +305,21 @@ Docker provides:
 
 - Additional learning curve for container management.
 - Slight increase in deployment complexity compared to running applications directly.
+
+# ADR-008: Use of argon2, jsonwebtoken, morgan, helmet
+
+## Status
+
+Accepted
+
+## Decision
+
+
+
+## Rationale
+
+## Consequences
+
+### Positive
+
+### Negative

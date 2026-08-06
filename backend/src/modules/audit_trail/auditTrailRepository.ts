@@ -1,4 +1,23 @@
 import { prisma } from "../../config/database.js";
+import { Prisma } from "../../generated/prisma/client.js";
+
+type PurchaseOrderWithRelations = Prisma.PurchaseOrderGetPayload<{
+    include: {
+        company: true;
+        supplier: true;
+        items: true;
+        approvals: {
+            include: {
+                approved_by_user: true;
+            };
+        };
+        goods_receipts: {
+            include: {
+                received_by_user: true;
+            };
+        };
+    };
+}>;
 
 
 export type PurchaseOrderSnapshot = {
@@ -27,7 +46,10 @@ export type PurchaseOrderSnapshot = {
     }[];
 
     approvals: {
-        approved_by: string;
+        approved_by: {
+            id: string,
+            name: string
+        };
         action: string;
         timestamp: Date;
     }[];
@@ -46,7 +68,7 @@ export type audit_trail_input = {
     entity_id: string;
     action: string;
     result: string;
-    details_json?: object;
+    snapshot_json?: object;
 };
 
 export type audit_hashes_input = {
@@ -68,34 +90,61 @@ export type audit_trail_blockchain_refs_input = {
 
 export class AuditTrailRepository {
 
+    async findAuditByid (
+        auditId: string
+    ) {
+        return prisma.auditId.findUnique({
+            where:{
+                id: auditId
+            }
+        })
+    }
+
     async getPurchaseOrderSnapshot(
         purchaseOrderId: string
     ): Promise<PurchaseOrderSnapshot | null> {
 
-        const po = await prisma.purchase_order.findUnique({
-            where: {
-                id: purchaseOrderId
-            },
-            include: {
-                company: true,
-                supplier: true,
-                items: true,
-                approvals: {
-                    include: {
-                        approvedByUser: true
-                    }
+        const po: PurchaseOrderWithRelations | null =
+            await prisma.purchaseOrder.findUnique({
+                where: {
+                    id: purchaseOrderId
                 },
-                goodsReceipts: {
-                    include: {
-                        receivedByUser: true
+                include: {
+                    company: true,
+                    supplier: true,
+                    items: true,
+                    approvals: {
+                        include: {
+                            approved_by_user: true
+                        }
+                    },
+                    goods_receipts: {
+                        include: {
+                            received_by_user: true
+                        }
                     }
                 }
-            }
-        });
+            });
 
         if (!po) {
             return null;
         }
+
+        const items = po.items.map((item) => ({
+            description: item.description,
+            quantity: Number(item.quantity),
+            price: Number(item.unit_price),
+            total_price: Number(item.total_price)
+        }));
+
+        const approvals = po.approvals.map((action) => ({
+            approved_by: {
+                id: action.approved_by_user.id,
+                name: action.approved_by_user.last_name
+            },
+            action: action.action,
+            timestamp: action.acted_at
+        }));
 
         return {
             purchase_order_id: po.id,
@@ -115,24 +164,14 @@ export class AuditTrailRepository {
             final_amount: Number(po.total_amount),
             order_date: po.order_date,
 
-            items: po.items.map((item) => ({
-                description: item.description,
-                quantity: Number(item.quantity),
-                price: Number(item.unit_price),
-                total_price: Number(item.total_price)
-            })),
+            items,
+            approvals,
 
-            approvals: po.approvals.map((action) => ({
-                approved_by: action.approvedByUser.id,
-                action: action.action,
-                timestamp: action.acted_at
-            })),
-            
-            receipt: po.goodsReceipts[0]
+            receipt: po.goods_receipts[0]
                 ? {
-                    receipt_number: po.goodsReceipts[0].receipt_number,
-                    receipt_date: po.goodsReceipts[0].receipt_date,
-                    received_by: po.goodsReceipts[0].receivedByUser.id
+                    receipt_number: po.goods_receipts[0].receipt_number,
+                    receipt_date: po.goods_receipts[0].receipt_date,
+                    received_by: po.goods_receipts[0].received_by_user.id
                 }
                 : null
         };

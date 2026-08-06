@@ -568,25 +568,25 @@ Purchase Requisition
 ### API Endpoints
 
 POST  
-/api/purchase-requisitions  
-/api/purchase-requisitions/:requisitionId/submit  
-/api/purchase-requisitions/:requisitionId/cancel  
-/api/purchase-requisitions/:requisitionId/resubmit
+/api/purchase_requisitions/create 
+/api/purchase_requisitions/:requisitionId/submit  
+/api/purchase_requisitions/:requisitionId/cancel  
+/api/purchase_requisitions/:requisitionId/resubmit
 
 GET  
-/api/purchase-requisitions  
-/api/purchase-requisitions/:requisitionId  
-/api/purchase-requisitions?status=draft  
-/api/purchase-requisitions?status=submitted  
-/api/purchase-requisitions?requesterId=:requesterId  
-/api/purchase-requisitions?referenceNo=:referenceNo
+/api/purchase_requisitions  
+/api/purchase_requisitions/:requisitionId  
+/api/purchase_requisitions?status=draft  
+/api/purchase_requisitions?status=submitted  
+/api/purchase_requisitions?requesterId=:requesterId  
+/api/purchase_requisitions?referenceNo=:referenceNo
 
 PUT  
-/api/purchase-requisitions/:requisitionId  
-/api/purchase-requisitions/:requisitionId/status
+/api/purchase_requisitions/:requisitionId  
+/api/purchase_requisitions/:requisitionId/status
 
 DELETE  
-/api/purchase-requisitions/:requisitionId
+/api/purchase_requisitions/:requisitionId
 
 ---
 
@@ -2044,8 +2044,8 @@ Audit Trail
     - PAYMENT_CONFIRMED
     - DELIVERY_CONFIRMED
 
-- transaction_snapshot
-  - Required finalized transaction data used for hash generation.
+- purchase_order_snapshot
+  - Required finalized purchase order data used for hash generation.
 
 - hash_value
   - Required before blockchain anchoring.

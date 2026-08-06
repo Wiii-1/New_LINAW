@@ -674,7 +674,7 @@ contain multiple companies.
 
 ### company_memberships
 - `id` | `uuid` | PK
-- `tenant_id` | `uuid` |  -> users.id, indexed
+- `tenant_id` | `uuid` |  -> tenant.id, indexed
 - `employment_status` | `text` | indexed
 - `department` | `text` | nullable
 - `created_at` | `timestamptz` | not null
@@ -1106,7 +1106,7 @@ contain multiple companies.
 - `action` | `text` | indexed
 - `result` | `text` | indexed
 - `request_id` | `text` | nullable
-- `details_json` | `jsonb` | nullable
+- `snapshot_json` | `jsonb` | nullable
 - `created_at` | `timestamptz` | not null
 
 ### audit_trail_hashes
