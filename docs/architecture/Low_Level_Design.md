@@ -241,239 +241,183 @@ Authentication service unavailable
 
 ---
 
-## Module 2
+# Module 2
 
 User Management
 
 ---
 
-### Responsibilities
+## Responsibilities
 
-- Handle company registration and company profile maintenance.
-- Store and maintain company profile details and user membership under the registered company.
-- Allow authorized users to view and update their own profile information.
-- Allow authorized company administrators to manage company user accounts.
-- Control access to procurement functions based on company-scoped roles and permissions.
-
-### Module Dependencies
-
-- Depends On: Authentication, `users`, `companies`, `roles`, `permissions`, `user_roles`, and `role_permissions`.
-- Produces: company records, updated user profiles, company user account changes, role assignments, and permission mappings.
+- Register new user accounts in the system.
+- Register new organizations during the onboarding process.
+- Automatically assign the registering user as the initial organization administrator after successful organization registration.
+- Allow authenticated users to view and update their own profile information.
+- Maintain user account and organization profile information created during onboarding.
+- Provide authenticated user identity information required by other system modules.
 
 ---
 
-### Functional Requirements
+## Module Dependencies
 
-- The system shall allow the initial organization administrator to register and maintain company details in the application.
-- The system shall allow the system to associate a registered user with a company as its organization administrator after company registration.
-- The system shall allow authorized users to view and update their account information within the scope allowed by the company.
-- The system shall allow authorized company administrators to create, view, update, deactivate, and remove company user accounts after company setup is completed.
-- The system shall allow authorized company administrators to assign roles and permissions to company users based on authorized access requirements.
-- The system shall allow authorized company administrators to search and filter company users by name, email, role, or account status.
-- The system shall allow the system to enforce access restrictions based on company membership, assigned roles, and permissions.
-- The system shall restrict company user and role management functions to authorized organization administrators only.
+- Depends on: Authentication, `User`, `UserCredential`, `Company`, `CompanyMembership`, `Role`, and `UserRole`.
+- Produces: user accounts, credential records, company records, profile updates, company membership records, and initial administrator role assignments.
 
 ---
 
-### Business Rules
+## Functional Requirements
 
-- A company record must be created before company-level administration can be fully performed.
-- The registered user designated during company setup shall become the organization administrator of that company.
-- Every managed user account must belong to one valid company record based on the current system design.
-- A user account must have at least one valid company-scoped role before it can access protected procurement functions.
-- Company administrators shall manage only users belonging to their own company.
-- Inactive or deactivated user accounts shall not be allowed to access the system.
-- Company-related roles and permissions shall apply only within the scope of the user’s registered company.
-- Significant user, company, role, and membership changes shall be recorded with the acting user and timestamp.
+- The system shall allow new users to register an account.
+- The system shall allow a registered user who is not yet associated with an organization to register a new company.
+- The system shall automatically assign the registering user as the initial organization administrator after successful company registration.
+- The system shall allow authenticated users to view their own profile information.
+- The system shall allow authenticated users to update their own profile information.
+- The system shall provide authenticated user identity information required by authorized system modules.
 
 ---
 
-### Internal Sections
+## Business Rules
 
-#### User Profile Management
+- A registered user who is not associated with an organization may register a new company.
+- The user who successfully registers a company shall automatically become its initial organization administrator.
+- A user may only register one organization unless otherwise permitted by the system.
+- Authenticated users may view and update only their own profile information.
+- Organization administration functions shall become available only after successful company registration.
+- User authentication data shall be stored separately from user profile data.
+- Tenant isolation shall be enforced for all user, company, and membership records.
 
-Handles self-service user profile retrieval and profile updates for the authenticated user.
+---
+
+## Internal Sections
+
+### User Profile Management
+
+Handles retrieval and updates of the authenticated user's personal profile information.
 
 **API Endpoints**
 
-GET  
+GET
+
 /api/users/profile
 
-PUT  
+PUT
+
 /api/users/profile
 
 **Validation**
-- full_name
+
+- first_name
+- last_name
 - email
-- contact_number
-- Email must be in a valid format
-- User email must be unique within the allowed account rules
-- Contact number must follow the accepted format when provided
+- job_title
+- status
+- Email must be in a valid format.
+- User email must be unique within the tenant.
+- Profile updates shall only affect the authenticated user.
+- Account status must match an allowed user state.
 
-#### Organization (Company) Management
+---
 
-Handles company registration and company profile maintenance for the SaaS platform.
+### Organization Registration
+
+Handles organization registration during the onboarding process and associates the registering user as the initial organization administrator.
 
 **API Endpoints**
 
-POST  
+POST
+
 /api/companies/register
 
-GET  
+GET
+
 /api/companies/:companyId
 
-PUT  
+**Validation**
+
+- legal_name
+- display_name
+- tax_id
+- address
+- contact_email
+- contact_phone
+- Company legal name must not be empty.
+- Company registration information must be complete before onboarding is finalized.
+- Company email must be in a valid format when provided.
+- Company contact phone must follow the accepted format when provided.
+
+---
+
+## API Endpoints
+
+POST
+
+/api/companies/register
+
+GET
+
+/api/users/profile
 /api/companies/:companyId
 
-**Validation**
-- company_name
-- company_email
-- company_address
-- company_contact_number
-- company_status
-- Company name must not be empty during company registration
-- Company record must contain required organization details before setup is completed
-- Company email must be in a valid format when provided
-- Company status must match an allowed company state
+PUT
 
-#### User Administration
+/api/users/profile
 
-Handles company-scoped user creation, retrieval, update, deactivation, and removal after company setup is completed.
+---
 
-**API Endpoints**
+## Validation
 
-POST  
-/api/companies/:companyId/users
-
-GET  
-/api/companies/:companyId/users  
-/api/companies/:companyId/users/:userId  
-/api/companies/:companyId/users?status=active  
-/api/companies/:companyId/users?role=:roleName
-
-PUT  
-/api/companies/:companyId/users/:userId  
-/api/companies/:companyId/users/:userId/status
-
-DELETE  
-/api/companies/:companyId/users/:userId
-
-**Validation**
-- full_name
+- first_name
+- last_name
 - email
 - password
-- user_status
-- User email must be unique within the allowed account rules
-- Password must meet the configured security requirements when applicable
-- User status must match an allowed account state
-- Company user administration must be restricted to the acting administrator’s company scope
-
-#### Role & Permission Management
-
-Handles company-scoped role assignment, role removal, and permission reference retrieval for RBAC enforcement.
-
-**API Endpoints**
-
-POST  
-/api/companies/:companyId/users/:userId/assign-role  
-/api/companies/:companyId/users/:userId/remove-role
-
-GET  
-/api/roles  
-/api/permissions
-
-**Validation**
-- role_id
-- permission_id
-- Role reference must match an existing company-scoped role record
-- Permission reference must match an existing permission record
-- User account must have at least one assigned role before protected procurement access is allowed
+- job_title
+- status
+- legal_name
+- display_name
+- tax_id
+- address
+- contact_email
+- contact_phone
+- Email must be in a valid format.
+- User email must be unique within the tenant.
+- Password must satisfy the configured security requirements.
+- Company registration information must be complete before onboarding is finalized.
+- User authentication data shall be provided separately from profile data.
 
 ---
 
-### API Endpoints
+## Database Tables
 
-POST  
-/api/companies/register  
-/api/companies/:companyId/users  
-/api/companies/:companyId/users/:userId/assign-role  
-/api/companies/:companyId/users/:userId/remove-role
+- **Tenant**
+  - Stores tenant scope and isolation boundaries.
+  - Ensures users and companies are isolated by tenant.
 
-GET  
-/api/users/profile  
-/api/companies/:companyId  
-/api/companies/:companyId/users  
-/api/companies/:companyId/users/:userId  
-/api/companies/:companyId/users?status=active  
-/api/companies/:companyId/users?role=:roleName  
-/api/roles  
-/api/permissions
+- **User**
+  - Stores user account information and profile data.
+  - Includes identity, contact information, job title, and account status.
 
-PUT  
-/api/users/profile  
-/api/companies/:companyId  
-/api/companies/:companyId/users/:userId  
-/api/companies/:companyId/users/:userId/status
+- **UserCredential**
+  - Stores authentication data separate from the user profile.
+  - Includes the password hash and credential lifecycle data.
 
-DELETE  
-/api/companies/:companyId/users/:userId
+- **Company**
+  - Stores organization records created during onboarding.
+  - Includes organization identity, contact information, and profile details.
 
----
+- **CompanyMembership**
+  - Stores the relationship between users and companies.
+  - Tracks membership and employment status within the organization.
 
-### Validation
+- **Role**
+  - Stores tenant-scoped role definitions.
 
-- full_name
-- email
-- password
-- contact_number
-- user_status
-- company_name
-- company_email
-- company_address
-- company_contact_number
-- company_status
-- role_id
-- permission_id
-- Email must be in a valid format
-- User email must be unique within the allowed account rules
-- Password must meet the configured security requirements when applicable
-- Company name must not be empty during company registration
-- Company record must contain required organization details before setup is completed
-- Role reference must match an existing company-scoped role record
-- Permission reference must match an existing permission record
-- User account must have at least one assigned role before protected procurement access is allowed
+- **UserRole**
+  - Stores role assignments for users.
+  - May be linked to a company when the role is organization-specific.
 
 ---
 
-### Database Tables
-
-- **users**
-  - Stores the main user account records.
-  - Includes full name, email, password hash, contact number, account status, and company reference.
-
-- **companies**
-  - Stores the registered company records in the application.
-  - Includes company name, address, contact details, status, registration metadata, and organization administrator reference.
-
-- **roles**
-  - Stores the role definitions used for company-scoped access control.
-  - Includes role name, description, and status.
-
-- **permissions**
-  - Stores the permission definitions used for module and action authorization.
-  - Includes permission name, module reference, action type, and description.
-
-- **user_roles**
-  - Stores the role assignments associated with company users.
-  - Includes user reference, company reference, role reference, assigned by, and assignment timestamp.
-
-- **role_permissions**
-  - Stores the permission assignments associated with roles.
-  - Includes role reference, permission reference, assigned by, and assignment timestamp.
-
----
-
-### Sequence Diagram
+## Sequence Diagram
 
 ```mermaid
 sequenceDiagram
@@ -483,89 +427,92 @@ sequenceDiagram
     participant UM as User Management Module
     participant DB as Database
 
-    User->>UI: Register company details
-    UI->>API: Submit company registration request
-    API->>UM: Validate company data
-    UM->>DB: Save company record and link organization administrator
-    DB-->>UM: Company registered
-    UM-->>API: Return company registration result
-    API-->>UI: Display organization setup result
+    User->>UI: Register account
+    UI->>API: Submit registration
+    API->>UM: Validate registration
+    UM->>DB: Create user account
+    UM->>DB: Create credential record
+    DB-->>UM: User created
+    UM-->>API: Registration successful
+    API-->>UI: Display registration result
 
-    User->>UI: View or update user profile
+    User->>UI: Register organization
+    UI->>API: Submit organization information
+    API->>UM: Validate organization data
+    UM->>DB: Create company record
+    UM->>DB: Create membership record
+    UM->>DB: Assign initial administrator role
+    DB-->>UM: Organization registered
+    UM-->>API: Return onboarding result
+    API-->>UI: Display successful organization setup
+
+    User->>UI: View or update profile
     UI->>API: Submit profile request
     API->>UM: Validate profile data
-    UM->>DB: Retrieve or update user profile
+    UM->>DB: Retrieve or update profile
     DB-->>UM: Profile processed
-    UM-->>API: Return profile result
-    API-->>UI: Display updated profile information
-
-    User->>UI: Manage company user account
-    UI->>API: Submit company user management request
-    API->>UM: Validate company scope and permissions
-    UM->>DB: Save or update company user record
-    DB-->>UM: Company user record updated
-    UM-->>API: Return company user result
-    API-->>UI: Display updated company user data
-
-    User->>UI: Assign company role to employee
-    UI->>API: Submit role assignment request
-    API->>UM: Process role assignment
-    UM->>DB: Save company user role mapping
-    DB-->>UM: Role assignment saved
-    UM-->>API: Return updated access result
-    API-->>UI: Display updated user access
+    UM-->>API: Return profile information
+    API-->>UI: Display updated profile
 ```
 
 ---
 
-### Classes
+## Classes
 
-#### userRouter
+### userRouter
 
-Defines the API routes for company registration, user profile management, company user management, and company-scoped role and permission operations. It maps incoming HTTP requests to the appropriate controller functions.
+Defines the API routes for user registration, organization registration, and authenticated user profile management.
 
-#### userController
+### userController
 
-Handles user management API requests and responses. It receives requests for company registration, profile updates, company user management, and role assignment, then returns the appropriate response to the client.
+Handles incoming requests related to user registration, organization onboarding, and user profile management. It validates requests, invokes the service layer, and returns appropriate responses.
 
-#### userService
+### userService
 
-Contains the business logic for user management operations. It registers companies, links organization administrators to companies, manages company user membership, validates company-scoped roles, and enforces company-based access control rules.
+Contains the business logic for user account and onboarding operations. It creates user accounts, registers organizations, assigns company membership, automatically grants the initial organization administrator role, manages authenticated user profile updates, and provides user identity information to other modules.
 
-#### userRepository
+### userRepository
 
-Handles data access and database queries related to users, companies, roles, permissions, user-role mappings, and role-permission mappings.
-classes
-#### userValidator
+Handles database operations related to user accounts, credentials, companies, memberships, and role assignments.
 
-Validates request data for user management operations. It ensures company registration details, profile inputs, role references, permission references, and account status inputs are complete anclassesd correctly formatted before processing.
+### userValidator
+
+Validates registration, onboarding, and profile management requests before they are processed.
 
 ---
 
-### Error Handling
+## Error Handling
 
-400  
+400
+
 Invalid user management request data
 
-401  
+401
+
 Unauthorized access
 
-403  
-Insufficient privileges to manage company users, roles, or permissions
+403
 
-404  
-User, company, role, or permission record not found
+Access denied
 
-409  
-Company record or role assignment already exists or is in conflicting state
+404
 
-422  
-User management validation failed
+User or organization not found
 
-500  
+409
+
+User account or organization already exists
+
+422
+
+Validation failed
+
+500
+
 Internal server error
 
-503  
+503
+
 User management service unavailable
 
 ---
@@ -2285,204 +2232,342 @@ Blockchain service unavailable
 ---
 
 
-## Module 11
+# Module 11
 
 Organization Administration
 
 ---
 
-### Responsibilities
+## Responsibilities
 
-- Manage user accounts within the organization.
-- Assign organization-level roles and permissions to company users.
-- Maintain organization-specific settings and administrative controls.
-- Monitor organization-level administrative actions through audit logs.
-- Restrict administrative functions to authorized users within the organization only.
-
-### Module Dependencies
-
-- Depends On: Authentication, `users`, `companies`, `roles`, `permissions`, and `audit_logs`.
-- Produces: organization user mappings, role assignments, permissions, settings, and administrative audit records.
+- Manage organization members within the organization.
+- Invite, update, deactivate, and remove organization members.
+- Assign and manage organization roles and permissions.
+- Maintain organization settings and administrative configurations.
+- Monitor organization administrative activities through audit trail records.
+- Enforce organization-scoped administrative access and security policies.
 
 ---
 
-### Functional Requirements
+## Module Dependencies
 
-- The organization administrator shall be able to create, update, deactivate, and view user accounts within the organization.
-- The organization administrator shall be able to assign and modify roles and permissions for users within the organization.
-- The organization administrator shall be able to configure organization-specific settings required for company operations.
-- The organization administrator shall be able to view audit logs of important administrative activities within the organization.
-- The system shall restrict organization administration pages and functions to authorized users within the same organization only.
-- The system shall record significant administrative changes such as user updates, role assignments, and organization setting changes.
+- Depends on: Authentication, `Tenant`, `User`, `Company`, `CompanyMembership`, `Role`, `Permission`, `RolePermission`, and `AuditTrail`.
+- Produces: organization member records, role assignments, permission mappings, administrative configuration records, and audit trail entries.
 
 ---
 
-### Business Rules
+## Functional Requirements
 
-- Only authorized organization administrators may access the Organization Administration module.
-- An organization administrator may create, modify, or deactivate only the user accounts belonging to the same organization.
-- A user account must be assigned an appropriate organization role before the account can access protected organization functions.
-- Administrative changes to user access, roles, and organization settings must be recorded in the audit log.
-- An organization administrator shall not access or modify users, settings, or records belonging to another organization.
-- Deactivated users shall not be allowed to log in or access protected organization features.
-- Organization settings shall not be changed without appropriate organization-level permission.
+- The system shall allow authorized organization administrators to invite or add users to the organization.
+- The system shall allow authorized organization administrators to view organization members.
+- The system shall allow authorized organization administrators to update organization member information.
+- The system shall allow authorized organization administrators to deactivate or remove organization members.
+- The system shall allow authorized organization administrators to assign, modify, and revoke organization roles.
+- The system shall allow authorized organization administrators to view available organization permissions.
+- The system shall allow authorized organization administrators to configure organization settings.
+- The system shall allow authorized organization administrators to view organization administrative audit trail records.
+- The system shall enforce organization-level access restrictions so administrators may manage only resources belonging to their own organization.
 
 ---
 
-### API Endpoints
+## Business Rules
+
+- Organization administration shall only be available after an organization has been successfully registered.
+- Only users assigned an organization administrator role may access organization administration functions.
+- Organization administrators may manage only members belonging to their own organization.
+- Every organization member shall belong to one valid organization.
+- Organization members shall be assigned at least one organization role before accessing protected organization functions.
+- Organization settings may only be modified by authorized administrators with the required permission.
+- Deactivated organization members shall not be allowed to access protected organization resources.
+- All administrative actions affecting users, roles, permissions, and organization settings shall be recorded in the audit trail.
+
+---
+
+## Internal Sections
+
+### Organization Member Management
+
+Handles organization member retrieval, invitation, updates, deactivation, and removal.
+
+**API Endpoints**
 
 POST
+
 /api/org-admin/users
-/api/org-admin/roles
-/api/org-admin/settings
 
 GET
+
 /api/org-admin/users
+
 /api/org-admin/users/:userId
-/api/org-admin/roles
-/api/org-admin/settings
-/api/org-admin/audit-logs
 
 PUT
+
 /api/org-admin/users/:userId
-/api/org-admin/roles/:roleId
-/api/org-admin/settings/:settingId
 
 PATCH
+
 /api/org-admin/users/:userId/status
 
----
+DELETE
 
-### Validation
+/api/org-admin/users/:userId
+
+**Validation**
 
 - first_name
 - last_name
 - email
-- password
+- account_status
+- Email must be in a valid format.
+- User must belong to the administrator's organization.
+- Duplicate organization membership is not allowed.
+
+---
+
+### Organization Role & Permission Management
+
+Handles organization role assignments and permission management.
+
+**API Endpoints**
+
+POST
+
+/api/org-admin/users/:userId/roles
+
+DELETE
+
+/api/org-admin/users/:userId/roles/:roleId
+
+GET
+
+/api/org-admin/roles
+
+/api/org-admin/permissions
+
+**Validation**
+
 - role_id
+- permission_id
+- Role must exist within the tenant.
+- Permission reference must be valid.
+- Organization members must have at least one assigned role before accessing protected modules.
+
+---
+
+### Organization Settings
+
+Handles organization configuration and administrative preferences.
+
+**API Endpoints**
+
+GET
+
+/api/org-admin/settings
+
+PUT
+
+/api/org-admin/settings
+
+**Validation**
+
+- setting_key
+- setting_value
+- Required settings must contain valid values.
+- Only authorized administrators may modify organization settings.
+
+---
+
+### Administrative Audit Trail
+
+Provides access to organization administrative activity records.
+
+**API Endpoints**
+
+GET
+
+/api/org-admin/audit-trail
+
+---
+
+## API Endpoints
+
+POST
+
+/api/org-admin/users
+
+/api/org-admin/users/:userId/roles
+
+GET
+
+/api/org-admin/users
+
+/api/org-admin/users/:userId
+
+/api/org-admin/roles
+
+/api/org-admin/permissions
+
+/api/org-admin/settings
+
+/api/org-admin/audit-trail
+
+PUT
+
+/api/org-admin/users/:userId
+
+/api/org-admin/settings
+
+PATCH
+
+/api/org-admin/users/:userId/status
+
+DELETE
+
+/api/org-admin/users/:userId
+
+/api/org-admin/users/:userId/roles/:roleId
+
+---
+
+## Validation
+
+- first_name
+- last_name
+- email
+- role_id
+- permission_id
 - account_status
 - setting_key
 - setting_value
-- organization_id
-- Audit log entry required for administrative updates when applicable
-- Submission blocked if required administrative fields are incomplete
-- Email must be in valid format
-- Password must satisfy system security requirements
-- Role assignment must reference an existing valid role within the organization
+- Email must be in a valid format.
+- Organization member must belong to the administrator's organization.
+- Role assignment must reference an existing tenant role.
+- Permission reference must be valid.
+- Organization settings must satisfy configured validation rules.
 
 ---
 
-### Database Tables
+## Database Tables
 
-- **organization_users**
-  - Stores the relationship between users and the organization.
-  - Used to determine which users belong to a specific organization.
+- **CompanyMembership**
+  - Stores organization membership records.
+  - Associates users with their organization.
 
-- **organization_roles**
-  - Stores organization-level roles such as company owner, chief procurement officer, procurement officer, and company administrator.
-  - Used to define access levels within a specific organization.
+- **Role**
+  - Stores tenant-scoped role definitions.
+  - Defines access levels used within an organization.
 
-- **organization_permissions**
-  - Stores the available permissions for organization users and modules.
-  - Used to define allowed actions within the organization scope.
+- **Permission**
+  - Stores globally defined permissions available for access control.
 
-- **organization_role_permissions**
-  - Stores the mapping between organization roles and permissions.
-  - Used to determine what actions are allowed for each assigned organization role.
+- **RolePermission**
+  - Stores mappings between roles and permissions.
 
-- **organization_settings**
-  - Stores configurable settings for a specific organization.
-  - Used to maintain organization-level operational configurations.
+- **AuditTrail**
+  - Stores administrative activities, system events, and historical snapshots.
 
-- **audit_logs**
-  - Stores records of important user and administrative actions within the organization.
-  - Includes user identifier, organization identifier, action performed, affected record, timestamp, and related details.
+### Referenced Existing Tables
 
-- **Referenced Existing Tables**
-  - `users` — stores authentication and account ownership data.
-  - `companies` — stores organization records.
+- **Tenant**
+  - Stores the tenant boundary used for isolation.
+
+- **User**
+  - Stores user account information.
+
+- **Company**
+  - Stores organization information.
 
 ---
 
-### Sequence Diagram
+## Sequence Diagram
 
 ```mermaid
 sequenceDiagram
-    actor OrgAdmin as Organization Administrator
-    participant UI as Organization Administration Page
+    actor Admin as Organization Administrator
+    participant UI as Organization Administration
     participant API as Backend API
-    participant AUTH as Authorization Service
     participant ORG as Organization Administration Module
     participant DB as Database
 
-    OrgAdmin->>UI: Open Organization Administration module
-    UI->>API: Request organization administration data
-    API->>AUTH: Verify organization administrator access
-    AUTH->>DB: Check user role, permission, and organization scope
-    DB-->>AUTH: Return authorization data
-    AUTH-->>API: Access granted
+    Admin->>UI: Open Organization Administration
+    UI->>API: Request organization data
+    API->>ORG: Validate organization scope
+    ORG->>DB: Retrieve members, roles, settings, and audit trail records
+    DB-->>ORG: Return organization data
+    ORG-->>API: Return organization information
+    API-->>UI: Display administration dashboard
 
-    API->>ORG: Retrieve users, roles, settings, and logs
-    ORG->>DB: Query organization administrative records
-    DB-->>ORG: Return requested records
-    ORG-->>API: Send organization data
-    API-->>UI: Display Organization Administration dashboard
-
-    OrgAdmin->>UI: Create or update organization user, role, or setting
-    UI->>API: Submit organization administrative data
-    API->>AUTH: Validate permission and organization scope
-    AUTH-->>API: Permission confirmed
-    API->>ORG: Process organization administrative update
-    ORG->>DB: Save changes
+    Admin->>UI: Manage organization member
+    UI->>API: Submit member update
+    API->>ORG: Validate permissions
+    ORG->>DB: Save organization changes
     DB-->>ORG: Update successful
-    ORG->>DB: Record audit log entry
-    DB-->>ORG: Audit log saved
-    ORG-->>API: Return success response
-    API-->>UI: Display confirmation message
+    ORG->>DB: Record audit trail entry
+    DB-->>ORG: Audit trail entry stored
+    ORG-->>API: Return success
+    API-->>UI: Display confirmation
 ```
 
 ---
 
-### Classes
+## Classes
 
-#### organizationAdminRouter
-Defines the API routes for organization administration operations. It maps incoming HTTP requests to the appropriate controller functions.
+### organizationAdminRouter
 
-#### organizationAdminController
-Handles organization administration API requests and responses. It receives validated input, calls the service layer, and returns the appropriate response to the client.
+Defines API routes for organization member management, role assignment, organization settings, and administrative audit trail operations.
 
-#### organizationAdminService
-Contains the business logic for organization administration functions. It manages organization users, roles, permissions, settings, and audit log retrieval within the same organization scope.
+### organizationAdminController
 
-#### organizationAdminRepository
-Handles data access and database queries related to organization administration functions. It is responsible for retrieving and storing organization users, roles, permissions, settings, and audit logs.
+Receives organization administration requests, validates inputs, invokes the service layer, and returns appropriate responses.
 
-#### organizationAdminValidator
-Validates request data for organization administration operations. It ensures required account, role, and settings data are complete and correctly formatted before processing.
+### organizationAdminService
+
+Contains the business logic for organization administration. It manages organization members, role assignments, permission enforcement, organization settings, and administrative audit trail logging while enforcing organization scope.
+
+### organizationAdminRepository
+
+Handles database operations for organization members, roles, permissions, organization settings, and administrative audit trail records.
+
+### organizationAdminValidator
+
+Validates organization administration requests before they are processed.
 
 ---
 
-### Error Handling
+## Error Handling
 
 400
+
 Invalid input data
 
 401
+
 Unauthorized access
 
 403
+
 Insufficient organization administrative privileges
 
 404
-User, role, or setting not found
+
+Organization member, role, permission, or setting not found
 
 409
-Duplicate email or conflicting organization configuration
+
+Duplicate organization membership or conflicting organization configuration
+
+422
+
+Validation failed
 
 500
+
 Internal server error
 
----
+503
+
+Organization Administration service unavailable
 
 ## Module 12
 
