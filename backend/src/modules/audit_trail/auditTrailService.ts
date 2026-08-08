@@ -1,6 +1,6 @@
 import * as crypto from 'crypto'
 import { AuditTrailRepository } from "./auditTrailRepository.js";
-import { AuditTrailBlockchainAdapter } from "./auditTrailBlockchainAdapter.js"
+import { blockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js"
 import { NotFoundError } from '../../shared/errors/appError.js';
 import { auditIntegrity, searchAudit } from "./auditTrailValidator.js"
 
@@ -8,7 +8,7 @@ import { auditIntegrity, searchAudit } from "./auditTrailValidator.js"
 export class AuditTrailService {
     constructor (
         private repository: AuditTrailRepository,
-        private readonly blockchainAdapter: AuditTrailBlockchainAdapter
+        private readonly blockchainAdapter: blockchainAdapter
     ) {}
 
     async searchAudit (data: searchAudit) {
