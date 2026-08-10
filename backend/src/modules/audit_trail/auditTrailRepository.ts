@@ -1,3 +1,4 @@
+import { includes } from "zod";
 import { prisma } from "../../config/database.js";
 import { Prisma } from "../../generated/prisma/client.js";
 
@@ -61,14 +62,14 @@ export type PurchaseOrderSnapshot = {
     } | null;
 }
 
-export type audit_trail_input = {
+type audit_trail_input = {
     tenant_id: string;
-    actor_user_id?: string;
+    actor_user_id: string | null;
     entity_type: string;
     entity_id: string;
     action: string;
-    result: string;
-    snapshot_json?: object;
+    result: string | null;
+    snapshot_json: object | null;
 };
 
 export type audit_hashes_input = {
@@ -76,13 +77,12 @@ export type audit_hashes_input = {
     audit_trail_id: string;
     hash_algorithm: string;
     hash_value: string;
-    created_at: Date;
 }
 
 export type audit_trail_blockchain_refs_input = {
-    tenand_id: string;
+    tenant_id: string;
     audit_trail_id: string;
-    network_ref: string;
+    network_ref?: string | null ;
     blockchain_transaction_hash: string;
     block_number: number;
     anchored_at: Date;
@@ -177,11 +177,42 @@ export class AuditTrailRepository {
         };
     }
 
+    async findAuditForVerification (
+        audit_id: string
+    ){
+        return prisma.audit_trail_blockchain_refs.findUnique({
+            where: {
+                id: audit_id,
+            },
+            include: {
+                AuditTrailHash: true,
+                AuditTrailBlockchainRef: true,
+            },
+        });
+    };
+
     async createAuditTrail (
         data: audit_trail_input
     ) {
         return prisma.audit_trail.create({
-            data
+            data,
+            select: {
+                id: true
+            }
+        })
+    }
+
+    async updateAuditTrail (
+        audit_id: string,
+        result: string
+    ){
+        return prisma.audit_trail.update({
+            where: {
+                id: audit_id
+            },
+            data: {
+                result
+            }
         })
     }
 

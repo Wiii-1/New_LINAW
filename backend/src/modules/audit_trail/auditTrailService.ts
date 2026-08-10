@@ -1,92 +1,69 @@
 import * as crypto from 'crypto'
 import { AuditTrailRepository } from "./auditTrailRepository.js";
-import { blockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js"
+import { BlockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js"
 import { NotFoundError } from '../../shared/errors/appError.js';
 import { auditIntegrity, searchAudit } from "./auditTrailValidator.js"
+import { PurchaseOrderCompletedEvent } from '../../shared/events/purchaseOrderEvents.js';
+import { resourceLimits } from 'worker_threads';
+
+type CreateAuditTrailInput = {
+    purchaseOrderId: string
+    tenantId: string
+    actorId: string
+    entityId: string
+    eventType: "COMPLETED"
+}
+
+type AnchorContext = {
+    auditId: string
+    tenantId: string
+    hashValue: string
+    eventType: "COMPLETED"
+}
+
+type AuditHashInput = {
+    tenantId: string
+    auditTrailId: string
+    hashAlgorithm: "SHA-256"
+    hashValue: string
+}
+
+type AuditRefsInput = {
+    tenantId: string
+    auditId: string
+    transactionHash: string
+    blockNumber: number
+    anchoredAt: Date
+}
 
 
 export class AuditTrailService {
     constructor (
         private repository: AuditTrailRepository,
-        private readonly blockchainAdapter: blockchainAdapter
+        private blockchainAdapter: BlockchainAdapter
     ) {}
 
     async searchAudit (data: searchAudit) {
-        /*
-            basically a search function lng para sa blockchain adapter
-
-            purpose:
-                - used to locate an existing audit record
-                - forwards the search request to the blockchain adapter
-                - retrieves the anchored record/reference
-
-            flow:
-
-            1. receives search request from user/system
-
-            2. forwards the audit identifier/search criteria
-               to the blockchain adapter
-
-            3. adapter queries blockchain
-
-            4. returns blockchain audit record
-               (auditId, hashValue, eventType, anchoredAt)
-
-            5. return result
-        */
         
         const { id } = data
  
-        const searchAudit = await this.repository.findAuditByid(id)
+        const Audit = await this.repository.findAuditByid(id)
 
 
-        if (!searchAudit) {
+        if (!Audit) {
             throw new NotFoundError("Audit trail not found")
         }
 
-        const searchAuditRecord = await this.blockchainAdapter.search(searchAudit)
+        const blockchainRecord = await this.blockchainAdapter.getAudit(Audit.id)
 
-        return searchAuditRecord 
+        return {
+            Audit,
+            blockchain: blockchainRecord
+        }
     }
 
 
     async auditIntegrity(data: auditIntegrity) {
-        /*
-            checks if the current database data is still matching
-            the original anchored snapshot
-
-            flow:
-            verifies if the current database snapshot still matches
-            the original hash anchored on the blockchain
-
-            flow:
-
-            1. receives audit verification request
-
-            2. gets audit id from request
-
-            3. retrieves audit record and snapshot metadata from database
-
-            4. forwards blockchain reference / audit id to blockchain adapter
-
-            5. retrieves original hash stored on blockchain
-
-            6. generates a new hash from the current database snapshot
-
-            7. compares:
-
-                    blockchain stored hash
-                            |
-                            |
-                            v
-                    newly generated database hash
-
-
-            8. returns verification result:
-
-                    VALID
-                    INVALID / TAMPERED
-        */
 
         const audit = await this.repository.findAuditForVerification(
             data.id
@@ -160,244 +137,102 @@ export class AuditTrailService {
 
 
     // purchase order
-    async createAuditTrail (trigger: string) {
+    async createAuditTrail (event: CreateAuditTrailInput) {
 
-        /*
-            receives trigger from purchase_order_management
+        const purchaseOrderSnapshot = await this.repository.getPurchaseOrderSnapshot(event.purchaseOrderId)
 
-            example:
+        if (!purchaseOrderSnapshot) {
+            throw new NotFoundError("Purchase order not found")
+        }
 
-            {
-                tenant_id,
-                actor_user_id,
+        const hashValue = this.generateHash(purchaseOrderSnapshot)
 
-                entity_type: "PURCHASE_ORDER",
-                entity_id: purchaseOrder.id,
+        const auditRecord = {
+            tenant_id: event.tenantId,
+            actor_user_id: event.actorId,
+            entity_type: "PURCHASE_ORDER",
+            entity_id: event.entityId,
+            action: event.eventType,
+            result: null,
+            snapshot_json: purchaseOrderSnapshot
+        }
 
-                action: "COMPLETED",
-                result: "SUCCESS",
+        const audit = await this.repository.createAuditTrail(auditRecord)
+        
+        const auditAnchor: AnchorContext = {
+            auditId: audit.id,
+            tenantId:event.tenantId,
+            hashValue,
+            eventType: event.eventType
+        }
 
-                request_id
-            }
-
-
-            flow:
-
-
-            1. receives completed event from purchase order module
-
-
-            2. queries repository layer using entity_id
-
-                example:
-
-                getPurchaseOrderSnapshot(
-                    purchaseOrder.id
-                )
-
-
-            3. receives snapshot JSON
-
-
-            4. generates cryptographic hash
-
-                snapshot
-                    |
-                    v
-                SHA-256
-                    |
-                    v
-                hashValue
-
-
-            5. creates base audit_trail record
-
-                stores:
-
-                - tenant
-                - actor
-                - entity
-                - action
-                - snapshot_json
-
-
-            6. sends audit id + hash to anchor()
-
-
-            7. receives blockchain result
-
-                - transaction hash
-                - block number
-                - anchored timestamp
-
-
-            8. stores:
-
-                - audit hash
-                - blockchain reference
-
-
-            9. audit creation completed
-        */
-
+        void this.anchor(auditAnchor)
     }
 
 
 
-    // blockchain communication only
-    async anchor () {
-
-        /*
-            responsible only for forwarding data
-            to blockchain adapter
+    // blockchain communication and update result status 
+    async anchor (input: AnchorContext) {
 
 
-            receives:
+        const result = await this.blockchainAdapter.anchorAudit({
+            auditId: input.auditId,
+            hashValue: input.hashValue,
+            eventType: input.eventType
+        })
 
-                1. audit id
+        await this.repository.updateAuditTrail(
+            input.auditId,
+            "SUCCESS"
+        )
 
-                2. hash value
+        const blockchainRefInput: AuditRefsInput = {
+            tenantId: input.tenantId,
+            auditId: input.auditId,
+            transactionHash: result.transactionHash,
+            blockNumber: result.blockNumber,
+            anchoredAt: new Date(result.anchoredAt * 1000)
+        }
 
-                3. event type
+        const audit_hash: AuditHashInput = {
+            tenantId: input.tenantId,
+            auditTrailId: input.auditId,
+            hashAlgorithm: "SHA-256",
+            hashValue: input.hashValue
+        }
 
-
-            sends to blockchain adapter:
-
-                anchorAudit(
-                    auditId,
-                    hashValue,
-                    eventType
-                )
-
-
-            adapter handles:
-
-                - contract interaction
-                - waiting for transaction receipt
-                - retrieving block information
-
-
-            returns:
-
-                {
-                    transaction_hash,
-                    block_number,
-                    anchored_at
-                }
-
-        */
+        void this.createAuditHash(audit_hash)
+        void this.createAuditBlockchainRef(blockchainRefInput)
     }
 
 
 
-    async createAuditHash () {
+    async createAuditHash (input: AuditHashInput) {
 
-        /*
-            stores generated hash into database
-
-
-            receives:
-
-                - tenant_id
-                - audit_trail_id
-                - hash_algorithm
-                - hash_value
-
-
-            flow:
-
-            1. receives generated hash from createAuditTrail()
-
-            2. forwards hash information to repository
-
-            3. stores hash reference linked to audit_trail
-
-
-            purpose:
-
-                keeps database copy of the hash
-                for faster verification
-        */
-
+        await this.repository.createAuditHash({
+            tenant_id: input.tenantId,
+            audit_trail_id: input.auditTrailId,
+            hash_algorithm: input.hashAlgorithm,
+            hash_value: input.hashValue
+        })
     }
 
 
 
-    async createAuditBlockchainRef() {
+    async createAuditBlockchainRef(input: AuditRefsInput) {
 
-        /*
-            stores blockchain proof reference
-
-
-            receives from anchor():
-
-                - audit_trail_id
-                - transaction_hash
-                - block_number
-                - anchored_at
-
-
-            flow:
-
-            1. receives blockchain receipt data
-
-            2. forwards data to repository
-
-            3. stores blockchain reference
-
-
-            purpose:
-
-                connects database audit record
-                to its immutable blockchain proof
-
-        */
-
+        await this.repository.createAuditTrailBlockchainRefs({
+            tenant_id: input.tenantId,
+            audit_trail_id: input.auditId,
+            blockchain_transaction_hash: input.transactionHash,
+            block_number: input.blockNumber,
+            anchored_at: input.anchoredAt
+        })
     }
 
 
 
     private generateHash(snapshot: object): string {
-
-        /*
-            converts snapshot into deterministic string
-
-            then generates SHA-256 hash
-
-
-            flow:
-
-                snapshot JSON
-
-                    |
-
-                    v
-
-                JSON.stringify()
-
-                    |
-
-                    v
-
-                SHA-256
-
-                    |
-
-                    v
-
-                hexadecimal hash string
-
-
-            NOTE:
-
-                future improvement:
-                canonicalize JSON before hashing
-
-                to prevent different property ordering
-                producing different hashes.
-
-        */
-
 
         const json = JSON.stringify(snapshot)
 

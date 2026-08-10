@@ -1263,7 +1263,7 @@ model AuditTrail {
 
   action String
 
-  result String
+  result String?
 
   request_id String?
 
