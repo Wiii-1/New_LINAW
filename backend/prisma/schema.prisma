@@ -28,6 +28,7 @@ model Tenant {
 
   user_sessions  UserSession[]
   refresh_tokens RefreshToken[]
+  password_reset_tokens PasswordResetToken[]
 
   roles                            Role[]
   user_roles                       UserRole[]
@@ -88,6 +89,8 @@ model User {
   sessions UserSession[] @relation("UserSessions")
 
   refresh_tokens RefreshToken[] @relation("UserRefreshTokens")
+
+  password_reset_tokens PasswordResetToken[]
 
   roles UserRole[] @relation("UserRoles")
 
@@ -232,6 +235,30 @@ model RefreshToken {
 
   @@index([tenant_id])
   @@index([user_id])
+}
+
+model PasswordResetToken {
+  id String @id @db.Uuid
+
+  tenant_id String @db.Uuid
+  user_id   String @db.Uuid
+
+  token_hash String @unique
+
+  expires_at DateTime @db.Timestamptz(6)
+
+  used_at DateTime? @db.Timestamptz(6)
+
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @updatedAt @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([user_id])
+  @@index([expires_at])
 }
 
 // Access control

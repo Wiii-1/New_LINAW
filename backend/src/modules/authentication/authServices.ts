@@ -1,13 +1,18 @@
 import { AuthRepository  } from "./authRepository.js";
 import { hashPassword, verifyPassword } from "./authPassword.js"
-import { loginInput,signupInput, findById } from "./authValidator.js";
+import { forgotPasswordInput, loginInput, resetPasswordInput, signupInput, findById } from "./authValidator.js";
 import { ConflictError, NotFoundError, UnauthorizedAccessError } from "../../shared/errors/appError.js";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "./authJWT.js";
+import { env } from "../../config/env.js";
+import { AuthNotifier, NoopAuthNotifier } from "./authNotifications.js";
 
 export class AuthService {
 
-    constructor ( private repository: AuthRepository ) {}
+    constructor (
+        private repository: AuthRepository,
+        private notifier: AuthNotifier = new NoopAuthNotifier()
+    ) {}
     
     async register (data: signupInput){
 
@@ -36,11 +41,12 @@ export class AuthService {
         })
 
         const user = await this.repository.createUser({
-            tenant_id: tenant.tenant_id,
+            tenant_id: tenant.id,
             first_name: data.first_name,
             last_name: data.last_name,
             job_title: data.job_title,
-            email: data.email
+            email: data.email,
+            status: "ACTIVE"
         })
         
         await this.repository.createUserCredentials({
@@ -71,7 +77,7 @@ export class AuthService {
         }
 
         const isValid = await verifyPassword(
-            user.credentials.password_hash,
+            user.credentials!.password_hash,
             data.password
         )
 
@@ -81,9 +87,10 @@ export class AuthService {
 
         const session = 
             await this.repository.createSession({
+                tenant_id: user.tenant_id,
                 user_id: user.id,
-                refreshTokenHash: " ",
-                expiresAt
+                refresh_token_hash: " ",
+                expires_at: expiresAt
             })
 
         const refreshToken = generateRefreshToken({
@@ -178,10 +185,7 @@ export class AuthService {
             )
         }
 
-        const isValid = await verifyPassword(
-            session.refreshTokenHash,
-            refreshToken
-        )
+        const isValid = await verifyPassword(session.refresh_token_hash, refreshToken)
 
         if (!isValid) {
             throw new UnauthorizedAccessError(
@@ -210,6 +214,90 @@ export class AuthService {
         return {
             accessToken: newAccessToken,
             refreshToken: newRefreshToken
+        }
+    }
+
+    async requestPasswordReset(data: forgotPasswordInput) {
+        const user = await this.repository.findUserWithCredentialsByEmail(data.identifier)
+
+        if (!user) {
+            return {
+                success: true
+            }
+        }
+
+        const tokenId = randomUUID()
+        const tokenSecret = randomBytes(32).toString("base64url")
+        const resetToken = `${tokenId}.${tokenSecret}`
+        const tokenHash = await hashPassword(tokenSecret)
+
+        const expiresAt = new Date()
+        expiresAt.setHours(expiresAt.getHours() + 1)
+
+        await this.repository.createPasswordResetToken({
+            id: tokenId,
+            tenant_id: user.tenant_id,
+            user_id: user.id,
+            token_hash: tokenHash,
+            expires_at: expiresAt
+        })
+
+        const resetUrl = new URL("/reset-password", env.APP_URL)
+        resetUrl.searchParams.set("token", resetToken)
+
+        await this.notifier.sendPasswordResetEmail({
+            email: user.email,
+            resetLink: resetUrl.toString()
+        })
+
+        return {
+            success: true
+        }
+    }
+
+    async resetPassword(data: resetPasswordInput) {
+        const [tokenId, tokenSecret] = data.resetToken.split(".")
+
+        if (!tokenId || !tokenSecret) {
+            throw new UnauthorizedAccessError("Invalid reset token")
+        }
+
+        const tokenRecord = await this.repository.findPasswordResetTokenById(tokenId)
+
+        if (!tokenRecord) {
+            throw new UnauthorizedAccessError("Invalid reset token")
+        }
+
+        if (tokenRecord.used_at) {
+            throw new UnauthorizedAccessError("Reset token already used")
+        }
+
+        if (tokenRecord.expires_at < new Date()) {
+            throw new UnauthorizedAccessError("Reset token expired")
+        }
+
+        const isValid = await verifyPassword(tokenRecord.token_hash, tokenSecret)
+
+        if (!isValid) {
+            throw new UnauthorizedAccessError("Invalid reset token")
+        }
+
+        const user = await this.repository.findUserWithCredentialsById(tokenRecord.user_id)
+
+        if (!user || !user.credentials) {
+            throw new NotFoundError("User not found")
+        }
+
+        const passwordHash = await hashPassword(data.password)
+        const consumedAt = new Date()
+
+        await this.repository.updateUserPassword(user.id, passwordHash)
+        await this.repository.markPasswordResetTokenUsed(tokenRecord.id, consumedAt)
+        await this.repository.markPasswordResetTokensForUserUsed(user.id, consumedAt)
+        await this.repository.revokeAllSessionsForUser(user.id, consumedAt)
+
+        return {
+            success: true
         }
     }
 }

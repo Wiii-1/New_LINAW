@@ -11,6 +11,44 @@ export const findByIdSchema = z.object ({
 })
 
 // ==========
+// Forgot password validation schema
+// ==========
+
+export const forgotPasswordSchema = z.object({
+    identifier: z
+        .string()
+        .min(3, "Identifier is required")
+        .max(255, "Identifier is too long")
+        .trim()
+        .toLowerCase()
+})
+
+// ==========
+// Reset password validation schema
+// ==========
+
+export const resetPasswordSchema = z.object({
+    resetToken: z
+        .string()
+        .min(10, "Reset token is required")
+        .max(512, "Reset token is too long"),
+
+    password: z
+        .string()
+        .min(12, "Password must be at least 12 characters")
+        .max(128, "Password is too long"),
+
+    confirmPassword: z
+        .string()
+}).refine(
+    (data) => data.password === data.confirmPassword,
+    {
+        message: "Password do not match",
+        path: ["confirmPassword"]
+    }
+)
+
+// ==========
 // Signup validation schema
 // ==========
 
@@ -93,3 +131,9 @@ export type logoutUser =
 
 export type findById =
     z.infer<typeof findByIdSchema>
+
+export type forgotPasswordInput =
+    z.infer<typeof forgotPasswordSchema>
+
+export type resetPasswordInput =
+    z.infer<typeof resetPasswordSchema>

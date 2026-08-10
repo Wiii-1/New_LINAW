@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthService } from "./authServices.js";
-import { signupSchema, findByIdSchema, loginSchema, logoutSchema } from "./authValidator.js";
+import { forgotPasswordSchema, loginSchema, resetPasswordSchema, signupSchema, findByIdSchema, logoutSchema } from "./authValidator.js";
 
 
 export class AuthController {
@@ -69,6 +69,44 @@ export class AuthController {
             })
         } catch (err) {
             next (err)
+        }
+    }
+
+    forgotPassword = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            const data = forgotPasswordSchema.parse(req.body)
+
+            await this.service.requestPasswordReset(data)
+
+            res.status(200).json({
+                success: true,
+                message: "If the account exists, password reset instructions have been sent."
+            })
+        } catch (err) {
+            next(err)
+        }
+    }
+
+    resetPassword = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            const data = resetPasswordSchema.parse(req.body)
+
+            await this.service.resetPassword(data)
+
+            res.status(200).json({
+                success: true,
+                message: "Password reset successfully"
+            })
+        } catch (err) {
+            next(err)
         }
     }
 

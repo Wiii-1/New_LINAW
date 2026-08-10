@@ -11,6 +11,7 @@ const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET
 const blockchainRpcUrl = process.env.BLOCKCHAIN_RPC_URL
 const auditContractAddress = process.env.AUDIT_CONTRACT_ADDRESS
 const blockchainPrivateKey = process.env.BLOCKCHAIN_PRIVATE_KEY
+const appUrl = process.env.FRONTEND_APP_URL ?? process.env.APP_URL ?? "http://localhost:3000"
 
 
 if (!jwtAccessSecret) {
@@ -60,5 +61,7 @@ export const env = {
     AUDIT_CONTRACT_ADDRESS: auditContractAddress,
 
     BLOCKCHAIN_PRIVATE_KEY: blockchainPrivateKey,
+
+    APP_URL: appUrl,
 
 }

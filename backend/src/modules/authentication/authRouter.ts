@@ -10,6 +10,8 @@ const controller = new AuthController(service);
 
 router.post("/signup", controller.createUser);
 router.post("/login", controller.loginUser);
+router.post("/forgot-password", controller.forgotPassword);
+router.post("/reset-password", controller.resetPassword);
 router.get("/:id", authenticate,controller.getUserById);
 router.post("/logout", authenticate, controller.logoutUser);
 router.post("/refresh", authenticate,controller.refreshToken);
