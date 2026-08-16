@@ -1,24 +1,32 @@
-import { Request, Response, NextFunction } from "express"
-import { PurchaseRequisitionService } from "./purchaseRequistionService.js"
-import {  createPurchaseRequisitionSchema, purchaseRequisitionIdParamsSchema, purchaseRequisitionLineItemSchema } from "./purchaseRequisitionValidation.js"
-
-// schemma don't forgettt
-
+import { Response, NextFunction } from "express"
+import { purchaseRequisitionService } from "./purchaseRequisitionService.js"
+import { purchaseRequisitionIdParamsSchema, purchaseRequisitionInputSchema, cancelPurchaseRequisitionSchema , PurchaseRequisitionIdParams, PurchaseRequisitionInput, CancelPurchaseRequisitionInput, ResubmitPurchaseRequisitionInput } from "./purchaseRequisitionValidation.js"
+import { AuthRequest } from "../../shared/middleware/authenticate.js"
 
 export class PurchaseRequisitionController {
-    constructor(private service: PurchaseRequisitionService ) {
+    constructor(private service: purchaseRequisitionService ) {
         this.service = service
     }
 
     createRequisition = async (
-        req: Request,
+        req: AuthRequest,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try{
-            const requisition = createPurchaseRequisitionSchema.parse(req.body)
+            const requisition = purchaseRequisitionInputSchema.parse(req.body)
 
-            const creation = await this.service.createRequisition(requisition)
+            const userId = req.user.id
+
+            const tenantId = req.user.tenant_id
+
+            const purchaseRequisition: PurchaseRequisitionInput = {
+                ...requisition,
+                userId,
+                tenantId
+            }
+
+            const creation = await this.service.createRequisition(purchaseRequisition)
 
             res.status(201).json({
                 success: true,
@@ -31,14 +39,20 @@ export class PurchaseRequisitionController {
     }
 
     submitRequisition  = async (
-        req: Request,
+        req: AuthRequest,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try {
-            const {requisitionId} = purchaseRequisitionIdParamsSchema.parse(req.params)
+            const params =
+                purchaseRequisitionIdParamsSchema.parse(req.params);
 
-            const submit = await this.service.submitRequisition(requisitionId)
+            const submitRequisition: PurchaseRequisitionIdParams = {
+                requisitionId: params.requisitionId,
+                userId: req.user.id
+            };
+
+            const submit = await this.service.submitRequisition(submitRequisition)
 
             res.status(200).json({
                 success: true,
@@ -55,75 +69,147 @@ export class PurchaseRequisitionController {
     }
 
     cancelRequisition = async (
-        req: Request,
+        req: AuthRequest,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try {
-            const {}
+            const cancellation = cancelPurchaseRequisitionSchema.parse(req.body)
+
+            const params = purchaseRequisitionIdParamsSchema.parse(req.params)
+
+            const cancelRequisition: CancelPurchaseRequisitionInput = {
+                ...cancellation,
+                requisitionId: params.requisitionId,
+                userId: req.user.id
+            }
+
+            const cancel = await this.service.cancelRequisition(cancelRequisition)
+
+            res.status(200).json({
+                success: true,
+                message: "Purchase resquisition cancelled successfully.",
+                data: cancel
+            })
+
         } catch (err){
             next(err)
         }
     }
     
     resubmitRequisition = async (
-        req: Request,
+        req: AuthRequest,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try {
-            
+
+            const params = purchaseRequisitionIdParamsSchema.parse(req.params)
+
+            const retryRequisition = purchaseRequisitionInputSchema.parse(req.body)
+
+            const resubmit: ResubmitPurchaseRequisitionInput = {
+                ...retryRequisition,
+                requisitionId: params.requisitionId,
+                userId: req.user.id
+            }
+
+            const resubmitRequisition = await this.service.resubmitRequisition(resubmit)
+
+            res.status(200).json({
+                success: true,
+                message: "Purchase requisition successfully submitted",
+                data: {
+                    requisition_id: resubmitRequisition.requisition_id,
+                    requisition_status: resubmitRequisition.requisition_status,
+                    submitted_at: resubmitRequisition.submitted_at
+                }
+            })
+
         } catch (err){
             next(err)
         }
     }
 
     requisition = async(
-        req: Request,
+        req: AuthRequest,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try {
-            
+            const requisitionId = purchaseRequisitionIdParamsSchema.parse(req.params.id)
+
+            const userId = req.user.id
+
+            const data = { 
+                requisitionId,
+                userId
+            }
+
+            const requisition = await this.service.getRequisition(data)
+
+            res.status(200).json({
+                success: true,
+                data: requisition
+            })
+
         } catch (err){
             next(err)
         }
     }
 
     details = async (
-        req: Request,
+        req: AuthRequest,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try {
-            
+            const requisition = purchaseRequisitionIdParamsSchema.parse(req.params.id)
+
+            const userId = req.user.id
+
+            const requisitionDetails = {
+                requisition,
+                userId
+            }
+
+            const details = await this.service.purchaseRequisitionDetail(requisitionDetails)
+
+            res.status(200).json({
+                success: true,
+                data: details
+            })
+
         } catch (err){
             next(err)
         }
     }
 
     update = async (
-        req: Request,
+        req: AuthRequest,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try {
-            
+            const requisitionId = purchaseRequisitionIdParamsSchema.parse(req.params.id)
+
+            const userId = req.user.id
+
+            const update = {
+                requisitionId,
+                userId
+            }
+
+            const updateReqs = await this.service.updateRequisition(update)
+
+            res.status(200).json({
+                success: true,
+                message: "Purchase Requisition update",
+                data: updateReqs
+            })
+
         } catch (err){
             next(err)
         }
     }
-
-    updateStatus = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
-        try {
-            
-        } catch (err){
-            next(err)
-        }
-    }
-
 }

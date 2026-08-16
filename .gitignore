@@ -4,9 +4,6 @@
 
 backend/node_modules/
 backend/generated/
-backend/.windsurf/
-backend/.claude/
-backend/.agents/
 backend/dist
 
 # Environment

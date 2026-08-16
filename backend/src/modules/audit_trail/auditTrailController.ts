@@ -14,14 +14,14 @@ export class auditTrailController {
     ): Promise <void> => {
         try {
 
-        const id = searchAuditSchema.parse(req.params.id)
+        const data = searchAuditSchema.parse(req.params.id)
 
-        const data = await this.service.searchAudit(id)
+        const id = await this.service.searchAudit(data)
 
         res.status(200).json({
             success: true,
             message: "Purchase Order Found",
-            data:data
+            data:id
         })
         } 
         catch (err){

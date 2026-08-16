@@ -306,7 +306,9 @@ Docker provides:
 - Additional learning curve for container management.
 - Slight increase in deployment complexity compared to running applications directly.
 
-# ADR-008: Use of argon2, jsonwebtoken, morgan, helmet
+---
+
+# ADR-008: Use of argon2, jsonwebtoken, morgan, and helmet
 
 ## Status
 
@@ -314,12 +316,434 @@ Accepted
 
 ## Decision
 
+The system will use established Node.js libraries for authentication, security, and HTTP middleware:
 
+- **argon2** will be used for secure password hashing and password verification.
+- **jsonwebtoken** will be used to generate and verify JSON Web Tokens (JWTs) for stateless authentication.
+- **morgan** will be used for HTTP request logging during development and system monitoring.
+- **helmet** will be used to configure security-related HTTP headers and provide additional protection against common web vulnerabilities.
+
+These libraries will be integrated into the backend application and used according to their intended security practices.
 
 ## Rationale
+
+Using established and widely adopted libraries reduces the need to implement security-sensitive functionality manually.
+
+Password hashing requires a secure and computationally expensive hashing algorithm to reduce the risk of password cracking. Argon2 provides a modern password-hashing algorithm designed specifically for securely storing passwords.
+
+JSON Web Tokens provide a practical mechanism for maintaining authenticated sessions in the backend without requiring the server to store session state for every authenticated user.
+
+Morgan provides standardized HTTP request logging, which helps developers monitor requests, identify errors, and troubleshoot application behavior during development and operation.
+
+Helmet provides security-focused HTTP headers that help protect the application against common browser-based attacks and reduce security risks caused by unsafe HTTP header configurations.
+
+Using these libraries also promotes consistency, maintainability, and reduces the risks associated with implementing security mechanisms from scratch.
 
 ## Consequences
 
 ### Positive
 
+- Secure password storage through Argon2 password hashing.
+- Reduced risk of implementing authentication and security mechanisms incorrectly.
+- Stateless authentication using JWTs.
+- Improved visibility into HTTP requests through request logging.
+- Additional protection through security-related HTTP headers.
+- Uses established libraries instead of maintaining custom security implementations.
+- Easier maintenance and development of the backend.
+- Provides a consistent approach to authentication and HTTP security.
+
 ### Negative
+
+- Introduces additional third-party dependencies into the backend.
+- Libraries must be regularly updated to address security vulnerabilities and compatibility issues.
+- JWT-based authentication requires careful management of token expiration, signing secrets, and token validation.
+- HTTP logging may expose sensitive information if request data is logged improperly.
+- Helmet's security headers may require configuration depending on the application's frontend, API, and deployment environment.
+- Argon2 hashing requires more computational resources than simpler hashing algorithms, although this is intentional for password security.
+
+---
+
+# ADR-009: Integrate RFQ Creation and Posting into the Approval Workflow
+
+## Status
+
+Accepted
+
+## Context
+
+The Procurement Approval System requires Procurement Officers to create and post Requests for Quotations (RFQs) after a procurement request has been approved.
+
+Initially, RFQ creation and posting could be implemented as a separate module or as an independent function within the Supplier or Procurement dashboard. However, this would require Procurement Officers to navigate away from the approval workflow, locate the approved request again, and manually initiate the RFQ process.
+
+This would introduce unnecessary navigation and may result in duplicate data entry, since much of the information required for an RFQ is already available in the approved procurement request.
+
+The procurement process naturally follows a sequence where an approved request proceeds to supplier sourcing through an RFQ before quotations are evaluated and a supplier is selected.
+
+## Decision
+
+RFQ creation and posting will be integrated directly into the **Approval Workflow** as the next available action for the Procurement Officer after a procurement request has been approved.
+
+Once a request is approved, the Procurement Officer will be provided with an action to **Create RFQ**. The RFQ form will use relevant information from the approved procurement request to minimize duplicate data entry.
+
+The resulting workflow will be:
+
+**Procurement Request → Approval → Create RFQ → Post RFQ → Receive Quotations → Evaluate Quotations → Select Supplier → Create Purchase Order**
+
+RFQ functionality will remain logically separated as its own business entity in the system, while its creation and posting will be initiated through the approval workflow.
+
+## Rationale
+
+Integrating RFQ creation into the approval workflow provides a more direct representation of the procurement process.
+
+This approach:
+
+- Reduces unnecessary navigation between modules or interfaces.
+- Allows Procurement Officers to immediately proceed with sourcing after approval.
+- Reuses information from the approved procurement request.
+- Reduces duplicate data entry and potential data inconsistencies.
+- Provides a clear transition from procurement approval to supplier sourcing.
+- Keeps the system interface focused on the actual responsibilities of the Procurement Officer.
+- Avoids introducing an additional top-level module solely for RFQ creation and posting.
+- Maintains flexibility for RFQs to have their own lifecycle, status, suppliers, quotations, and audit records.
+
+The Supplier Dashboard will remain focused on supplier-side activities, such as viewing available RFQs, submitting quotations, receiving purchase orders, and tracking orders. RFQ creation and posting will remain a Procurement Officer responsibility.
+
+## Consequences
+
+### Positive
+
+- More streamlined procurement workflow.
+- Reduced navigation for Procurement Officers.
+- Reduced duplicate data entry.
+- Better reuse of approved procurement request information.
+- Clear separation between buyer-side and supplier-side responsibilities.
+- Fewer top-level modules and simpler system navigation.
+- Easier tracking of the relationship between procurement requests and their resulting RFQs.
+
+### Negative
+
+- The Approval Workflow interface will have additional functionality.
+- The workflow may become more complex as additional procurement actions are introduced.
+- The system must ensure that only eligible and approved requests can be used to create RFQs.
+- RFQ lifecycle management must still be implemented separately from the approval process.
+
+## Workflow
+
+```text
+Procurement Request
+        |
+        v
+Approval Workflow
+        |
+        v
+Procurement Officer Approves Request
+        |
+        v
+     Create RFQ
+        |
+        v
+   Review RFQ Details
+        |
+        v
+     Select Suppliers
+        |
+        v
+      Post RFQ
+        |
+        v
+Suppliers Submit Quotations
+        |
+        v
+Evaluate / Compare Quotations
+        |
+        v
+   Select Supplier
+        |
+        v
+   Create Purchase Order
+```
+
+---
+
+# ADR-010: Represent Purchase Requisition Revisions Using Self-Referencing Records
+
+## Status
+
+Accepted
+
+## Context
+
+A Purchase Requisition may be rejected and later revised and resubmitted by the
+employee who originally created it.
+
+The system must preserve the contents and history of previous submissions
+without overwriting the rejected requisition.
+
+A dedicated `PurchaseRequisitionRevision` table was considered, but introducing
+a separate revision table would increase the complexity of the existing
+Purchase Requisition module.
+
+The existing `PurchaseRequisition` table already represents the Purchase
+Requisition domain, so revisions can be represented as additional records
+within the same table.
+
+## Decision
+
+Purchase Requisition revisions will be represented as separate records within
+the existing `PurchaseRequisition` table.
+
+Each revision will have:
+
+- Its own UUID.
+- Its own `pr_number`.
+- Its own revision number.
+- Its own requisition contents.
+- Its own status.
+- A `parent_requisition_id` referencing the original/root requisition.
+
+The original requisition will have a `NULL` `parent_requisition_id`.
+
+Subsequent revisions will reference the original requisition through
+`parent_requisition_id`.
+
+The relationship will be self-referencing within the
+`PurchaseRequisition` table.
+
+## Example
+
+```text
+PurchaseRequisition
+│
+├── PR-20260815-001-01
+│   Revision: 1
+│   Status: REJECTED
+│   parent_requisition_id: NULL
+│
+├── PR-20260815-001-02
+│   Revision: 2
+│   Status: SUBMITTED
+│   parent_requisition_id: UUID-A
+│
+└── PR-20260815-001-03
+    Revision: 3
+    Status: APPROVED
+    parent_requisition_id: UUID-A
+```
+
+All revisions belong to the same procurement request because they share the
+same root requisition through `parent_requisition_id`.
+
+## Identifier Responsibilities
+
+Each identifier has a separate responsibility.
+
+```text
+id
+↓
+Unique technical identifier for the specific Purchase Requisition record.
+
+pr_number
+↓
+Human/business-facing identifier for the specific revision.
+
+parent_requisition_id
+↓
+Identifies the original/root Purchase Requisition that owns the revision
+history.
+
+revision_number
+↓
+Identifies the chronological revision of the Purchase Requisition.
+```
+
+Example:
+
+```text
+id: UUID-A
+pr_number: PR-20260815-001-01
+revision_number: 1
+parent_requisition_id: NULL
+
+id: UUID-B
+pr_number: PR-20260815-001-02
+revision_number: 2
+parent_requisition_id: UUID-A
+```
+
+## Revision Lifecycle
+
+A rejected Purchase Requisition must not be overwritten when the employee
+resubmits it.
+
+Instead, a new Purchase Requisition record is created using the previous
+revision as the source for the new revision.
+
+```text
+Revision 1
+    ↓
+SUBMITTED
+    ↓
+REJECTED
+    ↓
+Employee edits requisition
+    ↓
+Revision 2 created
+    ↓
+DRAFT
+    ↓
+Employee submits
+    ↓
+SUBMITTED
+```
+
+If the new revision is rejected again, another revision may be created.
+
+```text
+Revision 1 → REJECTED
+Revision 2 → REJECTED
+Revision 3 → SUBMITTED
+```
+
+Previous revisions remain unchanged and are retained as historical records.
+
+## Resubmission Logic
+
+The resubmission operation should receive the original/root Purchase
+Requisition UUID.
+
+The service layer is responsible for coordinating the revision process.
+
+The general flow is:
+
+```text
+Controller
+    ↓
+Original/root requisition UUID
+    ↓
+Service
+    ├── Authenticate user
+    ├── Find the latest revision
+    ├── Verify the user is authorized to resubmit
+    ├── Verify the current revision is REJECTED
+    ├── Determine the next revision number
+    ├── Generate the new pr_number
+    ├── Copy the relevant requisition data
+    ├── Apply the employee's changes
+    └── Bundle the data
+            ↓
+        Repository
+            ↓
+        Create new Purchase Requisition record
+```
+
+The repository is responsible for persistence and should not contain the
+business rules for determining whether a requisition can be resubmitted.
+
+## Purchase Requisition Number
+
+The proposed `pr_number` format is:
+
+```text
+PR-{YYYYMMDD}-{SEQUENCE}-{REVISION}
+```
+
+Example:
+
+```text
+PR-20260815-001-01
+```
+
+Where:
+
+- `PR` identifies the record as a Purchase Requisition.
+- `YYYYMMDD` represents the creation date of the original requisition.
+- `SEQUENCE` identifies the procurement request created on that date.
+- `REVISION` identifies the specific revision.
+
+Example revision history:
+
+```text
+PR-20260815-001-01 → Revision 1 → REJECTED
+PR-20260815-001-02 → Revision 2 → REJECTED
+PR-20260815-001-03 → Revision 3 → SUBMITTED
+```
+
+The `pr_number` is a business-facing identifier and does not replace the UUID
+primary key.
+
+## Rationale
+
+Using the existing `PurchaseRequisition` table avoids introducing a separate
+revision table while still allowing the system to preserve revision history.
+
+This approach keeps revisions within the existing Purchase Requisition domain
+and allows the existing repository, service, and module structure to be
+extended rather than introducing an entirely separate revision subsystem.
+
+The self-referencing `parent_requisition_id` provides a stable relationship
+between all revisions belonging to the same procurement request.
+
+Each revision having its own UUID also ensures that individual revisions can
+be referenced independently by other parts of the system when necessary.
+
+## Consequences
+
+### Positive
+
+- No dedicated revision table is required.
+- Previous revisions remain available for auditing.
+- Existing Purchase Requisition infrastructure can be reused.
+- Each revision has its own UUID.
+- Each revision can have its own business-facing `pr_number`.
+- Revision history can be queried through the parent relationship.
+- Rejected requisitions are not overwritten.
+- Historical requisition contents remain available.
+- The approach fits the existing modular monolithic architecture.
+
+### Negative
+
+- The Purchase Requisition service layer becomes responsible for revision
+  management logic.
+- Queries must distinguish between the original requisition and its revisions.
+- Related entities such as approval records, RFQs, and Purchase Orders may
+  need to reference the appropriate revision.
+- The `PurchaseRequisition` table contains multiple records representing
+  different versions of the same business request.
+- Additional validation is required to ensure revision relationships remain
+  consistent.
+- Generating revision-specific `pr_number` values adds additional business
+  logic to the service layer.
+
+## Implementation Notes
+
+The following implementation details should be considered when implementing
+this decision:
+
+- Add `parent_requisition_id` as a nullable self-referencing foreign key.
+- Add `revision_number` to identify the revision order.
+- Keep `id` as the primary UUID of each individual record.
+- Keep `pr_number` as the business-facing identifier.
+- Ensure the original requisition has a `NULL` parent reference.
+- Ensure all subsequent revisions reference the original/root requisition.
+- Do not overwrite previous rejected revisions.
+- Determine the latest revision through the revision relationship and
+  `revision_number`.
+- Generate the next revision number when creating a resubmission.
+- Generate the corresponding `pr_number` for the new revision.
+- Keep revision creation logic in the service layer.
+- Keep database persistence logic in the repository layer.
+
+## Future Considerations
+
+The following may require additional architectural decisions later:
+
+- Whether approval records should reference a specific revision.
+- Whether RFQs should reference a specific revision.
+- Whether Purchase Orders should reference a specific revision.
+- How requisition items should be associated with revisions.
+- How revision comparisons should be displayed to users.
+- Whether the system should expose the complete revision history to employees
+  and procurement officers.
+- Whether revision numbers and `pr_number` generation should be configurable.
+
+---

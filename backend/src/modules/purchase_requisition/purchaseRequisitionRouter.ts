@@ -1,11 +1,12 @@
 import { Router } from "express"
 import { PurchaseRequisitionController } from "./purchaseRequisitionController.js"
-import { purchaseRequisitionService } from "./purchaseRequisitionService"
-import { purchaseRequisitionRepository } from "./purchaseRequisitionRepository"
+import { purchaseRequisitionService } from "./purchaseRequisitionService.js"
+import { purchaseRequisitionRepository } from "./purchaseRequisitionRepository.js"
 import { authenticate } from "../../shared/middleware/authenticate.js"
+import { EventBus } from "../../shared/events/eventBus.js"
 
 const router = Router();
-const service = new purchaseRequisitionService(new purchaseRequisitionRepository());
+const service = new purchaseRequisitionService(new purchaseRequisitionRepository(), new EventBus());
 const controller = new PurchaseRequisitionController(service);
 
 router.use(authenticate)
@@ -23,7 +24,7 @@ router.get("/:requisitonId", controller.details)
 
 // Patch
 router.patch("/:requisitionId", controller.update)
-router.patch("/:requisitionId/status", controller.updateStatus)
+
 
 
 export default router;

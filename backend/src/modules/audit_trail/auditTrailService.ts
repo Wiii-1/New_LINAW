@@ -3,8 +3,6 @@ import { AuditTrailRepository } from "./auditTrailRepository.js";
 import { BlockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js"
 import { NotFoundError } from '../../shared/errors/appError.js';
 import { auditIntegrity, searchAudit } from "./auditTrailValidator.js"
-import { PurchaseOrderCompletedEvent } from '../../shared/events/purchaseOrderEvents.js';
-import { resourceLimits } from 'worker_threads';
 
 type CreateAuditTrailInput = {
     purchaseOrderId: string
@@ -73,9 +71,13 @@ export class AuditTrailService {
             throw new NotFoundError("audit not found")
         }
 
-        const storedHash = audit.AuditTrailHash.hash_value
+        if (!audit.hash || !audit.blockchain_ref) {
+            throw new NotFoundError("audit relations not found")
+        }
 
-        const freshSnapshot = await this.repository.getPurchaseOrderSnapshot(audit)
+        const storedHash = audit.hash.hash_value
+
+        const freshSnapshot = await this.repository.getPurchaseOrderSnapshot(audit.entity_id)
 
         if (!freshSnapshot) {
             throw new NotFoundError("purchase order snapshot not found");
@@ -94,7 +96,7 @@ export class AuditTrailService {
         // Ask blockchain for the anchored record
 
         const blockchainAudit = await this.blockchainAdapter.getAudit(
-            audit.AuditTrailBlockchainRef.audit_trail_id
+            audit.blockchain_ref.audit_trail_id
         )
 
         const isBlockchainValid = storedHash === blockchainAudit.hashValue

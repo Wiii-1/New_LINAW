@@ -12,6 +12,23 @@ datasource db {
   provider = "postgresql"
 }
 
+// types
+
+enum PurchaseRequisitionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PurchaseRequisitionPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
 // tables
 
 model Tenant {
@@ -355,15 +372,17 @@ model UserRole {
 
 model PurchaseRequisition {
   id                   String @id @default(uuid()) @db.Uuid
+  root_id              String @db.Uuid
   tenant_id            String @db.Uuid
   company_id           String @db.Uuid
   pr_number            String
+  generation           Int
   requested_by_user_id String @db.Uuid
 
-  purpose       String?
+  purpose       String? 
   justification String?
-  status        String
-  priority      String?
+  status        PurchaseRequisitionStatus
+  priority      PurchaseRequisitionPriority?
   currency_code String
   total_amount  Decimal @db.Decimal(18, 2)
 
@@ -372,7 +391,8 @@ model PurchaseRequisition {
   submitted_at DateTime? @db.Timestamptz(6)
   approved_at  DateTime? @db.Timestamptz(6)
   rejected_at  DateTime? @db.Timestamptz(6)
-  deleted_at   DateTime? @db.Timestamptz(6)
+  cancelled_at   DateTime? @db.Timestamptz(6)
+
 
   created_at DateTime @default(now()) @db.Timestamptz(6)
   updated_at DateTime @updatedAt @db.Timestamptz(6)
@@ -390,6 +410,7 @@ model PurchaseRequisition {
   @@index([tenant_id])
   @@index([company_id])
   @@index([status])
+  @@index([root_id])
 }
 
 model PurchaseRequisitionItem {
@@ -401,7 +422,7 @@ model PurchaseRequisitionItem {
 
   item_type     String
   description   String
-  specification String?
+  specification String
 
   quantity        Decimal @db.Decimal(18, 4)
   unit_of_measure String

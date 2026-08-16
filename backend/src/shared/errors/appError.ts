@@ -34,7 +34,7 @@ export class UnauthorizedAccessError extends AppError {
 export class RestrictedAccessError extends AppError {
     constructor (message = "Forbidden", details?:unknown) {
         super(message, 403, "FORBIDDEN", details)
-        this.name = "restrictedAccessError"
+        this.name = "RestrictedAccessError"
     }
 }
 

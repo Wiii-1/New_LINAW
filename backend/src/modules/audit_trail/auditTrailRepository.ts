@@ -1,4 +1,3 @@
-import { includes } from "zod";
 import { prisma } from "../../config/database.js";
 import { Prisma } from "../../generated/prisma/client.js";
 
@@ -69,7 +68,7 @@ type audit_trail_input = {
     entity_id: string;
     action: string;
     result: string | null;
-    snapshot_json: object | null;
+    snapshot_json: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
 };
 
 export type audit_hashes_input = {
@@ -93,7 +92,7 @@ export class AuditTrailRepository {
     async findAuditByid (
         auditId: string
     ) {
-        return prisma.auditId.findUnique({
+        return prisma.auditTrail.findUnique({
             where:{
                 id: auditId
             }
@@ -180,13 +179,13 @@ export class AuditTrailRepository {
     async findAuditForVerification (
         audit_id: string
     ){
-        return prisma.audit_trail_blockchain_refs.findUnique({
+        return prisma.auditTrail.findUnique({
             where: {
                 id: audit_id,
             },
             include: {
-                AuditTrailHash: true,
-                AuditTrailBlockchainRef: true,
+                hash: true,
+                blockchain_ref: true,
             },
         });
     };
@@ -194,7 +193,7 @@ export class AuditTrailRepository {
     async createAuditTrail (
         data: audit_trail_input
     ) {
-        return prisma.audit_trail.create({
+        return prisma.auditTrail.create({
             data,
             select: {
                 id: true
@@ -206,7 +205,7 @@ export class AuditTrailRepository {
         audit_id: string,
         result: string
     ){
-        return prisma.audit_trail.update({
+        return prisma.auditTrail.update({
             where: {
                 id: audit_id
             },
@@ -219,7 +218,7 @@ export class AuditTrailRepository {
     async createAuditHash (
         data: audit_hashes_input
     ) {
-        return prisma.audit_trail_hashes.create({
+        return prisma.auditTrailHash.create({
             data
         })
     }
@@ -227,7 +226,7 @@ export class AuditTrailRepository {
     async createAuditTrailBlockchainRefs (
         data: audit_trail_blockchain_refs_input
     ) {
-        return prisma.audit_trail_blockchain_refs.create({
+        return prisma.auditTrailBlockchainRef.create({
             data
         })
     }
