@@ -1,6 +1,6 @@
 import { prisma } from "../../config/database.js"
 import { Prisma, PurchaseRequisitionStatus, PurchaseRequisitionPriority } from "../../generated/prisma/client.js"
-import { PurchaseRequisitionUpdate, PurchaseRequisitionInput } from "./purchaseRequisitionValidation.js";
+
 
 export interface purchaseRequisitionData {
     id: string;
@@ -46,6 +46,15 @@ export interface purchaseRequisitionStatusLogData {
     remarks: string | null;
     acted_at: Date;
     metadata_json: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
+}
+
+export interface PurchaseRequisitionUpdateData {
+    requested_by_user_id: string;
+    remarks: string;
+    purpose?: string | undefined;
+    justification?: string | undefined;
+    priority?: PurchaseRequisitionPriority | undefined;
+    needed_by_date?: string | undefined;
 }
 
 export class purchaseRequisitionRepository {
@@ -194,24 +203,24 @@ export class purchaseRequisitionRepository {
 
     async update(
         requisitionId: string,
-        input: PurchaseRequisitionUpdate
+        updateData: PurchaseRequisitionUpdateData
     ) {
         const data: Prisma.PurchaseRequisitionUpdateInput = {};
 
-        if (input.purpose !== undefined) {
-            data.purpose = input.purpose;
+        if (updateData.purpose !== undefined) {
+            data.purpose = updateData.purpose;
         }
 
-        if (input.justification !== undefined) {
-            data.justification = input.justification;
+        if (updateData.justification !== undefined) {
+            data.justification = updateData.justification;
         }
 
-        if (input.priority !== undefined) {
-            data.priority = input.priority;
+        if (updateData.priority !== undefined) {
+            data.priority = updateData.priority;
         }
 
-        if (input.needed_by_date !== undefined) {
-            data.needed_by_date = new Date(input.needed_by_date);
+        if (updateData.needed_by_date !== undefined) {
+            data.needed_by_date = new Date(updateData.needed_by_date);
         }
 
         return prisma.purchaseRequisition.update({

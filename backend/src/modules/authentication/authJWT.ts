@@ -10,6 +10,12 @@ interface RefreshTokenPayload {
     session_id:string
 }
 
+export interface AuthAccessTokenPayload {
+    user_id:string,
+    session_id:string,
+    tenant_id:string
+}
+
 export function generateAccessToken (
     payload:AccessTokenPayload
 ) {
@@ -47,4 +53,17 @@ export function verifyRefreshToken (
         token,
         env.JWT_REFRESH_SECRET
     ) as RefreshTokenPayload;
+}
+
+export function authAccessToken (
+    payload: AuthAccessTokenPayload
+) {
+    return jwt.sign(
+        payload,
+        env.JWT_ACCESS_SECRET,
+        {
+            expiresIn:
+                env.JWT_ACCESS_EXPIRES
+        }
+    )
 }

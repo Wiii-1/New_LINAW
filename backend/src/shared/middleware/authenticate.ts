@@ -1,34 +1,41 @@
 import jwt from "jsonwebtoken"
-import { Request, Response, NextFunction } from "express"
 import { env } from "./../../config/env.js"
 import { UnauthorizedAccessError } from "../errors/appError.js"
+import type { AuthAccessTokenPayload } from "./../../modules/authentication/authJWT.js"
 
-export interface AuthRequest extends Request {
-    user?:any
-}
+import type {
+    Request,
+    Response,
+    NextFunction,
+} from "express";
 
-export function authenticate (
-    req:AuthRequest,
-    res:Response,
-    next:NextFunction
-) {
-    const header = req.headers.authorization
+export function authenticate(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+): void {
+    const header = req.headers.authorization;
 
     if (!header) {
-        throw new UnauthorizedAccessError("Missing Token")
+        throw new UnauthorizedAccessError("Missing Token");
     }
 
-    const token = header.split(" ")[1]
+    const [scheme, token] = header.split(" ");
 
-    if (!token) {
-        throw new UnauthorizedAccessError("Missing Token")
+    if (scheme !== "Bearer" || !token) {
+        throw new UnauthorizedAccessError("Invalid Authorization Header");
     }
 
     try {
-        const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET)
-        req.user = decoded
-        next()
+        const decoded = jwt.verify(
+            token,
+            env.JWT_ACCESS_SECRET,
+        ) as AuthAccessTokenPayload;
+
+        req.user = decoded;
+
+        next();
     } catch {
-        throw new UnauthorizedAccessError("Invalid Token")
+        throw new UnauthorizedAccessError("Invalid Token");
     }
 }

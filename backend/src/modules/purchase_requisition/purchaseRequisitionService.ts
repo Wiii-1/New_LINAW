@@ -1,11 +1,11 @@
 /*  [x] createRequisition ()
     [x] submitRequisition ()
     [x] cancelRequisition ()
-    [current] resubmitRequisition ()
-    [] getRequisition ()
-    [] purchaseRequisitDetail ()
-    [] updateRequisition ()
-    [] requisitionUpdateStatus ()
+    [x] resubmitRequisition ()
+    [x] getRequisition ()
+    [x] purchaseRequisitDetail ()
+    [x] updateRequisition ()
+    [x] requisitionUpdateStatus ()
     [x] prNumberGenerator ()
 
     ## Future Enhancement
@@ -19,7 +19,7 @@
 */
 import { ConflictError, NotFoundError, RestrictedAccessError} from "../../shared/errors/appError.js"
 import { purchaseRequisitionRepository } from "./purchaseRequisitionRepository.js"
-import { PurchaseRequisitionInput, PurchaseRequisitionIdParams, CancelPurchaseRequisitionInput, ResubmitPurchaseRequisitionInput, PurchaseRequisitionUpdate} from "./purchaseRequisitionValidation.js"
+import { PurchaseRequisitionInput, PurchaseRequisitionIdParams, CancelPurchaseRequisitionInput, ResubmitPurchaseRequisitionInput, PurchaseRequisitionUpdate, PurchaseRequisitionUpdateData} from "./purchaseRequisitionValidation.js"
 import { Prisma, PurchaseRequisitionStatus, PurchaseRequisitionPriority, PurchaseRequisition} from "../../generated/prisma/client.js"
 import { randomUUID } from "node:crypto"
 import { EventBus } from "../../shared/events/eventBus.js"
@@ -712,13 +712,12 @@ export class purchaseRequisitionService {
 
     }
 
-    async updateRequisition(input: PurchaseRequisitionUpdate) {
-        const {
-            requisitionId,
-            userId,
-            ...updateData
-        } = input;
-
+    async updateRequisition(    
+        requisitionId: string,
+        userId: string,
+        updateData: PurchaseRequisitionUpdateData
+    ) 
+    {
         // 1. Find the requisition
         const requisition =
             await this.repository.findByRequisitionId(requisitionId);
@@ -764,10 +763,17 @@ export class purchaseRequisitionService {
         }
 
         // 6. Perform the update
+
+
+        const repositoryUpdateData = {
+            ...updateData,
+            requested_by_user_id: userId
+        };
+
         const updatedRequisition =
             await this.repository.update(
                 requisitionId,
-                updateData
+                repositoryUpdateData
             );
 
         // 7. Return the updated requisition

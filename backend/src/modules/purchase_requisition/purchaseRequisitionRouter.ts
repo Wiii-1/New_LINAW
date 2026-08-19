@@ -4,6 +4,7 @@ import { purchaseRequisitionService } from "./purchaseRequisitionService.js"
 import { purchaseRequisitionRepository } from "./purchaseRequisitionRepository.js"
 import { authenticate } from "../../shared/middleware/authenticate.js"
 import { EventBus } from "../../shared/events/eventBus.js"
+import { checkRateLimit } from "../../shared/middleware/rateLimit/rate-limiter.js"
 
 const router = Router();
 const service = new purchaseRequisitionService(new purchaseRequisitionRepository(), new EventBus());
@@ -12,15 +13,15 @@ const controller = new PurchaseRequisitionController(service);
 router.use(authenticate)
 
 // Post
-router.post("/create",  controller.createRequisition );
+router.post("/create", controller.createRequisition );
 router.post("/:requisitionId/submit",  controller.submitRequisition);
 router.post("/:requisitionId/cancel",  controller.cancelRequisition);
 router.post("/:requisitionId/resubmit", controller.resubmitRequisition)
 
 // Get
 
-router.get("/", controller.requisition );
-router.get("/:requisitonId", controller.details)
+router.get("/", checkRateLimit,  controller.requisition );
+router.get("/:requisitonId", checkRateLimit,controller.details)
 
 // Patch
 router.patch("/:requisitionId", controller.update)

@@ -7,12 +7,16 @@ type JwtExpiresIn = SignOptions["expiresIn"]
 
 const jwtAccessSecret = process.env.JWT_ACCESS_SECRET
 const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET
+const redisUrl = process.env.REDIS_URL
 
 const blockchainRpcUrl = process.env.BLOCKCHAIN_RPC_URL
 const auditContractAddress = process.env.AUDIT_CONTRACT_ADDRESS
 const blockchainPrivateKey = process.env.BLOCKCHAIN_PRIVATE_KEY
 const appUrl = process.env.FRONTEND_APP_URL ?? process.env.APP_URL ?? "http://localhost:3000"
 
+if (!redisUrl) {
+    throw new Error("REDIS_URL is required")
+}
 
 if (!jwtAccessSecret) {
     throw new Error("JWT_ACCESS_SECRET is required")
@@ -54,6 +58,8 @@ export const env = {
     JWT_ACCESS_EXPIRES: jwtAccessExpires,
 
     JWT_REFRESH_EXPIRES: jwtRefreshExpires,
+
+    REDIS_URL: redisUrl,
 
 
     BLOCKCHAIN_RPC_URL: blockchainRpcUrl,

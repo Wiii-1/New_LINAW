@@ -172,9 +172,6 @@ export const purchaseRequisitionInputSchema = z
 // ===========================
 
 export const updatePurchaseRequisitionSchema = z.object({
-    requested_by_user_id: z
-        .string(),
-
     purpose: z
         .string()
         .trim()
@@ -226,21 +223,21 @@ export type PurchaseRequisitionItem =
 
 export type PurchaseRequisitionInput =
     z.infer<typeof purchaseRequisitionInputSchema> & {
-        userId: string
-        tenantId: string
+        userId: string;
+        tenantId: string;
     };
 
 export type ResubmitPurchaseRequisitionInput =
     z.infer<typeof purchaseRequisitionInputSchema> & {
         userId: string;
         requisitionId: string;
-    };    
+    };
 
-export type PurchaseRequisitionUpdate = 
-    z.infer<typeof updatePurchaseRequisitionSchema> & {
-        requisitionId: string;
-        userId: string;
-    };;
+export type PurchaseRequisitionUpdateData =
+    z.infer<typeof updatePurchaseRequisitionSchema>;
+
+export type PurchaseRequisitionUpdate =
+    z.infer<typeof updatePurchaseRequisitionSchema>;
 
 export type PurchaseRequisitionStatusUpdate =
     z.infer<typeof PurchaseRequisitionStatusSchema>;
@@ -249,5 +246,4 @@ export type CancelPurchaseRequisitionInput =
     z.infer<typeof cancelPurchaseRequisitionSchema> & {
         requisitionId: string;
         userId: string;
-
     };

@@ -1,7 +1,7 @@
-import { Response, NextFunction } from "express"
+import { Request, Response, NextFunction } from "express"
 import { purchaseRequisitionService } from "./purchaseRequisitionService.js"
-import { purchaseRequisitionIdParamsSchema, purchaseRequisitionInputSchema, cancelPurchaseRequisitionSchema , PurchaseRequisitionIdParams, PurchaseRequisitionInput, CancelPurchaseRequisitionInput, ResubmitPurchaseRequisitionInput } from "./purchaseRequisitionValidation.js"
-import { AuthRequest } from "../../shared/middleware/authenticate.js"
+import { purchaseRequisitionIdParamsSchema, purchaseRequisitionInputSchema, cancelPurchaseRequisitionSchema, updatePurchaseRequisitionSchema, PurchaseRequisitionIdParams, PurchaseRequisitionInput, CancelPurchaseRequisitionInput, ResubmitPurchaseRequisitionInput, PurchaseRequisitionUpdate } from "./purchaseRequisitionValidation.js"
+import { UnauthorizedAccessError } from "../../shared/errors/appError.js"
 
 export class PurchaseRequisitionController {
     constructor(private service: purchaseRequisitionService ) {
@@ -9,11 +9,14 @@ export class PurchaseRequisitionController {
     }
 
     createRequisition = async (
-        req: AuthRequest,
+        req: Request,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try{
+            if (!req.user) {
+                throw new UnauthorizedAccessError("Authentication required");
+            }        
             const requisition = purchaseRequisitionInputSchema.parse(req.body)
 
             const userId = req.user.id
@@ -39,7 +42,7 @@ export class PurchaseRequisitionController {
     }
 
     submitRequisition  = async (
-        req: AuthRequest,
+        req: Request,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
@@ -49,7 +52,7 @@ export class PurchaseRequisitionController {
 
             const submitRequisition: PurchaseRequisitionIdParams = {
                 requisitionId: params.requisitionId,
-                userId: req.user.id
+                userId: req.user.user_id
             };
 
             const submit = await this.service.submitRequisition(submitRequisition)
@@ -69,7 +72,7 @@ export class PurchaseRequisitionController {
     }
 
     cancelRequisition = async (
-        req: AuthRequest,
+        req: Request,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
@@ -98,7 +101,7 @@ export class PurchaseRequisitionController {
     }
     
     resubmitRequisition = async (
-        req: AuthRequest,
+        req: Request,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
@@ -132,18 +135,16 @@ export class PurchaseRequisitionController {
     }
 
     requisition = async(
-        req: AuthRequest,
+        req: Request,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try {
-            const requisitionId = purchaseRequisitionIdParamsSchema.parse(req.params.id)
+            const params = purchaseRequisitionIdParamsSchema.parse(req.params)
 
-            const userId = req.user.id
-
-            const data = { 
-                requisitionId,
-                userId
+            const data: PurchaseRequisitionIdParams = { 
+                requisitionId: params.requisitionId,
+                userId: req.user.id
             }
 
             const requisition = await this.service.getRequisition(data)
@@ -159,18 +160,16 @@ export class PurchaseRequisitionController {
     }
 
     details = async (
-        req: AuthRequest,
+        req: Request,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try {
-            const requisition = purchaseRequisitionIdParamsSchema.parse(req.params.id)
+            const params = purchaseRequisitionIdParamsSchema.parse(req.params)
 
-            const userId = req.user.id
-
-            const requisitionDetails = {
-                requisition,
-                userId
+            const requisitionDetails: PurchaseRequisitionIdParams = {
+                requisitionId: params.requisitionId,
+                userId: req.user.id
             }
 
             const details = await this.service.purchaseRequisitionDetail(requisitionDetails)
@@ -186,21 +185,20 @@ export class PurchaseRequisitionController {
     }
 
     update = async (
-        req: AuthRequest,
+        req: Request,
         res: Response,
         next: NextFunction
     ): Promise <void> => {
         try {
-            const requisitionId = purchaseRequisitionIdParamsSchema.parse(req.params.id)
+            const updateContent = updatePurchaseRequisitionSchema.parse(req.body)
 
-            const userId = req.user.id
+            const params = purchaseRequisitionIdParamsSchema.parse(req.params)
 
-            const update = {
-                requisitionId,
-                userId
-            }
-
-            const updateReqs = await this.service.updateRequisition(update)
+            const updateReqs = await this.service.updateRequisition(
+                params.requisitionId,
+                req.user.id,
+                updateContent
+            )
 
             res.status(200).json({
                 success: true,
