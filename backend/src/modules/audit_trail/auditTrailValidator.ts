@@ -5,8 +5,15 @@ import { z } from "zod"
 // =========
 
 export const searchAuditSchema = z.object ({
-    id: z
+    audit_id: z
         .string()
+        .uuid(),
+    user_id: z
+        .string()
+        .uuid(),
+    tenant_id: z
+        .string()
+        .uuid()
 })
 
 // =========
@@ -14,7 +21,13 @@ export const searchAuditSchema = z.object ({
 // =========
 
 export const auditIntegritySchema = z.object({
-    id: z
+    audit_id: z
+        .string()
+        .uuid(),
+    user_id: z
+        .string()
+        .uuid(),
+    tenant_id: z
         .string()
         .uuid()
 })

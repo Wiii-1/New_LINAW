@@ -98,6 +98,15 @@ export class AuditTrailRepository {
             }
         })
     }
+    async findById (
+        userId: string
+    ) {
+        return prisma.user.findFirst({
+            where:{
+                id: userId
+            }
+        })
+    }
 
     async getPurchaseOrderSnapshot(
         purchaseOrderId: string

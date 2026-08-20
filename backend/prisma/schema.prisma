@@ -283,7 +283,7 @@ model PasswordResetToken {
 model Role {
   id String @id @default(uuid()) @db.Uuid
 
-  tenant_id String @db.Uuid
+  tenant_id String? @db.Uuid
 
   code        String
   name        String

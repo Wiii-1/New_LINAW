@@ -228,3 +228,30 @@ export class AuthRepository {
         })
     }
 }
+
+export async function getUserRole(
+    userId: string,
+    tenantId: string,
+) {
+    const userRole = await prisma.userRole.findFirst({
+        where: {
+            user_id: userId,
+            role: {
+                tenant_id: tenantId,
+            },
+        },
+        include: {
+            role: {
+                include: {
+                    role_permissions: {
+                        include: {
+                            permission: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    return userRole?.role ?? null;
+}

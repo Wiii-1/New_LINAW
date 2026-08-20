@@ -6,6 +6,8 @@ import { authenticate } from "../../shared/middleware/authenticate.js"
 import { BlockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js"
 import { registerAuditTrailEvents } from "./auditTrailEventHandler.js"
 import { checkRateLimit } from "../../shared/middleware/rateLimit/rate-limiter.js"
+import { Authorize } from "../../shared/Auhorization/authorize.js"
+import { systemPermissions } from "../../shared/Auhorization/seeds/systemPermissions.js"
 
 const router = Router()
 const service = new AuditTrailService( new AuditTrailRepository(), new BlockchainAdapter())
@@ -15,7 +17,7 @@ const controller = new auditTrailController(service)
 router.use( checkRateLimit)
 router.use( authenticate )
 
-router.get("/search", controller.searchAuditRecord)
-router.get("/:auditId/verify", controller.verifyAuditIntegrity)
+router.get("/search", Authorize(systemPermissions.auditTrail.search), controller.searchAuditRecord)
+router.get("/:auditId/verify", Authorize(systemPermissions.auditTrail.verify),controller.verifyAuditIntegrity)
 
 export default router;

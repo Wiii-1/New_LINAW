@@ -13,6 +13,8 @@ const blockchainRpcUrl = process.env.BLOCKCHAIN_RPC_URL
 const auditContractAddress = process.env.AUDIT_CONTRACT_ADDRESS
 const blockchainPrivateKey = process.env.BLOCKCHAIN_PRIVATE_KEY
 const appUrl = process.env.FRONTEND_APP_URL ?? process.env.APP_URL ?? "http://localhost:3000"
+const mainDatabase = process.env.DATABASE_URL
+const testDatabase = process.env.TEST_DATABASE_URL
 
 if (!redisUrl) {
     throw new Error("REDIS_URL is required")
@@ -36,6 +38,14 @@ if (!auditContractAddress) {
 
 if (!blockchainPrivateKey) {
     throw new Error("BLOCKCHAIN_PRIVATE_KEY is required")
+}
+
+if (!mainDatabase) {
+    throw new Error("DATABASE_URL is required")
+}
+
+if (!testDatabase) {
+    throw new Error("TEST_DATABASE_URL is required ")
 }
 
 
@@ -69,5 +79,9 @@ export const env = {
     BLOCKCHAIN_PRIVATE_KEY: blockchainPrivateKey,
 
     APP_URL: appUrl,
+
+    DATABASE_URL: mainDatabase,
+
+    TEST_DATABASE_URL: testDatabase
 
 }

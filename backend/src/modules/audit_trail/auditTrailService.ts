@@ -1,7 +1,7 @@
 import * as crypto from 'crypto'
 import { AuditTrailRepository } from "./auditTrailRepository.js";
 import { BlockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js"
-import { NotFoundError } from '../../shared/errors/appError.js';
+import { NotFoundError, UnauthorizedAccessError } from '../../shared/errors/appError.js';
 import { auditIntegrity, searchAudit } from "./auditTrailValidator.js"
 
 type CreateAuditTrailInput = {
@@ -43,29 +43,44 @@ export class AuditTrailService {
 
     async searchAudit (data: searchAudit) {
         
-        const { id } = data
+        const { 
+            audit_id, tenant_id, user_id
+        } = data
  
-        const Audit = await this.repository.findAuditByid(id)
+        const audit = await this.repository.findAuditByid(audit_id)
 
+        const user = await this.repository.findById(user_id)
 
-        if (!Audit) {
-            throw new NotFoundError("Audit trail not found")
+        if (!user || user.tenant_id !== tenant_id) {
+            throw new UnauthorizedAccessError("You do not belong to this organization")
         }
 
-        const blockchainRecord = await this.blockchainAdapter.getAudit(Audit.id)
+        if (!audit) {
+            throw new NotFoundError("Audit trail not found")
+        }        
+
+        const blockchainRecord = await this.blockchainAdapter.getAudit(audit.id)
 
         return {
-            Audit,
+            audit,
             blockchain: blockchainRecord
         }
     }
 
 
     async auditIntegrity(data: auditIntegrity) {
+       
+        const { 
+            audit_id, tenant_id, user_id
+        } = data
+ 
+        const user = await this.repository.findById(user_id)
 
-        const audit = await this.repository.findAuditForVerification(
-            data.id
-        )
+        if (!user || user.tenant_id !== tenant_id) {
+            throw new UnauthorizedAccessError("You do not belong to this organization")
+        }
+
+        const audit = await this.repository.findAuditForVerification(audit_id)
 
         if( !audit ) {
             throw new NotFoundError("audit not found")

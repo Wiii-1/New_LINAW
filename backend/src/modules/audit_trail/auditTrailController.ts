@@ -14,9 +14,18 @@ export class auditTrailController {
     ): Promise <void> => {
         try {
 
-        const data = searchAuditSchema.parse(req.params.id)
+        const user_id = req.user.user_id
 
-        const id = await this.service.searchAudit(data)
+        const tenant_id = req.user.tenant_id
+
+        const { audit_id } = searchAuditSchema.parse(req.params)
+
+        const search = {
+            user_id,
+            tenant_id,
+            audit_id
+        }
+        const id = await this.service.searchAudit(search)
 
         res.status(200).json({
             success: true,
@@ -35,9 +44,19 @@ export class auditTrailController {
         next: NextFunction
     ): Promise <void> => {
         try{
-            const id = auditIntegritySchema.parse(req.params.id)
+            const { audit_id} = auditIntegritySchema.parse(req.params.id)
 
-            const data = await this.service.auditIntegrity(id)
+            const user_id = req.user.user_id
+
+            const tenant_id = req.user.tenant_id
+
+            const verify = {
+                user_id,
+                tenant_id,
+                audit_id
+            }
+
+            const data = await this.service.auditIntegrity(verify)
 
             res.status(200).json({
                 success:true,
