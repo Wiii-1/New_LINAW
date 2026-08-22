@@ -44,7 +44,11 @@ export async function criticalRateLimit(
     endpoint: req.path,
   });
 
+  console.log("[RateLimit Middleware] Got result:", result);
+
   if (!result.allowed) {
+    console.log("[RateLimit Middleware] BLOCKED");
+
     res.setHeader(
       "Retry-After",
       String(result.retryAfter),
@@ -55,8 +59,11 @@ export async function criticalRateLimit(
       retryAfter: result.retryAfter,
       reason: result.reason,
     });
+
     return;
   }
 
+  console.log("[RateLimit Middleware] Calling next()");
   next();
+  console.log("[RateLimit Middleware] next() returned");
 }

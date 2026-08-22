@@ -265,8 +265,8 @@ describe("AuthService password reset", () => {
   it("returns the same response for existing and nonexistent reset requests", async () => {
     const { service, notifier } = await buildService();
 
-    const existing = await service.requestPasswordReset({ identifier: "user@example.com" });
-    const missing = await service.requestPasswordReset({ identifier: "missing@example.com" });
+    const existing = await service.requestPasswordReset({ email: "user@example.com" });
+    const missing = await service.requestPasswordReset({ email: "missing@example.com" });
 
     expect(existing).toEqual({ success: true });
     expect(missing).toEqual({ success: true });
@@ -276,7 +276,7 @@ describe("AuthService password reset", () => {
   it("creates a reset link with the configured app URL", async () => {
     const { service, notifier } = await buildService();
 
-    await service.requestPasswordReset({ identifier: "user@example.com" });
+    await service.requestPasswordReset({ email: "user@example.com" });
 
     expect(notifier.calls).toHaveLength(1);
     expect(notifier.calls[0]?.resetLink).toContain("token=");
@@ -375,7 +375,7 @@ describe("AuthService password reset", () => {
   it("resets the password, revokes sessions, and prevents token reuse", async () => {
     const { service, repository, notifier, user } = await buildService();
 
-    await service.requestPasswordReset({ identifier: user.email });
+    await service.requestPasswordReset({ email: user.email });
     const resetLink = notifier.calls[0]?.resetLink;
 
     expect(resetLink).toBeTruthy();

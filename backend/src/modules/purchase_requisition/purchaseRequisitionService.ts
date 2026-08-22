@@ -19,7 +19,7 @@
 */
 import { ConflictError, NotFoundError, RestrictedAccessError} from "../../shared/errors/appError.js"
 import { purchaseRequisitionRepository } from "./purchaseRequisitionRepository.js"
-import { PurchaseRequisitionInput, PurchaseRequisitionIdParams, CancelPurchaseRequisitionInput, ResubmitPurchaseRequisitionInput, PurchaseRequisitionUpdate, PurchaseRequisitionUpdateData} from "./purchaseRequisitionValidation.js"
+import { PurchaseRequisitionInput, PurchaseRequisitionIdParams, CancelPurchaseRequisitionInput, ResubmitPurchaseRequisitionInput, PurchaseRequisitionUpdate, PurchaseRequisitionUpdateData, PurchaseRequisitionQuery} from "./purchaseRequisitionValidation.js"
 import { Prisma, PurchaseRequisitionStatus, PurchaseRequisitionPriority, PurchaseRequisition} from "../../generated/prisma/client.js"
 import { randomUUID } from "node:crypto"
 import { EventBus } from "../../shared/events/eventBus.js"
@@ -453,10 +453,7 @@ export class purchaseRequisitionService {
 
             9. Send the new revision to the repository for persistence.
 
-            10. Publish a `PurchaseRequisitionResubmitted` event after the new revision
-                has been successfully saved.
-
-            11. Return the necessary information for the newly created revision.
+            10. Return the necessary information for the newly created revision.
         */
 
         const { 
@@ -603,7 +600,7 @@ export class purchaseRequisitionService {
             acted_at,
             metadata_json: metadata           
             
-        }
+        }      
 
         await this.repository.createRequisition(dataCreate)
 
@@ -619,7 +616,7 @@ export class purchaseRequisitionService {
 
     }
 
-    async getRequisition (input: PurchaseRequisitionIdParams) {
+    async getRequisition (input: PurchaseRequisitionQuery) {
         /*
             1. It receives requisition id and user id 
 
@@ -635,22 +632,18 @@ export class purchaseRequisitionService {
 
             5. returns the gathered data
         */
-
         const {
-            requisitionId,
-            userId
-        } = input
+            userId,
+            tenantId,
+            status,
+            requesterId,
+            pr_number,
+        } = input;
 
-        const requisiotn = await this.repository.findByRequisitionId(requisitionId)
+        const user = await this.repository.findByUserId(userId);
 
-        if(!requisiotn) {
-            throw new NotFoundError ("Purchase requisition does not exist")
-        }
-
-        const user = await this.repository.findByUserId(userId)
-
-        if(!user) {
-            throw new NotFoundError (" User does not Exist")
+        if (!user) {
+            throw new NotFoundError("User does not exist");
         }
 
         const membership =
@@ -659,10 +652,14 @@ export class purchaseRequisitionService {
         if (!membership) {
             throw new Error("User has no active company membership");
         }
-        
-        const getRequisition = await this.repository.findRequisitionsForList(requisitionId)
 
-        return getRequisition
+        return this.repository.findRequisitionsForQuery({
+            userId,
+            tenantId,
+            status,
+            requesterId,
+            pr_number,
+        });
     }
 
     async purchaseRequisitionDetail (input: PurchaseRequisitionIdParams) {

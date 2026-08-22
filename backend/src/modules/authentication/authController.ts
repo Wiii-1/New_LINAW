@@ -7,6 +7,7 @@ export class AuthController {
     constructor(private service: AuthService) {
         this.service = service
     }   
+    
 
     getUserById = async (
         req: Request,
@@ -38,6 +39,8 @@ export class AuthController {
     ): Promise<void> => {
         try {
 
+            console.log("SIGNUP: controller entered");
+
             const data = signupSchema.parse(req.body)
 
             const result = await this.service.register(data)
@@ -58,6 +61,9 @@ export class AuthController {
         next: NextFunction
     ): Promise <void>  => {
         try {
+
+            console.log("LOGIN: controller entered");
+            
             const data = loginSchema.parse(req.body)
 
             const result = await this.service.login(data)

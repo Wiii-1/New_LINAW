@@ -57,9 +57,40 @@ export interface PurchaseRequisitionUpdateData {
     needed_by_date?: string | undefined;
 }
 
+export interface PurchaseRequisitionQueryData {
+    userId: string;
+    tenantId: string;
+    status: PurchaseRequisitionStatus | undefined;
+    requesterId: string | undefined;
+    pr_number: string | undefined;
+}
+
 export class purchaseRequisitionRepository {
     
     // Query
+
+    async findRequisitionsForQuery(
+        data: PurchaseRequisitionQueryData
+    ) {
+        return prisma.purchaseRequisition.findMany({
+            take: 10,
+            where: {
+                tenant_id: data.tenantId,
+
+                ...(data.status && {
+                    status: data.status,
+                }),
+
+                ...(data.requesterId && {
+                    requested_by_user_id: data.requesterId,
+                }),
+
+                ...(data.pr_number && {
+                    pr_number: data.pr_number,
+                }),
+            },
+        });
+    }    
 
     async findByRequisitionId (
         requisitionId: string
@@ -90,7 +121,7 @@ export class purchaseRequisitionRepository {
                 needed_by_date: true,
                 status: true,
                 created_at: true,
-                updated_at: true,
+                updated_at: true ,
             },
             orderBy: {
                 created_at: "desc",

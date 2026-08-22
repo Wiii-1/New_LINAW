@@ -5,16 +5,17 @@ import { AuditTrailRepository } from "./auditTrailRepository.js"
 import { authenticate } from "../../shared/middleware/authenticate.js"
 import { BlockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js"
 import { registerAuditTrailEvents } from "./auditTrailEventHandler.js"
-import { checkRateLimit } from "../../shared/middleware/rateLimit/rate-limiter.js"
+
 import { Authorize } from "../../shared/Auhorization/authorize.js"
 import { systemPermissions } from "../../shared/Auhorization/seeds/systemPermissions.js"
+import { criticalRateLimit } from "../../shared/middleware/rateLimit/critical-rate-limit.js"
 
 const router = Router()
 const service = new AuditTrailService( new AuditTrailRepository(), new BlockchainAdapter())
 registerAuditTrailEvents(service)
 const controller = new auditTrailController(service)
 
-router.use( checkRateLimit)
+router.use( criticalRateLimit )
 router.use( authenticate )
 
 router.get("/search", Authorize(systemPermissions.auditTrail.search), controller.searchAuditRecord)

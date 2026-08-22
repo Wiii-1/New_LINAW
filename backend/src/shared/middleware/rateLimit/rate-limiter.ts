@@ -78,6 +78,9 @@ return {
 export async function checkRateLimit(
   context: RateLimitContext,
 ): Promise<RateLimitResult> {
+
+  console.log("[RateLimit] Starting");
+
   const sessionKey =
     `rate-limit:session:${context.sessionId}:${context.endpoint}`;
 
@@ -86,6 +89,8 @@ export async function checkRateLimit(
 
   const ipKey =
     `rate-limit:ip:${context.ip}:${context.endpoint}`;
+
+  console.log("[RateLimit] Executing Redis script...");
 
   const result = await redis.eval(RATE_LIMIT_SCRIPT, {
     keys: [
@@ -101,13 +106,27 @@ export async function checkRateLimit(
     ],
   }) as [number, number, number];
 
+  console.log("[RateLimit] Redis script completed:", result);
+
   const [allowed, remaining, reasonCode] = result;
 
-  if (allowed === 1) {
-    return {
-      allowed: true,
+  console.log("[RateLimit] Parsed result:", {
+      allowed,
       remaining,
-    };
+      reasonCode,
+  });
+
+  if (allowed === 1) {
+      console.log("[RateLimit] Returning allowed result");
+
+      const output = {
+          allowed: true as const,
+          remaining,
+      };
+
+      console.log("[RateLimit] Output:", output);
+
+      return output;
   }
 
   type RateLimitReason = "session" | "user" | "ip";

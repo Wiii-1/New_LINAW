@@ -15,10 +15,10 @@ export const findByIdSchema = z.object ({
 // ==========
 
 export const forgotPasswordSchema = z.object({
-    identifier: z
+    email: z
         .string()
-        .min(3, "Identifier is required")
-        .max(255, "Identifier is too long")
+        .min(3, "email is required")
+        .max(255, "email is too long")
         .trim()
         .toLowerCase()
 })

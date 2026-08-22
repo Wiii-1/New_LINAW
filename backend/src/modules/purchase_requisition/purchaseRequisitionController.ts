@@ -1,6 +1,18 @@
 import { Request, Response, NextFunction } from "express"
 import { purchaseRequisitionService } from "./purchaseRequisitionService.js"
-import { purchaseRequisitionIdParamsSchema, purchaseRequisitionInputSchema, cancelPurchaseRequisitionSchema, updatePurchaseRequisitionSchema, PurchaseRequisitionIdParams, PurchaseRequisitionInput, CancelPurchaseRequisitionInput, ResubmitPurchaseRequisitionInput, PurchaseRequisitionUpdate } from "./purchaseRequisitionValidation.js"
+import { 
+    purchaseRequisitionIdParamsSchema, 
+    purchaseRequisitionInputSchema, 
+    cancelPurchaseRequisitionSchema, 
+    updatePurchaseRequisitionSchema, 
+    PurchaseRequisitionIdParams, 
+    PurchaseRequisitionInput, 
+    CancelPurchaseRequisitionInput, 
+    ResubmitPurchaseRequisitionInput, 
+    PurchaseRequisitionUpdate,
+    PurchaseRequisitionQuery,
+    PurchaseRequisitionQuerySchema
+} from "./purchaseRequisitionValidation.js"
 import { UnauthorizedAccessError } from "../../shared/errors/appError.js"
 
 export class PurchaseRequisitionController {
@@ -134,28 +146,31 @@ export class PurchaseRequisitionController {
         }
     }
 
-    requisition = async(
+    requisition = async (
         req: Request,
         res: Response,
         next: NextFunction
-    ): Promise <void> => {
+    ): Promise<void> => {
         try {
-            const params = purchaseRequisitionIdParamsSchema.parse(req.params)
+            const query = PurchaseRequisitionQuerySchema.parse(req.query);
 
-            const data: PurchaseRequisitionIdParams = { 
-                requisitionId: params.requisitionId,
-                userId: req.user.id
-            }
+            const data: PurchaseRequisitionQuery = {
+                userId: req.user.id,
+                tenantId: req.user.tenant_id,
+                status: query.status,
+                requesterId: query.requesterId,
+                pr_number: query.pr_number,
+            };
 
-            const requisition = await this.service.getRequisition(data)
+            const requisition = await this.service.getRequisition(data);
 
             res.status(200).json({
                 success: true,
                 data: requisition
-            })
+            });
 
-        } catch (err){
-            next(err)
+        } catch (err) {
+            next(err);
         }
     }
 

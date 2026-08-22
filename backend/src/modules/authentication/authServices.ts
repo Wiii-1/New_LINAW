@@ -16,6 +16,8 @@ export class AuthService {
     
     async register (data: signupInput){
 
+        console.log("SIGNUP: calling service");
+
         const {
             first_name,
             last_name,
@@ -53,11 +55,15 @@ export class AuthService {
             user_id: user.id,
             password_hash
         })
+
+        console.log("SIGNUP: service returned");
         
         return user;
     }
 
     async login (data: loginInput) {
+
+        console.log("LOGIN: calling service");
 
         const expiresAt = new Date()
 
@@ -108,6 +114,8 @@ export class AuthService {
         const accessToken = await generateAccessToken({
             user_id: user.id
         })
+
+        console.log(": service returned");
 
         return {
             accessToken,
@@ -218,7 +226,7 @@ export class AuthService {
     }
 
     async requestPasswordReset(data: forgotPasswordInput) {
-        const user = await this.repository.findUserWithCredentialsByEmail(data.identifier)
+        const user = await this.repository.findUserWithCredentialsByEmail(data.email)
 
         if (!user) {
             return {

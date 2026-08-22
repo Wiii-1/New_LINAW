@@ -210,8 +210,33 @@ export const cancelPurchaseRequisitionSchema = z.object({
 }).strict();
 
 // ===========================
+// Query Schema
+// ===========================
+
+export const PurchaseRequisitionQuerySchema = z.object({
+    status: purchaseRequisitionStatusSchema.optional(),
+
+    requesterId: z
+        .string()
+        .uuid()
+        .optional(),
+
+    pr_number: z
+        .string()
+        .trim()
+        .min(1)
+        .optional(),
+});
+
+// ===========================
 // Types
 // ===========================
+
+export type PurchaseRequisitionQuery = 
+    z.infer<typeof PurchaseRequisitionQuerySchema> & {
+        userId: string
+        tenantId: string
+    }
 
 export type PurchaseRequisitionIdParams =
     z.infer<typeof purchaseRequisitionIdParamsSchema> & {
