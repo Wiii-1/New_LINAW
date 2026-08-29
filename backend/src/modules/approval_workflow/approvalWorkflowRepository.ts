@@ -45,7 +45,7 @@ export interface ApprovalRequestData {
 export interface ApprovalLevelData {
     tenant_id: string
     company_id: string | null
-    workflow_code: string
+    workflow_id: string
     level_no: number 
     role_id: string
     min_amount: Decimal | null
@@ -180,7 +180,7 @@ export class ApprovalWorkflowRepository {
             data: {
                 tenant_id: data.tenant_id,
                 company_id: data.company_id,
-                workflow_code: data.workflow_code,
+                workflow_id: data.workflow_id,
                 level_no: data.level_no,
                 role_id: data.role_id,
                 min_amount: data.min_amount,

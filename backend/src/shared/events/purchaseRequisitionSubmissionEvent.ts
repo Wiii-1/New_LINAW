@@ -13,11 +13,3 @@ export type PurchaseRequisitionCancelledEvent = {
     userId: string;
     cancelledAt: Date;
 };
-
-export type PurchaseRequisitionResubmittedEvent = {
-    purchaseRequisitionId: string;
-    tenantId: string;
-    companyId: string;
-    userId: string;
-    submitted_At: Date;
-}

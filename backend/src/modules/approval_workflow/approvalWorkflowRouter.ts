@@ -16,14 +16,18 @@ router.use(criticalRateLimit)
 
 
 // POST
-router.post("/:requesitionId/approve", controller.approve)
-router.post("/:requisitionId/reject", controller.reject)
-router.post("/:requisitionId/cancel", controller.cancel)
+router.post("/createLevels", controller.createLevels)
+router.post("/workflows", controller.createWorkflowCode)
+router.post("/:approvalWorkflowId/approve", controller.approve)
+router.post("/:approvalWorkflowId/reject", controller.reject)
+router.post("/:approvalWorkflowId/cancel", controller.cancel)
 
 
 
 // GET
 router.get("/", controller.approvalWorkflow)
-router.get("/:requisitionId", controller.approvalRequest)
+router.get("/workflows", controller.workflowCodes)
+router.get("/workflows/levels", controller.workflowLevels)
+router.get("/:approvalWorkflowId", controller.approvalRequest)
 
 export default router;

@@ -1,17 +1,16 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, response } from "express";
 import { ApprovalWorkflowService } from "./approvalWorkflowService.js"
 import {    APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA, 
             APPROVAL_WORKFLOW_QUERY_SCHEMA, 
             REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA,
             ApprovalWorkflowIdParams,
             ApprovalWorkflowQuery,
-            RejectApprovalWorkflowBody
+            RejectApprovalWorkflowBody,
+            APPROVAL_WORKFLOW_LEVEL_CREATION,
+            APPROVAL_WORKFLOW_CREATION,
+            CreateWorkflow
         } from "./approvalWorkflowValidator.js";
-
-type ApprovalWorkflowActionInput = {
-    requisitionId: string;
-    userId: string;
-};
+import { REPLCommand } from "node:repl";
 
 export class ApprovalWorkflowController {
     constructor(private service: ApprovalWorkflowService) {
@@ -26,12 +25,12 @@ export class ApprovalWorkflowController {
         try {
             const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(req.params)
 
-            const data: ApprovalWorkflowActionInput = {
-                requisitionId: params.requisitionId,
+            const data: ApprovalWorkflowIdParams = {
+                ApprovalWorkflowId: params.ApprovalWorkflowId,
                 userId: req.user.id
             }
 
-            const approved = await this.service.approveRequisition(data)
+            const approved = await this.service.approveRequest(data)
 
             res.status(200).json({
                 success: true,
@@ -55,10 +54,10 @@ export class ApprovalWorkflowController {
             const data: RejectApprovalWorkflowBody = {
                 remarks: body.remarks,
                 userId: req.user.id,
-                requisitionId: params.requisitionId
+                approvalWorkflowId: params.ApprovalWorkflowId
             }
 
-            const rejected = await this.service.rejectRequisition(data)
+            const rejected = await this.service.rejectRequest(data)
 
             res.status(200).json({
                 success: true,
@@ -78,12 +77,12 @@ export class ApprovalWorkflowController {
         try {
             const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(req.params)
 
-            const data: ApprovalWorkflowActionInput = {
-                requisitionId: params.requisitionId,
+            const data: ApprovalWorkflowIdParams = {
+                ApprovalWorkflowId: params.ApprovalWorkflowId,
                 userId: req.user.id
             }
 
-            const cancelled = await this.service.cancelRequisition(data)
+            const cancelled = await this.service.cancelRequest(data)
 
             res.status(200).json({
                 success: true,
@@ -128,8 +127,7 @@ export class ApprovalWorkflowController {
         try {
             const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(req.params)
 
-            const data: ApprovalWorkflowActionInput = {
-                requisitionId: params.requisitionId,
+            const data = {
                 userId: req.user.id
             }
 
@@ -139,6 +137,79 @@ export class ApprovalWorkflowController {
                 success: true,
                 data: request
             })
+
+        } catch (err) {
+            next(err)
+        }
+    }
+
+
+    createLevels = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            const body = APPROVAL_WORKFLOW_LEVEL_CREATION.parse(req.body)
+
+            const data = {
+                ...body,
+                userId: req.user.id
+            }
+
+            const level = await this.service.createLevel(data)
+
+            res.status(201).json({
+                success: true,
+                data: level
+            })
+        } catch (err) {
+            next(err)   
+        }
+    }
+
+    createWorkflowCode = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            const body = APPROVAL_WORKFLOW_CREATION.parse(req.body)
+
+            const data: CreateWorkflow = {
+                ...body,
+                userId: req.user.id
+            }
+
+            const workflow = await this.service.createWorkflowCode(data)
+
+            res.status(201).json({
+                success: true,
+                data: workflow
+            })
+        } catch (err) {
+            next(err)
+        }
+    }    
+
+    workflowCodes = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+
+        } catch (err) {
+            next(err)
+        }
+    }
+
+    workflowLevels = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
 
         } catch (err) {
             next(err)
