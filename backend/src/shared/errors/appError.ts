@@ -72,3 +72,10 @@ export class ServiceUnavailableError extends AppError {
         this.name = "serviceUnavailableError"
     }
 }
+
+export class ValidationError extends AppError {
+    constructor (message = "Validation Error",details?:unknown){
+        super(message, 400, "Validation Error", details)
+        this.name = "validationError"
+    }
+}

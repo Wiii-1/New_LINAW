@@ -44,7 +44,7 @@ export const APPROVAL_WORKFLOW_LEVEL_CREATION = z.object({
         .int()
         .positive(),
     
-    role_code: z
+    roleCode: z
         .string(),
 
     minAmount: z
@@ -53,14 +53,10 @@ export const APPROVAL_WORKFLOW_LEVEL_CREATION = z.object({
 
     maxAmount: z
         .number()
-        .positive()
-        .optional(),
+        .positive(),
     
     isRequired: z
-        .boolean(),
-
-    companyId: z  
-        .uuid()
+        .boolean()
 
 })
 
@@ -119,7 +115,9 @@ export type RejectApprovalWorkflowBody =
     };
 
 export type CreateLevels = 
-    z.infer<typeof APPROVAL_WORKFLOW_LEVEL_CREATION>
+    z.infer<typeof APPROVAL_WORKFLOW_LEVEL_CREATION> & {
+        userId: string
+    }
 
 export type CreateWorkflow = 
     z.infer<typeof APPROVAL_WORKFLOW_CREATION> & {

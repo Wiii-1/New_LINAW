@@ -788,7 +788,7 @@ GET
 /api/approval-workflows?status=pending  
 /api/approval-workflows?status=approved  
 /api/approval-workflows?status=rejected  
-/api/approval-workflows?approverId=:approverId
+/api/approval-workflows?approverId=:userId
 
 PUT  
 /api/approval-workflows/:requestId/status

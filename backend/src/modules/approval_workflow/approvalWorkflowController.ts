@@ -168,7 +168,7 @@ export class ApprovalWorkflowController {
         }
     }
 
-    createWorkflowCode = async (
+    createWorkflowDefinition = async (
         req: Request,
         res: Response,
         next: NextFunction
@@ -181,7 +181,7 @@ export class ApprovalWorkflowController {
                 userId: req.user.id
             }
 
-            const workflow = await this.service.createWorkflowCode(data)
+            const workflow = await this.service.createWorkflowDefinition(data)
 
             res.status(201).json({
                 success: true,

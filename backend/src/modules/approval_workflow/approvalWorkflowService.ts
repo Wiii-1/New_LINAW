@@ -1,4 +1,7 @@
-import { ApprovalWorkflowRepository } from "./approvalWorkflowRepository.js";
+import { ApprovalWorkflowRepository,
+         ApprovalLevelData,
+         ApprovalWorkflowDefinitionData,
+       } from "./approvalWorkflowRepository.js";
 import { EventBus } from "../../shared/events/eventBus.js";
 import { ApprovalWorkflowIdParams, 
          RejectApprovalWorkflowBody,
@@ -6,6 +9,8 @@ import { ApprovalWorkflowIdParams,
          CreateLevels,
          CreateWorkflow
         } from "./approvalWorkflowValidator.js"
+import { ConflictError, NotFoundError, ValidationError } from "../../shared/errors/appError.js";
+import { Decimal } from "@prisma/client/runtime/client"
 
 type AuthenticatedUser = {
     userId: string
@@ -49,6 +54,43 @@ export class ApprovalWorkflowService {
     - validateApprovalAuthority()
     */
 
+   private findApplicableWorkflow (
+
+   ) {
+      /*
+
+      */
+   }
+
+   private findApplicableWorkflowlevel (
+
+   ) {
+      /*
+      
+      */
+   }
+
+   private validateUserWorkflowAccess (
+
+   ) {
+      /*
+      
+      */
+   }
+
+   private async checkMembership(userId: string) {
+      const membership =
+         await this.repository.findActiveByUserId(userId)
+
+      if (!membership) {
+         throw new NotFoundError(
+               "User has no active company membership"
+         )
+      }
+
+      return membership
+   }
+
     
     async createApprovalRequest (event: CreateApprovalWorkflowRequest) {
 
@@ -79,7 +121,15 @@ export class ApprovalWorkflowService {
             8. Returns the created approval request.
         */
 
-    }  
+      const isExist = await this.repository.findRequisitionById(event.purchaseRequisitionId)
+
+      if (!isExist) {
+         throw new NotFoundError("Purchase Requisition does not exist")
+      }
+
+
+
+    }   
 
     async cancelApprovalRequest (event: CancellationOfApprovalRequest) {
 
@@ -254,58 +304,225 @@ export class ApprovalWorkflowService {
     async createLevel (input: CreateLevels) {
 
         /*
-            1. Uses the authenticated user to determine
+            [x]1. Uses the authenticated user to determine
                which tenant/company the level belongs to.
 
-            2. Validates that the referenced ApprovalWorkflow
+            [x]2. Validates that the referenced ApprovalWorkflow
                exists and belongs to the user's tenant/company.
 
-            3. Validates that the role referenced by roleCode
+            [x]3. Validates that the role referenced by roleCode
                exists and belongs to the appropriate tenant.
 
-            4. Validates the level configuration:
+            []4. Validates the level configuration:
                - level number is valid
                - amount range is valid
                - min amount does not exceed max amount
                - level number is not duplicated
 
-            5. Optionally validates that the amount range does
+            [x]5. Optionally validates that the amount range does
                not conflict with another level in the workflow.
 
-            6. Structures the received data into an object.
+            [x]6. Structures the received data into an object.
 
-            7. Passes the write request to the repository.
+            []7. Passes the write request to the repository.
 
-            8. Returns the created workflow level.
+            []8. Returns the created workflow level.
         */        
+      const {
+         workflowCode,
+         levelNo,
+         roleCode,
+         minAmount,
+         maxAmount,
+         isRequired,
+         userId
+      } = input
 
+      
+      const membership = await this.checkMembership(userId)
+
+      const tenantId = membership.company.tenant_id
+      const companyId = membership.company_id
+
+      const workflow =
+         await this.repository.findApprovalWorkflowDefinition(
+            workflowCode,
+            membership.company.tenant_id
+         )
+
+      if (!workflow) {
+         throw new NotFoundError(
+            "Approval workflow does not exist"
+         )
+      }
+      
+      const role = await this.repository.findRoleByCodeAndTenant(
+         roleCode,
+         tenantId
+      )
+
+      if (!role) {
+         throw new NotFoundError("Approval role does not exist")
+      }
+      
+      if (!Number.isInteger(levelNo) || levelNo < 1) {
+         throw new ValidationError("Level number must be a positive integer")
+      }
+
+      if (minAmount < 0 || maxAmount < 0 ) {
+         throw new ValidationError(
+            "Amount values cannot be negative"
+         )         
+      }
+
+      if (minAmount > maxAmount) {
+         throw new ValidationError(
+            "Minimum amount cannot exceed maximum amount"
+         )         
+      }
+
+      // level duplicate validation
+
+      const exisitingLevel = await this.repository.findLevelByWorkflowAndNumber(
+         workflow.id,
+         levelNo
+      )
+
+      if (exisitingLevel) {
+         throw new ConflictError(
+            "Workflow level already exists"
+         )         
+      }
+
+      const conflictingLevel =
+         await this.repository.findOverlappingLevel(
+            workflow.id,
+            membership.company.tenant_id,
+            minAmount,
+            maxAmount,
+         )      
+
+      if (conflictingLevel) {
+         throw new ConflictError(
+            `Amount range conflicts with workflow level ${conflictingLevel.level_no}`
+         )         
+      }
+
+      const levelData: ApprovalLevelData = {
+         tenant_id: tenantId,
+         company_id: companyId,
+         workflow_id: workflow.id,
+         level_no: levelNo,
+         role_id: role.id,
+         min_amount: new Decimal(minAmount),
+         max_amount: new Decimal(maxAmount),
+         is_required: isRequired,
+      }
+
+      const createdLevel =
+         await this.repository.createLevelOfApproval(levelData)
+
+      return createdLevel
     }
 
-    async createWorkflowCode (input: CreateWorkflow) {
+    async createWorkflowDefinition (input: CreateWorkflow) {
 
         /*
-            1. Uses the authenticated user to determine
+            []1. Uses the authenticated user to determine
                which tenant/company the workflow belongs to.
 
-            2. Validates the workflow configuration.
+            []2. Validates that the authenticated user has
+               permission to configure approval workflows.
 
-            3. Validates that the workflow code is not already
+            []3. Validates the workflow configuration.
+
+            []4. Validates that the workflow code is not already
                used by the tenant.
 
-            4. Validates that the entity type is supported.
-
-            5. Sets system-controlled fields:
+            []5. Sets system-controlled fields:
                - tenant_id
                - company_id
                - is_system = false
                - is_active = true
 
-            6. Structures the received data into an object.
+            []6. Structures the received data into an object.
 
-            7. Passes the write request to the repository.
+            []7. Passes the write request to the repository.
 
-            8. Returns the created workflow.
+            [] 8. Returns the created workflow.
         */        
+
+      const { 
+         workflowCode,
+         name,
+         description,
+         entityType,
+         userId
+      } = input
+
+      // 1. determine tenant / company exist
+      const membership = await this.checkMembership(userId)
+
+      const tenantId = membership.company.tenant_id
+      const companyId = membership.company_id      
+
+
+      // 2. Authorization
+      // TODO: validate that this user has permission
+      
+      // to configure approval workflows.
+      
+      // 3. Validate configuration
+      if (!workflowCode.trim()) {
+         throw new ValidationError(
+               "Workflow code is required"
+         );
+      }
+
+      if (!name.trim()) {
+         throw new ValidationError(
+               "Workflow name is required"
+         );
+      }
+
+      if (!entityType.trim()) {
+         throw new ValidationError(
+               "Entity type is required"
+         );
+      }
+
+      // 4. revent duplicate workflow code within tenant
+      
+      const existingWorkflow = await this.repository.findApprovalWorkflowDefinition(
+         workflowCode,
+         tenantId
+      )
+
+      if (existingWorkflow) {
+         throw new ConflictError ("Workflow code already exists")
+      }
+
+      // 5 + 6. Construct tenant-owned definition
+
+      const workflowData: ApprovalWorkflowDefinitionData = {
+         tenant_id: tenantId,
+         company_id: companyId,
+         workflow_code: workflowCode,
+         name,
+         description: description ?? null,
+         entity_type: entityType,
+         is_system: false,
+         is_active: true,
+      };
+
+      // 7. Persist
+      const createdWorkflow =
+         await this.repository.createApprovalWorkflowDefinition(
+               workflowData
+         );
+
+      // 8. Return
+      return createdWorkflow;      
 
     }
 
@@ -327,6 +544,7 @@ export class ApprovalWorkflowService {
             5. Returns the workflow configurations.
         */        
 
+      
     }
 
     async workflowLevels () {
@@ -354,6 +572,7 @@ export class ApprovalWorkflowService {
             6. Returns the workflow levels.
         */        
 
-    }
+      
+   }
 }
 

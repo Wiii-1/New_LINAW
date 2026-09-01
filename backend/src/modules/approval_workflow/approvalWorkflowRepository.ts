@@ -20,6 +20,25 @@ import { prisma } from "../../config/database.js"
     resolved_at         = null    
 */
 
+const SYSTEM_WORKFLOW_DEFINITION = [
+    {
+        workflow_code: "purchase_requisition",
+        entity_type: "purchase_requisition",
+        name: "Purchase Requisition",
+        description: "Approval workflow for purchase requisitions",
+    },{
+        workflow_code: "contract",
+        entity_type: "contract",
+        name: "Contract",
+        description: "Approval workflow for contracts",
+    },{
+        workflow_code: "expense",
+        entity_type: "expense",
+        name: "Expense",
+        description: "Approval workflow for expense requests"
+    }
+] as const
+
 export type ApprovalActionType =
     | "approved"
     | "rejected"
@@ -65,6 +84,7 @@ export interface ApprovalActionData {
 }
 
 export interface UpdateRequestStatusData {
+    tenantId: string
     status: string
     remarks: string
 }
@@ -74,6 +94,18 @@ export interface ApprovalWorkflowQuery {
     company_id: string;
     status?: ApprovalRequestStatus;
 }
+
+export interface ApprovalWorkflowDefinitionData {
+    tenant_id: string | null
+    company_id: string | null
+    workflow_code: string
+    name: string
+    description: string | null
+    entity_type: string
+    is_system: boolean
+    is_active: boolean
+}
+
 
 export class ApprovalWorkflowRepository {
 /*
@@ -134,6 +166,91 @@ export class ApprovalWorkflowRepository {
         })
     }
 
+    async findActiveByUserId(userId: string) {
+        return prisma.companyMembership.findFirst({
+            where: {
+                user_id: userId,
+                employment_status: "ACTIVE"
+            },
+            select: {
+                company_id: true,
+                company: {
+                    select: {
+                        tenant_id: true
+                    }
+                }
+            }
+        });
+    }    
+
+    async findRoleByCodeAndTenant(
+        roleCode: string,
+        tenantId: string,
+    ) {
+        return prisma.role.findFirst({
+            where: {
+                role_code: roleCode,
+                tenant_id: tenantId,
+            },
+        });
+    }
+
+    async findApprovalWorkflowDefinition(
+        workflowCode: string,
+        tenantId: string,
+    ) {
+        return prisma.approvalWorkflowDefinition.findFirst({
+            where: {
+                workflow_code: workflowCode,
+                OR: [
+                    {
+                        tenant_id: tenantId,
+                        is_system: false,
+                    },
+                    {
+                        tenant_id: null,
+                        is_system: true,
+                    },
+                ],
+                is_active: true,
+            },
+        });
+    }
+
+    async findLevelByWorkflowAndNumber(
+        workflowId: string,
+        levelNo: number,
+    ) {
+        return prisma.approvalWorkflowLevel.findFirst({
+            where: {
+                workflow_id: workflowId,
+                level_no: levelNo,
+            },
+        });
+    }    
+
+    async findOverlappingLevel(
+        workflowId: string,
+        tenantId: string,
+        minAmount: number,
+        maxAmount: number,
+    ) {
+        return prisma.approvalWorkflowLevel.findFirst({
+            where: {
+                workflow_id: workflowId,
+                workflow: {
+                    tenant_id: tenantId,
+                },
+                min_amount: {
+                    lte: maxAmount,
+                },
+                max_amount: {
+                    gte: minAmount,
+                },
+            },
+        });
+    }  
+
     async updateRequestStatus (
         approvalWorkflowId: string,
         data: UpdateRequestStatusData
@@ -145,6 +262,53 @@ export class ApprovalWorkflowRepository {
             data
         })
     }
+
+    async createSystemWorkflowDefinitions() {
+        for (const definition of SYSTEM_WORKFLOW_DEFINITION) {
+            const existing =
+                await prisma.approvalWorkflowDefinition.findFirst({
+                    where: {
+                        workflow_code: definition.workflow_code,
+                        tenant_id: null,
+                        is_system: true,
+                    },
+                });
+
+            if (existing) {
+                continue;
+            }
+
+            await prisma.approvalWorkflowDefinition.create({
+                data: {
+                    workflow_code: definition.workflow_code,
+                    entity_type: definition.entity_type,
+                    name: definition.name,
+                    description: definition.description,
+                    tenant_id: null,
+                    company_id: null,
+                    is_system: true,
+                    is_active: true,
+                },
+            });
+        }
+    }
+
+    async createApprovalWorkflowDefinition(
+        data: ApprovalWorkflowDefinitionData
+    ) {
+        return prisma.approvalWorkflowDefinition.create({
+            data: {
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+                workflow_code: data.workflow_code,
+                name: data.name,
+                description: data.description,
+                entity_type: data.entity_type,
+                is_system: data.is_system,
+                is_active: data.is_active,
+            },
+        });
+    }    
 
     async createApprovalRequest (
         data: ApprovalRequestData
@@ -164,11 +328,13 @@ export class ApprovalWorkflowRepository {
     }
 
     async getApprovalRequestById (
-        approvalWorkflowId: string
+        approvalWorkflowId: string,
+        tenant_id: string
     ) {
         return prisma.approvalRequest.findUnique({
             where: {
-                id: approvalWorkflowId
+                id: approvalWorkflowId,
+                tenant_id: tenant_id
             }
         })
     }
@@ -191,11 +357,13 @@ export class ApprovalWorkflowRepository {
     }
 
     async getLevelOfApprovalById (
-        approvalWorkflowId: string
+        approvalWorkflowId: string,
+        tenant_id: string
     ) {
         return prisma.approvalWorkflowLevel.findUnique({
             where: {
-                id: approvalWorkflowId
+                id: approvalWorkflowId,
+                tenant_id: tenant_id
             }
         })
     }

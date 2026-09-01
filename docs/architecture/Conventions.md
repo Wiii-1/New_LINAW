@@ -19,7 +19,7 @@
 ├──────────────────────────┼─────────────────────┤
 │ Database                 │                     │
 ├──────────────────────────┼─────────────────────┤
-│ Tables                   │ snake_case          │
+│ Tables                   │ PascalCase          │
 │ Columns                  │ snake_case          │
 │ Foreign keys             │ *_id                │
 │ Timestamps               │ created_at/etc.     │

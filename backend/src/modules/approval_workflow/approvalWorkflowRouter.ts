@@ -17,7 +17,7 @@ router.use(criticalRateLimit)
 
 // POST
 router.post("/createLevels", controller.createLevels)
-router.post("/workflows", controller.createWorkflowCode)
+router.post("/workflows", controller.createWorkflowDefinition)
 router.post("/:approvalWorkflowId/approve", controller.approve)
 router.post("/:approvalWorkflowId/reject", controller.reject)
 router.post("/:approvalWorkflowId/cancel", controller.cancel)

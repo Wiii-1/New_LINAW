@@ -229,7 +229,7 @@ export class purchaseRequisitionService {
 
             3. Update the purchase requisition status to SUBMITTED/PENDING.
 
-            4. After the requisition is successfully updated, publish the
+            4. After the requisition is successfully updated, publish the    
             PurchaseRequisitionSubmitted event.
 
             5. Return confirmation.
