@@ -8,7 +8,7 @@ import {    APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA,
             RejectApprovalWorkflowBody,
             APPROVAL_WORKFLOW_LEVEL_CREATION,
             APPROVAL_WORKFLOW_CREATION,
-            CreateWorkflow
+            CreateWorkflow,
         } from "./approvalWorkflowValidator.js";
 import { REPLCommand } from "node:repl";
 
@@ -100,10 +100,8 @@ export class ApprovalWorkflowController {
         next: NextFunction
     ): Promise <void> => {
         try {
-            const query = APPROVAL_WORKFLOW_QUERY_SCHEMA.parse(req.query)
 
-            const data: ApprovalWorkflowQuery = {
-                status: query.status,
+            const data = {
                 userId: req.user.id
             }
 
@@ -128,7 +126,8 @@ export class ApprovalWorkflowController {
             const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(req.params)
 
             const data = {
-                userId: req.user.id
+                userId: req.user.id,
+                approvalWorkflowId: params.ApprovalWorkflowId
             }
 
             const request = await this.service.approvalRequest(data)
@@ -198,18 +197,12 @@ export class ApprovalWorkflowController {
         next: NextFunction
     ): Promise<void> => {
         try {
+            const data = {
+                userId: req.user.id
+            }
 
-        } catch (err) {
-            next(err)
-        }
-    }
+            const getCodes = await this.service.workflowCodes(data)
 
-    workflowLevels = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise<void> => {
-        try {
 
         } catch (err) {
             next(err)

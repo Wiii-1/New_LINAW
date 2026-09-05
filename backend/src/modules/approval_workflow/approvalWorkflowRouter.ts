@@ -27,7 +27,6 @@ router.post("/:approvalWorkflowId/cancel", controller.cancel)
 // GET
 router.get("/", controller.approvalWorkflow)
 router.get("/workflows", controller.workflowCodes)
-router.get("/workflows/levels", controller.workflowLevels)
 router.get("/:approvalWorkflowId", controller.approvalRequest)
 
 export default router;
