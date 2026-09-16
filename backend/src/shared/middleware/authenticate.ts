@@ -1,20 +1,18 @@
-import jwt from "jsonwebtoken"
-import { env } from "./../../config/env.js"
-import { UnauthorizedAccessError } from "../errors/appError.js"
-import type { AuthAccessTokenPayload } from "./../../modules/authentication/authJWT.js"
+import type { Context, Next } from "hono"
 
-import type {
-    Request,
-    Response,
-    NextFunction,
-} from "express";
+import { verify } from "hono/jwt"
+import type { AccessTokenPayload } from "../../modules/authentication/authJWT.js";
+import type { AppContext } from "../types/hono.js"
 
-export function authenticate(
-    req: Request,
-    res: Response,
-    next: NextFunction,
-): void {
-    const header = req.headers.authorization;
+import { UnauthorizedAccessError } from "../errors/appError.js";
+
+
+export async function authenticate(
+    c: Context<AppContext>,
+    next: Next
+): Promise<void> {
+
+    const header = c.req.header("Authorization");
 
     if (!header) {
         throw new UnauthorizedAccessError("Missing Token");
@@ -26,16 +24,33 @@ export function authenticate(
         throw new UnauthorizedAccessError("Invalid Authorization Header");
     }
 
+    let payload;
+
     try {
-        const decoded = jwt.verify(
+        payload = await verify(
             token,
-            env.JWT_ACCESS_SECRET,
-        ) as AuthAccessTokenPayload;
-
-        req.user = decoded;
-
-        next();
+            c.env.JWT_ACCESS_SECRET,
+            "HS256"
+        )
     } catch {
         throw new UnauthorizedAccessError("Invalid Token");
     }
+
+    if (
+        typeof payload.user_id !== "string" ||
+        typeof payload.session_id !== "string" ||
+        typeof payload.tenant_id !== "string"        
+    ) {
+        throw new UnauthorizedAccessError("Invalid Token")
+    }
+
+    const user: AccessTokenPayload = {
+        user_id: payload.user_id,
+        session_id: payload.session_id,
+        tenant_id: payload.tenant_id
+    }
+
+    c.set("user", user)
+
+    await next()
 }

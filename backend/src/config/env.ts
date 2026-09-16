@@ -1,87 +1,113 @@
-import dotenv from "dotenv"
-import type { SignOptions } from "jsonwebtoken"
+export type AppBindings = {
+    JWT_ACCESS_SECRET: string;
+    JWT_REFRESH_SECRET: string;
+    JWT_ACCESS_EXPIRES?: string;
+    JWT_REFRESH_EXPIRES?: string;
 
-dotenv.config();
+    REDIS_URL: string;
+    REDIS_TOKEN: string;
 
-type JwtExpiresIn = SignOptions["expiresIn"]
+    BLOCKCHAIN_RPC_URL: string;
+    AUDIT_CONTRACT_ADDRESS: string;
+    BLOCKCHAIN_PRIVATE_KEY: string;
 
-const jwtAccessSecret = process.env.JWT_ACCESS_SECRET
-const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET
-const redisUrl = process.env.REDIS_URL
+    FRONTEND_APP_URL?: string;
+    APP_URL?: string;
 
-const blockchainRpcUrl = process.env.BLOCKCHAIN_RPC_URL
-const auditContractAddress = process.env.AUDIT_CONTRACT_ADDRESS
-const blockchainPrivateKey = process.env.BLOCKCHAIN_PRIVATE_KEY
-const appUrl = process.env.FRONTEND_APP_URL ?? process.env.APP_URL ?? "http://localhost:3000"
-const mainDatabase = process.env.DATABASE_URL
-const testDatabase = process.env.TEST_DATABASE_URL
+    DATABASE_URL: string;
+    TEST_DATABASE_URL: string;
 
-if (!redisUrl) {
-    throw new Error("REDIS_URL is required")
-}
+    NODE_ENV?: string;
+};
 
-if (!jwtAccessSecret) {
-    throw new Error("JWT_ACCESS_SECRET is required")
-}
+export type AppEnv = {
+    JWT_ACCESS_SECRET: string;
+    JWT_REFRESH_SECRET: string;
+    JWT_ACCESS_EXPIRES: string;
+    JWT_REFRESH_EXPIRES: string;
 
-if (!jwtRefreshSecret) {
-    throw new Error("JWT_REFRESH_SECRET is required")
-}
+    REDIS_URL: string;
+    REDIS_TOKEN: string;
 
-if (!blockchainRpcUrl) {
-    throw new Error("BLOCKCHAIN_RPC_URL is required")
-}
+    BLOCKCHAIN_RPC_URL: string;
+    AUDIT_CONTRACT_ADDRESS: string;
+    BLOCKCHAIN_PRIVATE_KEY: string;
 
-if (!auditContractAddress) {
-    throw new Error("AUDIT_CONTRACT_ADDRESS is required")
-}
+    APP_URL: string;
 
-if (!blockchainPrivateKey) {
-    throw new Error("BLOCKCHAIN_PRIVATE_KEY is required")
-}
+    DATABASE_URL: string;
+    TEST_DATABASE_URL: string;
 
-if (!mainDatabase) {
-    throw new Error("DATABASE_URL is required")
-}
+    NODE_ENV: string;
+};
 
-if (!testDatabase) {
-    throw new Error("TEST_DATABASE_URL is required ")
-}
+export function createEnv(bindings: AppBindings): AppEnv {
+    if (!bindings.REDIS_URL) {
+        throw new Error("REDIS_URL is required");
+    }
 
+    if (!bindings.REDIS_TOKEN) {
+        throw new Error("REDIS_TOKEN is required");
+    }
 
-const jwtAccessExpires: JwtExpiresIn =
-    (process.env.JWT_ACCESS_EXPIRES as JwtExpiresIn) ?? "60m"
+    if (!bindings.JWT_ACCESS_SECRET) {
+        throw new Error("JWT_ACCESS_SECRET is required");
+    }
 
+    if (!bindings.JWT_REFRESH_SECRET) {
+        throw new Error("JWT_REFRESH_SECRET is required");
+    }
 
-const jwtRefreshExpires: JwtExpiresIn =
-    (process.env.JWT_REFRESH_EXPIRES as JwtExpiresIn) ?? "7d"
+    if (!bindings.BLOCKCHAIN_RPC_URL) {
+        throw new Error("BLOCKCHAIN_RPC_URL is required");
+    }
 
+    if (!bindings.AUDIT_CONTRACT_ADDRESS) {
+        throw new Error("AUDIT_CONTRACT_ADDRESS is required");
+    }
 
-export const env = {
+    if (!bindings.BLOCKCHAIN_PRIVATE_KEY) {
+        throw new Error("BLOCKCHAIN_PRIVATE_KEY is required");
+    }
 
-    PORT: process.env.PORT || 5000,
+    if (!bindings.DATABASE_URL) {
+        throw new Error("DATABASE_URL is required");
+    }
 
-    JWT_ACCESS_SECRET: jwtAccessSecret,
+    if (!bindings.TEST_DATABASE_URL) {
+        throw new Error("TEST_DATABASE_URL is required");
+    }
 
-    JWT_REFRESH_SECRET: jwtRefreshSecret,
+    const jwtAccessExpires =
+        bindings.JWT_ACCESS_EXPIRES ?? "60m";
 
-    JWT_ACCESS_EXPIRES: jwtAccessExpires,
+    const jwtRefreshExpires =
+        bindings.JWT_REFRESH_EXPIRES ?? "7d";
 
-    JWT_REFRESH_EXPIRES: jwtRefreshExpires,
+    const appUrl =
+        bindings.FRONTEND_APP_URL ??
+        bindings.APP_URL ??
+        "http://localhost:3000";
 
-    REDIS_URL: redisUrl,
+    return {
+        JWT_ACCESS_SECRET: bindings.JWT_ACCESS_SECRET,
+        JWT_REFRESH_SECRET: bindings.JWT_REFRESH_SECRET,
 
+        JWT_ACCESS_EXPIRES: jwtAccessExpires as string,
+        JWT_REFRESH_EXPIRES: jwtRefreshExpires as string,
 
-    BLOCKCHAIN_RPC_URL: blockchainRpcUrl,
+        REDIS_URL: bindings.REDIS_URL,
+        REDIS_TOKEN: bindings.REDIS_TOKEN,
 
-    AUDIT_CONTRACT_ADDRESS: auditContractAddress,
+        BLOCKCHAIN_RPC_URL: bindings.BLOCKCHAIN_RPC_URL,
+        AUDIT_CONTRACT_ADDRESS: bindings.AUDIT_CONTRACT_ADDRESS,
+        BLOCKCHAIN_PRIVATE_KEY: bindings.BLOCKCHAIN_PRIVATE_KEY,
 
-    BLOCKCHAIN_PRIVATE_KEY: blockchainPrivateKey,
+        APP_URL: appUrl,
 
-    APP_URL: appUrl,
+        DATABASE_URL: bindings.DATABASE_URL,
+        TEST_DATABASE_URL: bindings.TEST_DATABASE_URL,
 
-    DATABASE_URL: mainDatabase,
-
-    TEST_DATABASE_URL: testDatabase
-
+        NODE_ENV: bindings.NODE_ENV ?? "development",
+    };
 }

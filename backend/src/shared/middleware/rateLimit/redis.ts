@@ -1,21 +1,11 @@
-import { createClient } from "redis";
-import { env } from "../../../config/env.js";
+import { Redis } from "@upstash/redis"
 
-export const redis = createClient({
-  url: env.REDIS_URL,
-});
+import type { AppEnv } from "../../../config/env.js"
 
-redis.on("error", (err) => {
-  console.error("[Redis] Error:", err);
-});
 
-export async function connectRedis() {
-  console.log("[Redis] Starting connection...");
-
-  if (!redis.isOpen) {
-    console.log("[Redis] Calling redis.connect()...");
-    await redis.connect();
-  }
-
-  console.log("[Redis] Connection successful.");
+export function createRedis(env: AppEnv): Redis{
+  return new Redis({
+      url: env.REDIS_URL,
+      token: env.REDIS_TOKEN,
+  })
 }

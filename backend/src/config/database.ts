@@ -1,27 +1,33 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient as GeneratedPrismaClient } from "../generated/prisma/client.js";
-import { env } from "./env.js"
+import type { AppEnv } from "./env.js";
 
 type PrismaClientInstance = InstanceType<typeof GeneratedPrismaClient>;
 
-const globalForPrisma = globalThis as unknown as {
-    prisma: PrismaClientInstance | undefined
+export function createPrismaClient(
+    databaseUrl: string,
+): PrismaClientInstance {
+    const adapter = new PrismaPg({
+        connectionString: databaseUrl,
+    });
+
+    return new GeneratedPrismaClient({
+        adapter,
+        log: [
+            "error",
+            "warn",
+        ],
+    });
 }
 
-const adapter = new PrismaPg({
-  connectionString: env.TEST_DATABASE_URL!,
-});
+let prisma: PrismaClientInstance;
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new GeneratedPrismaClient({
-    adapter,
-    log: [
-      "error",
-      "warn",
-    ],
-  });
+export function initializePrisma(env: AppEnv): PrismaClientInstance {
+    if (!prisma) {
+        prisma = createPrismaClient(env.TEST_DATABASE_URL);
+    }
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+    return prisma;
 }
+
+export { prisma };

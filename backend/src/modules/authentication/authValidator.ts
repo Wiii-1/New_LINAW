@@ -136,4 +136,6 @@ export type forgotPasswordInput =
     z.infer<typeof forgotPasswordSchema>
 
 export type resetPasswordInput =
-    z.infer<typeof resetPasswordSchema>
+    z.infer<typeof resetPasswordSchema> & {
+        user_id: string
+    }

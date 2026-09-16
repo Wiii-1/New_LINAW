@@ -1,6 +1,9 @@
+import type { Context, Next } from "hono" 
+
 import type { Permission } from "./seeds/systemPermissions.js";
-import { Request, Response, NextFunction } from "express";
+import type { AppContext } from "../types/hono.js";
 import { getUserRole } from "../../modules/authentication/authRepository.js";
+
 
 export function hasPermission(
     role: Awaited<ReturnType<typeof getUserRole>>,
@@ -19,27 +22,26 @@ export function hasPermission(
 export function Authorize(permission: Permission) {
     
     return async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>,
+        next: Next
     ): Promise<void> => {
         
-        const user = req.user
+        const user = c.get("user")
 
-        const role = await getUserRole(user.id, user.tenantId);
+        const role = await getUserRole(user.user_id, user.tenant_id);
 
         if (!role) {
-            res.status(403).json({
-                message: "Forbidden",
-            });
+            c.json({
+                message: "Forbidden"
+            }, 403 )
 
             return;
         }
 
         if (!hasPermission(role, permission)) {
-            res.status(403).json({
-                message: "Forbidden",
-            });
+            c.json({
+                message: "Forbidden"
+            }, 403)
 
             return;
         }

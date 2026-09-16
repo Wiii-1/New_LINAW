@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client"
+  runtime  = "workerd"
   output   = "../src/generated/prisma"
 }
 

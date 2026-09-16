@@ -302,6 +302,7 @@ export class purchaseRequisitionService {
                 tenantId: submission.tenant_id,
                 companyId: submission.company_id,
                 userId: submission.requested_by_user_id,
+                entityType: submission.purpose,
                 submittedAt: submission.submitted_at,
             }
         )
