@@ -304,6 +304,7 @@ Docker provides:
 ### Negative
 
 - Additional learning curve for container management.
+<<<<<<< HEAD
 - Slight increase in deployment complexity compared to running applications directly.
 
 ---
@@ -1413,3 +1414,6 @@ The following may require separate architectural decisions later:
 - Whether certain event-driven operations require transactional coordination with database writes.
 
 --- 
+=======
+- Slight increase in deployment complexity compared to running applications directly.
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
