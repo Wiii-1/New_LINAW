@@ -6,7 +6,7 @@
 
 ### Description
 
-Register a company and create the initial organization context for company-level administration.
+Register a company and create the organization administrator context for company-level administration.
 
 ### Authentication
 
@@ -22,12 +22,11 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "legal_name": "",
-    "display_name": "",
-    "tax_id": "",
-    "address": "",
-    "contact_email": "",
-    "contact_phone": ""
+    "company_name": "",
+    "company_email": "",
+    "company_address": "",
+    "company_contact_number": "",
+    "company_status": ""
 }
 ```
 
@@ -39,8 +38,8 @@ Authorization: Bearer <access_token>
     "message": "Company registered successfully.",
     "data": {
         "company_id": "",
-        "legal_name": "",
-        "display_name": "",
+        "company_name": "",
+        "company_status": "",
         "organization_administrator_id": ""
     }
 }
@@ -111,8 +110,6 @@ Authorization: Bearer <access_token>
 }
 ```
 
----
-
 ## GET /api/users/profile
 
 ### Description
@@ -136,11 +133,9 @@ Authorization: Bearer <access_token>
     "success": true,
     "message": "Profile retrieved successfully.",
     "data": {
-        "first_name": "",
-        "last_name": "",
+        "full_name": "",
         "email": "",
-        "job_title": "",
-        "status": ""
+        "contact_number": ""
     }
 }
 ```
@@ -174,12 +169,11 @@ Authorization: Bearer <access_token>
 }
 ```
 
----
-## PATCH /api/users/profile
+## PUT /api/users/profile
 
 ### Description
 
-Partially update the authenticated user's own profile information. Only fields included in the request body shall be modified.
+Update the authenticated user's own profile information.
 
 ### Authentication
 
@@ -195,14 +189,11 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "first_name": "",
-    "last_name": "",
+    "full_name": "",
     "email": "",
-    "job_title": ""
+    "contact_number": ""
 }
 ```
-
-All request fields are optional, but at least one field must be provided.
 
 ### Success Response (200 OK)
 
@@ -211,11 +202,9 @@ All request fields are optional, but at least one field must be provided.
     "success": true,
     "message": "Profile updated successfully.",
     "data": {
-        "user_id": "",
-        "first_name": "",
-        "last_name": "",
+        "full_name": "",
         "email": "",
-        "job_title": ""
+        "contact_number": ""
     }
 }
 ```
@@ -276,7 +265,6 @@ All request fields are optional, but at least one field must be provided.
 }
 ```
 
-
 ## GET /api/companies/:companyId
 
 ### Description
@@ -307,12 +295,11 @@ Authorization: Bearer <access_token>
     "message": "Company retrieved successfully.",
     "data": {
         "company_id": "",
-        "legal_name": "",
-        "display_name": "",
-        "tax_id": "",
-        "address": "",
-        "contact_email": "",
-        "contact_phone": ""
+        "company_name": "",
+        "company_email": "",
+        "company_address": "",
+        "company_contact_number": "",
+        "company_status": ""
     }
 }
 ```
@@ -346,12 +333,11 @@ Authorization: Bearer <access_token>
 }
 ```
 
----
-## PATCH /api/companies/:companyId
+## PUT /api/companies/:companyId
 
 ### Description
 
-Partially update a company profile record. Only fields included in the request body shall be modified.
+Update a company profile record.
 
 ### Authentication
 
@@ -373,16 +359,13 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "legal_name": "",
-    "display_name": "",
-    "tax_id": "",
-    "address": "",
-    "contact_email": "",
-    "contact_phone": ""
+    "company_name": "",
+    "company_email": "",
+    "company_address": "",
+    "company_contact_number": "",
+    "company_status": ""
 }
 ```
-
-All request fields are optional, but at least one field must be provided.
 
 ### Success Response (200 OK)
 
@@ -392,12 +375,8 @@ All request fields are optional, but at least one field must be provided.
     "message": "Company updated successfully.",
     "data": {
         "company_id": "",
-        "legal_name": "",
-        "display_name": "",
-        "tax_id": "",
-        "address": "",
-        "contact_email": "",
-        "contact_phone": ""
+        "company_name": "",
+        "company_status": ""
     }
 }
 ```
@@ -466,11 +445,12 @@ All request fields are optional, but at least one field must be provided.
     "message": "Internal server error."
 }
 ```
+
 ## POST /api/companies/:companyId/users
 
 ### Description
 
-Invite or add a user to a company membership.
+Create a company-scoped user account.
 
 ### Authentication
 
@@ -492,10 +472,10 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "first_name": "",
-    "last_name": "",
+    "full_name": "",
     "email": "",
-    "job_title": ""
+    "password": "",
+    "user_status": ""
 }
 ```
 
@@ -508,9 +488,9 @@ Authorization: Bearer <access_token>
     "data": {
         "user_id": "",
         "company_id": "",
-        "first_name": "",
-        "last_name": "",
-        "email": ""
+        "full_name": "",
+        "email": "",
+        "user_status": ""
     }
 }
 ```
@@ -570,8 +550,6 @@ Authorization: Bearer <access_token>
     "message": "Internal server error."
 }
 ```
-
----
 
 ## GET /api/companies/:companyId/users
 
@@ -652,13 +630,11 @@ Authorization: Bearer <access_token>
 }
 ```
 
----
-
 ## GET /api/companies/:companyId/users/:userId
 
 ### Description
 
-Retrieve a specific company member record.
+Retrieve a specific company user account.
 
 ### Authentication
 
@@ -686,11 +662,9 @@ Authorization: Bearer <access_token>
     "data": {
         "user_id": "",
         "company_id": "",
-        "first_name": "",
-        "last_name": "",
+        "full_name": "",
         "email": "",
-        "job_title": "",
-        "status": ""
+        "user_status": ""
     }
 }
 ```
@@ -733,12 +707,11 @@ Authorization: Bearer <access_token>
 }
 ```
 
----
-## PATCH /api/companies/:companyId/users/:userId
+## PUT /api/companies/:companyId/users/:userId
 
 ### Description
 
-Partially update a company member's profile or membership information. Only fields included in the request body shall be modified.
+Update a company user account.
 
 ### Authentication
 
@@ -761,18 +734,12 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "first_name": "",
-    "last_name": "",
+    "full_name": "",
     "email": "",
-    "job_title": "",
-    "department": "",
-    "employment_status": ""
+    "password": "",
+    "user_status": ""
 }
 ```
-
-All request fields are optional, but at least one field must be provided.
-
-The `employment_status` field updates `CompanyMembership.employment_status`. User account status should be managed separately when necessary.
 
 ### Success Response (200 OK)
 
@@ -783,12 +750,9 @@ The `employment_status` field updates `CompanyMembership.employment_status`. Use
     "data": {
         "user_id": "",
         "company_id": "",
-        "first_name": "",
-        "last_name": "",
+        "full_name": "",
         "email": "",
-        "job_title": "",
-        "department": "",
-        "employment_status": ""
+        "user_status": ""
     }
 }
 ```
@@ -836,7 +800,7 @@ The `employment_status` field updates `CompanyMembership.employment_status`. Use
 ```json
 {
     "success": false,
-    "message": "User account or company membership is in a conflicting state."
+    "message": "User account is in a conflicting state."
 }
 ```
 
@@ -858,13 +822,11 @@ The `employment_status` field updates `CompanyMembership.employment_status`. Use
 }
 ```
 
-## PATCH /api/companies/:companyId/users/:userId/status
+## PUT /api/companies/:companyId/users/:userId/status
 
 ### Description
 
-Partially update the employment status of a company member.
-
-This endpoint updates `CompanyMembership.employment_status` and does not modify the global `User.status` field.
+Update the status of a company user account.
 
 ### Authentication
 
@@ -887,7 +849,7 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "employment_status": ""
+    "user_status": ""
 }
 ```
 
@@ -900,7 +862,7 @@ Authorization: Bearer <access_token>
     "data": {
         "user_id": "",
         "company_id": "",
-        "employment_status": ""
+        "user_status": ""
     }
 }
 ```
@@ -939,7 +901,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Company membership record not found."
+    "message": "Company user record not found."
 }
 ```
 
@@ -948,7 +910,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Employment status validation failed."
+    "message": "User status validation failed."
 }
 ```
 
@@ -961,14 +923,11 @@ Authorization: Bearer <access_token>
 }
 ```
 
-
----
-
 ## DELETE /api/companies/:companyId/users/:userId
 
 ### Description
 
-Remove a company user membership.
+Remove a company user account.
 
 ### Authentication
 
@@ -1047,13 +1006,11 @@ Authorization: Bearer <access_token>
 }
 ```
 
----
-
-## POST /api/companies/:companyId/users/:userId/roles
+## POST /api/companies/:companyId/users/:userId/assign-role
 
 ### Description
 
-Assign a role to a company user.
+Assign a company-scoped role to a company user.
 
 ### Authentication
 
@@ -1076,7 +1033,8 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "role_id": ""
+    "role_id": "",
+    "permission_id": ""
 }
 ```
 
@@ -1089,7 +1047,8 @@ Authorization: Bearer <access_token>
     "data": {
         "user_id": "",
         "company_id": "",
-        "role_id": ""
+        "role_id": "",
+        "permission_id": ""
     }
 }
 ```
@@ -1159,13 +1118,11 @@ Authorization: Bearer <access_token>
 }
 ```
 
----
-
-## DELETE /api/companies/:companyId/users/:userId/roles/:roleId
+## POST /api/companies/:companyId/users/:userId/remove-role
 
 ### Description
 
-Remove a role from a company user.
+Remove a company-scoped role from a company user.
 
 ### Authentication
 
@@ -1183,7 +1140,14 @@ Authorization: Bearer <access_token>
 |------|------|----------|-------------|
 | companyId | string | Yes | Company identifier. |
 | userId | string | Yes | User identifier. |
-| roleId | string | Yes | Role identifier. |
+
+### Request Body
+
+```json
+{
+    "role_id": ""
+}
+```
 
 ### Success Response (200 OK)
 
@@ -1200,7 +1164,7 @@ Authorization: Bearer <access_token>
 ```
 
 ### Error Responses
-j
+
 #### 401 Unauthorized
 
 ```json
@@ -1246,13 +1210,11 @@ j
 }
 ```
 
----
-
 ## GET /api/roles
 
 ### Description
 
-Retrieve the available tenant-scoped roles.
+Retrieve the available company-scoped roles.
 
 ### Authentication
 
@@ -1295,8 +1257,6 @@ Authorization: Bearer <access_token>
     "message": "Internal server error."
 }
 ```
-
----
 
 ## GET /api/permissions
 
@@ -1345,3 +1305,6 @@ Authorization: Bearer <access_token>
     "message": "Internal server error."
 }
 ```
+
+---
+

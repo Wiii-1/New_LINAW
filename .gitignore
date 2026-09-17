@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Node modules
 /node_modules
 
@@ -18,22 +17,10 @@
 /types
 
 # Environment files
-=======
-# =====================
-# Backend
-# =====================
-
-backend/node_modules/
-backend/generated/
-backend/dist
-
-# Environment
->>>>>>> 4ca38082e14997e15b402f674b734d8025d351db
 .env
 .env.*
 !.env.example
 
-<<<<<<< HEAD
 # Hardhat coverage reports
 /coverage
 
@@ -42,44 +29,3 @@ backend/dist
 
 # Snapshot cheatcodes output
 /snapshots
-=======
-# =====================
-# blockchain_test_integration
-# =====================
-blockchain_test_integration/node_modules
-
-
-# =====================
-# Editor
-# =====================
-
-.vscode/
-
-
-# =====================
-# Blockchain
-# =====================
-
-# Besu runtime data
-procurement_blockchain/data/
-
-# Besu private keys
-procurement_blockchain/**/key
-procurement_blockchain/**/keys/
-procurement_blockchain/**/private*
-
-# Blockchain logs
-procurement_blockchain/**/*.log
-procurement_blockchain/logs/
-
-# Secrets
-secrets/
-
-# =====================
-# smart contract
-# =====================
-smart_contract/node_modules
-smart_contract/.env
-smart_contract/SC_Deployment.json
-smart_contract/adapter-wallet.json
->>>>>>> 4ca38082e14997e15b402f674b734d8025d351db
