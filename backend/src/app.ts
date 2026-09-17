@@ -2,13 +2,17 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
-
 import { errorHandler } from "./shared/middleware/errorHandler.js";
+
 import type { AppContext } from "./shared/types/hono.js";
+import type { AppEnv } from "./config/env.js";
 
 import { initializeJWT } from "./modules/authentication/authJWT.js";
 import { createAuthRouter } from "./modules/authentication/authRouter.js";
-import type { AppEnv } from "./config/env.js";
+import { createAuditRouter } from "./modules/audit_trail/auditTrailRouter.js";
+import { AuditTrailRepository } from "./modules/audit_trail/auditTrailRepository.js";
+import { AuditTrailService } from "./modules/audit_trail/auditTrailService.js";
+import { BlockchainAdapter } from "./shared/blockchain/blockchainAdapter.js";
 
 export function createApp(env: AppEnv) {
     const app = new Hono<AppContext>();
@@ -18,6 +22,10 @@ export function createApp(env: AppEnv) {
     app.use(logger());
 
     app.onError(errorHandler);
+
+    const blockchainAdapter = new BlockchainAdapter(env);    
+    const repository = new AuditTrailRepository()
+    const service = new AuditTrailService(repository, blockchainAdapter)
 
     app.get("/health", (c) => {
         return c.json({
@@ -29,6 +37,8 @@ export function createApp(env: AppEnv) {
     initializeJWT(env);
 
     app.route("/auth", createAuthRouter(env));
+    app.route("/auditTrail", createAuditRouter(service))
+
 
     return app;
 }

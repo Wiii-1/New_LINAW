@@ -11,12 +11,15 @@ type AnchorAuditInput = {
 
 export class BlockchainAdapter{
 
+    constructor( 
+        private readonly env: AppEnv
+    ) {}
+
     async anchorAudit(
-        env: AppEnv,
         input: AnchorAuditInput
     ) {
 
-        const auditTrailContract = createAuditTrailContract(env);
+        const auditTrailContract = createAuditTrailContract(this.env);
 
         // UUID/String - byte32
 
@@ -60,12 +63,11 @@ export class BlockchainAdapter{
     }
 
     async verifyAudit(
-        env: AppEnv,
         auditId: string,
         hashValue: string
     ) {
 
-        const auditTrailContract = createAuditTrailContract(env);        
+        const auditTrailContract = createAuditTrailContract(this.env);        
 
         const auditIdBytes32 = ethers.id(
             auditId
@@ -99,5 +101,3 @@ export class BlockchainAdapter{
         )
     }
 }
-
-export const blockchainAdapter = new BlockchainAdapter()

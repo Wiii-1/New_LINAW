@@ -1,6 +1,15 @@
 import { z } from "zod"
 
 // ===========================
+// getSchema
+// ===========================
+
+export const GET_SCHEMA = z.object ({
+    userId: z
+        .string()
+})
+
+// ===========================
 // approvalWorkflowIdParamsSchema
 // ===========================
 

@@ -1,7 +1,5 @@
 import { eventBus } from "../../shared/events/eventBus.js";
-import { purchaseRequisitionSubmittedEvent,
-         PurchaseRequisitionCancelledEvent
- } from "../../shared/events/purchaseRequisitionSubmissionEvent.js"
+import { purchaseRequisitionSubmittedEvent } from "../../shared/events/purchaseRequisitionSubmissionEvent.js"
 import { ApprovalWorkflowService } from "./approvalWorkflowService.js";
 
 export function purchaseRequisitionEvent (
@@ -15,20 +13,8 @@ export function purchaseRequisitionEvent (
                     tenantId: event.tenantId,
                     companyId: event.companyId,
                     userId: event.userId,
+                    entityType: event.entityType,
                     submitted_At: event.submitted_At
-            })
-        }
-    )
-
-    eventBus.subscribe<PurchaseRequisitionCancelledEvent>(
-        "purchase-requisition.cancelled",
-        async (event) => {
-            await approvalWorkflowService.cancelApprovalRequest({
-                purchaseRequisitionId: event.purchaseRequisitionId,
-                tenantId: event.tenantId,
-                companyId: event.companyId,
-                userId: event.userId,
-                cancalledAt: event.cancelledAt
             })
         }
     )

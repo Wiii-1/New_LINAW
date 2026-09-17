@@ -1,6 +1,8 @@
 import { eventBus } from "../../shared/events/eventBus.js";
 import type { PurchaseOrderCompletedEvent } from "../../shared/events/purchaseOrderEvents.js";
+import type { AppEnv } from "../../config/env.js";
 import { AuditTrailService } from "./auditTrailService.js";
+
 
 export function registerAuditTrailEvents (
     auditTrailService: AuditTrailService

@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction} from "express"
+import type { AppContext } from "../../shared/types/hono.js"
+import { Context } from "hono"
 import { AuditTrailService } from "./auditTrailService.js"
 import { searchAuditSchema, auditIntegritySchema} from "./auditTrailValidator.js"
 
@@ -8,63 +9,49 @@ export class auditTrailController {
     }
 
     searchAuditRecord = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>
     ): Promise <void> => {
-        try {
 
-        const user_id = req.user.user_id
 
-        const tenant_id = req.user.tenant_id
+    const { user_id, tenant_id } = c.get("user")
 
-        const { audit_id } = searchAuditSchema.parse(req.params)
+    const { audit_id } = searchAuditSchema.parse(c.req.param())
 
-        const search = {
+    const search = {
+        user_id,
+        tenant_id,
+        audit_id
+    }
+    const id = await this.service.searchAudit(c.env, search)
+
+    c.json({
+        success: true,
+        message: "Purchase Order Found",
+        data:id
+    }, 200 )
+
+    }   
+
+    verifyAuditIntegrity = async (
+        c: Context<AppContext>
+    ) => {
+        
+        const { audit_id} = auditIntegritySchema.parse(c.req.param("id"))
+
+        const { user_id, tenant_id } = c.get("user")
+
+        const verify = {
             user_id,
             tenant_id,
             audit_id
         }
-        const id = await this.service.searchAudit(search)
 
-        res.status(200).json({
-            success: true,
-            message: "Purchase Order Found",
-            data:id
-        })
-        } 
-        catch (err){
-            next(err)
-        }
-    }   
+        const data = await this.service.auditIntegrity(c. env, verify)
 
-    verifyAuditIntegrity = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
-        try{
-            const { audit_id} = auditIntegritySchema.parse(req.params.id)
+        c.json({
+            success:true,
+            data:data
+        }, 200)
 
-            const user_id = req.user.user_id
-
-            const tenant_id = req.user.tenant_id
-
-            const verify = {
-                user_id,
-                tenant_id,
-                audit_id
-            }
-
-            const data = await this.service.auditIntegrity(verify)
-
-            res.status(200).json({
-                success:true,
-                data:data
-            })
-        }
-        catch (err) {
-            next(err)
-        }
     }
 }
