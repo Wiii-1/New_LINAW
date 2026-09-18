@@ -15,7 +15,7 @@ import { ApprovalWorkflowIdParams,
          CreateWorkflow
         } from "./approvalWorkflowValidator.js"
 import { ConflictError, NotFoundError, UnauthorizedAccessError, ValidationError } from "../../shared/errors/appError.js";
-import { Decimal } from "@prisma/client/runtime/client"
+import { Decimal } from "decimal.js";
 
 type AuthenticatedUser = {
    userId: string

@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/client"
+import { Decimal } from "decimal.js";
 import { prisma } from "../../config/database.js"
 
 /*

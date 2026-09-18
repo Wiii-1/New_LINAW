@@ -10,6 +10,8 @@ import type { AppEnv } from "./config/env.js";
 import { initializeJWT } from "./modules/authentication/authJWT.js";
 import { createAuthRouter } from "./modules/authentication/authRouter.js";
 import { createAuditRouter } from "./modules/audit_trail/auditTrailRouter.js";
+import { createApprovalWorkflow } from "./modules/approval_workflow/approvalWorkflowRouter.js";
+import { createPurchaseRequistionRouter } from "./modules/purchase_requisition/purchaseRequisitionRouter.js"
 import { AuditTrailRepository } from "./modules/audit_trail/auditTrailRepository.js";
 import { AuditTrailService } from "./modules/audit_trail/auditTrailService.js";
 import { BlockchainAdapter } from "./shared/blockchain/blockchainAdapter.js";
@@ -38,6 +40,8 @@ export function createApp(env: AppEnv) {
 
     app.route("/auth", createAuthRouter(env));
     app.route("/auditTrail", createAuditRouter(service))
+    app.route("/approvalWorkflow", createApprovalWorkflow())
+    app.route("/createPurchaseRequisition", createPurchaseRequistionRouter())
 
 
     return app;
