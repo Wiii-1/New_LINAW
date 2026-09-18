@@ -1,4 +1,5 @@
-import { Router } from "express"
+import type { AppContext } from "../../shared/types/hono.js"
+import { Hono } from "hono"
 import { PurchaseRequisitionController } from "./purchaseRequisitionController.js"
 import { purchaseRequisitionService } from "./purchaseRequisitionService.js"
 import { purchaseRequisitionRepository } from "./purchaseRequisitionRepository.js"
@@ -8,29 +9,31 @@ import { Authorize } from "../../shared/Auhorization/authorize.js"
 import { systemPermissions, systemPermissionSeeds } from "../../shared/Auhorization/seeds/systemPermissions.js"
 import { criticalRateLimit } from "../../shared/middleware/rateLimit/critical-rate-limit.js"
 
-const router = Router();
-const service = new purchaseRequisitionService(new purchaseRequisitionRepository(), new EventBus());
-const controller = new PurchaseRequisitionController(service);
+export function createPurchaseRequistionRouter () {
+    const router = new Hono<AppContext>();
+    const service = new purchaseRequisitionService(new purchaseRequisitionRepository(), new EventBus());
+    const controller = new PurchaseRequisitionController(service);
 
-router.use(authenticate)
+    router.use(authenticate)
 
-// Post
-router.post("/create",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.create), controller.createRequisition );
-router.post("/:requisitionId/submit",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.submit), controller.submitRequisition);
-router.post("/:requisitionId/cancel",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.cancel),  controller.cancelRequisition);
-router.post("/:requisitionId/resubmit",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.submit),controller.resubmitRequisition)
+    // Post
+    router.post("/create",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.create), controller.createRequisition );
+    router.post("/:requisitionId/submit",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.submit), controller.submitRequisition);
+    router.post("/:requisitionId/cancel",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.cancel),  controller.cancelRequisition);
+    router.post("/:requisitionId/resubmit",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.submit),controller.resubmitRequisition)
 
-// Get
+    // Get
 
-router.get("/",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read),criticalRateLimit,  controller.requisition );
-router.get("/:requisitonId",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read), criticalRateLimit,controller.details)
+    router.get("/",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read),criticalRateLimit,  controller.requisition );
+    router.get("/:requisitonId",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read), criticalRateLimit,controller.details)
 
-// Patch
-router.patch("/:requisitionId",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.update), controller.update)
+    // Patch
+    router.patch("/:requisitionId",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.update), controller.update)
 
 
 
-export default router;
+    return router;    
+}
 
 /*
     Dev note @Wiii-1:

@@ -249,7 +249,18 @@ export class ApprovalWorkflowService {
          throw new ConflictError("Request Already Approved")
       }
 
-      const currentLevel = request.current_level
+      const currentLevel = request.current_level      
+
+      const data:ApprovalRequest = { 
+         approval_workflow_id: ApprovalWorkflowId,
+         tenant_id:tenantId   
+      }
+
+      const level_id = await this.repository.getApprovalActionById(data)
+
+      if (!level_id) {
+         throw new NotFoundError("tangina di nakita")
+      }
 
       await this.checkAuthorizationRole(
          userId, 
@@ -261,6 +272,7 @@ export class ApprovalWorkflowService {
       const action: ApprovalActionData = {
          tenant_id: tenantId,
          approval_request_id: ApprovalWorkflowId,
+         level_id: level_id.level_id,
          acted_by_user_id: userId,
          action: "approved",
          remarks: null,
@@ -331,6 +343,17 @@ export class ApprovalWorkflowService {
 
       const currentLevel = request.current_level
 
+      const data:ApprovalRequest = { 
+         approval_workflow_id: approvalWorkflowId,
+         tenant_id:tenantId   
+      }
+
+      const level_id = await this.repository.getApprovalActionById(data)
+
+      if (!level_id) {
+         throw new NotFoundError("tangina di nakita")
+      }      
+
       await this.checkAuthorizationRole(
          userId, 
          tenantId,
@@ -341,6 +364,7 @@ export class ApprovalWorkflowService {
       const action: ApprovalActionData = {
          tenant_id: tenantId,
          approval_request_id: approvalWorkflowId,
+         level_id: level_id.level_id,
          acted_by_user_id: userId,
          action: "rejected",
          remarks: remarks,
@@ -401,7 +425,18 @@ export class ApprovalWorkflowService {
          throw new ConflictError(" Request Already cancelled")
       }
 
+      const data:ApprovalRequest = { 
+         approval_workflow_id: ApprovalWorkflowId,
+         tenant_id:tenantId   
+      }      
+
       const currentLevel = request.current_level
+
+            const level_id = await this.repository.getApprovalActionById(data)
+
+      if (!level_id) {
+         throw new NotFoundError("tangina di nakita")
+      }
 
       await this.checkAuthorizationRole(
          userId, 
@@ -413,6 +448,7 @@ export class ApprovalWorkflowService {
       const action: ApprovalActionData = {
          tenant_id: tenantId,
          approval_request_id: ApprovalWorkflowId,
+         level_id: level_id.level_id,
          acted_by_user_id: userId,
          action: "cancelled",
          remarks: null,

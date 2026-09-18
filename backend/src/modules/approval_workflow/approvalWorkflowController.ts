@@ -17,194 +17,157 @@ export class ApprovalWorkflowController {
     }
 
     approve = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>
     ): Promise <void> => {
-        try {
-            const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(req.params)
 
-            const data: ApprovalWorkflowIdParams = {
-                ApprovalWorkflowId: params.ApprovalWorkflowId,
-                userId: req.user.id
-            }
+        const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param("id"))
 
-            const approved = await this.service.approveRequest(data)
-
-            res.status(200).json({
-                success: true,
-                data: approved
-            })            
-        } catch (err) {
-            next(err)
+        const data: ApprovalWorkflowIdParams = {
+            ApprovalWorkflowId: params.ApprovalWorkflowId,
+            userId: c.get("user").user_id
         }
+
+        const approved = await this.service.approveRequest(data)
+
+        c.json({
+            success: true,
+            data: approved
+        }, 200)            
+
     }
 
     reject = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>
     ): Promise <void> => {
-        try {
-            const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(req.params)
 
-            const body = REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA.parse(req.body)
+        const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param("id"))
 
-            const data: RejectApprovalWorkflowBody = {
-                remarks: body.remarks,
-                userId: req.user.id,
-                approvalWorkflowId: params.ApprovalWorkflowId
-            }
+        const body = REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA.parse(await c.req.json())
 
-            const rejected = await this.service.rejectRequest(data)
-
-            res.status(200).json({
-                success: true,
-                data: rejected
-            })
-
-        } catch (err) {
-            next(err)
+        const data: RejectApprovalWorkflowBody = {
+            remarks: body.remarks,
+            userId: c.get("user").user_id,
+            approvalWorkflowId: params.ApprovalWorkflowId
         }
+
+        const rejected = await this.service.rejectRequest(data)
+
+        c.json({
+            success: true,
+            data: rejected
+        },200)
     }
 
     cancel = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>
     ): Promise <void> => {
-        try {
-            const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(req.params)
 
-            const data: ApprovalWorkflowIdParams = {
-                ApprovalWorkflowId: params.ApprovalWorkflowId,
-                userId: req.user.id
-            }
+        const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param)
 
-            const cancelled = await this.service.cancelRequest(data)
-
-            res.status(200).json({
-                success: true,
-                data: cancelled
-            })
-
-        } catch (err) {
-            next(err)
+        const data: ApprovalWorkflowIdParams = {
+            ApprovalWorkflowId: params.ApprovalWorkflowId,
+            userId: c.get("user").user_id
         }
+
+        const cancelled = await this.service.cancelRequest(data)
+
+        c.json({
+            success: true,
+            data: cancelled
+        },200)
+
     }
 
     approvalWorkflow = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
-        try {
+        c: Context<AppContext>
+    ) => {
 
-            const data = {
-                userId: req.user.id
-            }
-
-            const getApprovalWorkflows = await this.service.getApprovalWorkflows(data)
-
-            res.status(200).json({
-                success: true,
-                data: getApprovalWorkflows
-            })
-
-        } catch (err) {
-            next(err)
+        const data = {
+            userId: c.get("user").user_id
         }
+
+        const getApprovalWorkflows = await this.service.getApprovalWorkflows(data)
+
+        c.json({
+            success: true,
+            data: getApprovalWorkflows
+        }, 200)
+
     }
 
     approvalRequest = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>
     ): Promise <void> => {
-        try {
-            const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(req.params)
 
-            const data = {
-                userId: req.user.id,
-                approvalWorkflowId: params.ApprovalWorkflowId
-            }
+        const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param("id"))
 
-            const request = await this.service.approvalRequest(data)
-
-            res.status(200).json({
-                success: true,
-                data: request
-            })
-
-        } catch (err) {
-            next(err)
+        const data = {
+            userId: c.get("user").user_id,
+            approvalWorkflowId: params.ApprovalWorkflowId
         }
+
+        const request = await this.service.approvalRequest(data)
+
+        c.json({
+            success: true,
+            data: request
+        }, 200)
+
     }
 
 
     createLevels = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>
     ): Promise<void> => {
-        try {
-            const body = APPROVAL_WORKFLOW_LEVEL_CREATION.parse(req.body)
 
-            const data = {
-                ...body,
-                userId: req.user.id
-            }
+        const body = APPROVAL_WORKFLOW_LEVEL_CREATION.parse(c.req.json())
 
-            const level = await this.service.createLevel(data)
-
-            res.status(201).json({
-                success: true,
-                data: level
-            })
-        } catch (err) {
-            next(err)   
+        const data = {
+            ...body,
+            userId: c.get("user").user_id
         }
+
+        const level = await this.service.createLevel(data)
+
+        c.json({
+            success: true,
+            data: level
+        }, 200)
+
     }
 
     createWorkflowDefinition = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>
     ): Promise<void> => {
-        try {
-            const body = APPROVAL_WORKFLOW_CREATION.parse(req.body)
+    
+        const body = APPROVAL_WORKFLOW_CREATION.parse(await c.req.json())
 
-            const data: CreateWorkflow = {
-                ...body,
-                userId: req.user.id
-            }
-
-            const workflow = await this.service.createWorkflowDefinition(data)
-
-            res.status(201).json({
-                success: true,
-                data: workflow
-            })
-        } catch (err) {
-            next(err)
+        const data: CreateWorkflow = {
+            ...body,
+            userId: c.get("user").user_id
         }
+
+        const workflow = await this.service.createWorkflowDefinition(data)
+
+        c.json({
+            success: true,
+            data: workflow
+        },200 )
+
     }    
 
     workflowCodes = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>
     ): Promise<void> => {
-        try {
-            const data = {
-                userId: req.user.id
-            }
-
-            const getCodes = await this.service.workflowCodes(data)
-
-
-        } catch (err) {
-            next(err)
+        const data = {
+            userId: c.get("user").user_id
         }
+
+        const getCodes = await this.service.workflowCodes(data)
+
+        c.json({
+            success: true,
+            getCodes
+        },200)
     }
 }

@@ -75,6 +75,7 @@ export interface ApprovalLevelData {
 export interface ApprovalActionData {
     tenant_id: string
     approval_request_id: string
+    level_id: string
     acted_by_user_id: string
     action: ApprovalActionType
     remarks: string | null
@@ -119,6 +120,7 @@ export interface roleCheck {
     user_id: string
     tenant_id: string
 }
+
 
 export class ApprovalWorkflowRepository {
 /*
@@ -393,6 +395,8 @@ export class ApprovalWorkflowRepository {
         })
     }
 
+    
+
     async createLevelOfApproval (
         data: ApprovalLevelData
     ) {
@@ -419,6 +423,7 @@ export class ApprovalWorkflowRepository {
                 tenant_id: tenant_id,
                 company_id: company_id
             }, select: {
+                id: true,
                 role_id: true,
                 level_no: true,
                 min_amount:true,
@@ -452,6 +457,7 @@ export class ApprovalWorkflowRepository {
             data: {
                 tenant_id: data.tenant_id,
                 approval_request_id: data.approval_request_id,
+                level_id: data.level_id,
                 acted_by_user_id: data.acted_by_user_id,
                 action: data.action,
                 remarks: data.remarks,
@@ -461,11 +467,13 @@ export class ApprovalWorkflowRepository {
     }
 
     async getApprovalActionById (
-        approvalWorkflowId: string
+        data: ApprovalRequest
     ) {
         return prisma.approvalAction.findUnique({
             where: {
-                id: approvalWorkflowId
+                id: data.approval_workflow_id
+            }, select: {
+                level_id: true
             }
         })
     }

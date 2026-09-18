@@ -24,12 +24,9 @@ export function createApprovalWorkflow () {
     router.post("/:approvalWorkflowId/reject", controller.reject)
     router.post("/:approvalWorkflowId/cancel", controller.cancel)
 
-
-
     // GET
     router.get("/", controller.approvalWorkflow)
     router.get("/workflows", controller.workflowCodes)
-    router.get("/workflows/levels", controller.workflowLevels)
     router.get("/:approvalWorkflowId", controller.approvalRequest)
 
     return router;    

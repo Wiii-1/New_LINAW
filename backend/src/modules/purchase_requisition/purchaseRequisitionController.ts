@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from "express"
+import type { AppContext } from "../../shared/types/hono.js"
+import { Context } from "hono" 
 import { purchaseRequisitionService } from "./purchaseRequisitionService.js"
 import { 
     purchaseRequisitionIdParamsSchema, 
@@ -21,44 +22,38 @@ export class PurchaseRequisitionController {
     }
 
     createRequisition = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
-        try{
-            if (!req.user) {
-                throw new UnauthorizedAccessError("Authentication required");
-            }        
-            const requisition = purchaseRequisitionInputSchema.parse(req.body)
+        c: Context<AppContext>
+    )   => {
 
-            const userId = req.user.id
+        if (!req.user) {
+            throw new UnauthorizedAccessError("Authentication required");
+        }        
+        const requisition = purchaseRequisitionInputSchema.parse(req.body)
 
-            const tenantId = req.user.tenant_id
+        const userId = req.user.id
 
-            const purchaseRequisition: PurchaseRequisitionInput = {
-                ...requisition,
-                userId,
-                tenantId
-            }
+        const tenantId = req.user.tenant_id
 
-            const creation = await this.service.createRequisition(purchaseRequisition)
-
-            res.status(201).json({
-                success: true,
-                message: "Purchase requisition created successfully.",
-                data: creation
-            })
-        } catch (err){
-            next(err)
+        const purchaseRequisition: PurchaseRequisitionInput = {
+            ...requisition,
+            userId,
+            tenantId
         }
+
+        const creation = await this.service.createRequisition(purchaseRequisition)
+
+        res.status(201).json({
+            success: true,
+            message: "Purchase requisition created successfully.",
+            data: creation
+        })
+  
     }
 
     submitRequisition  = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
-        try {
+ 
+    ) => {
+          
             const params =
                 purchaseRequisitionIdParamsSchema.parse(req.params);
 
@@ -78,17 +73,13 @@ export class PurchaseRequisitionController {
                     submitted_at: submit.submitted_at
                 }
             })
-        } catch (err){
-            next(err)
-        }
+  
     }
 
     cancelRequisition = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
-        try {
+ 
+    )   => {
+          
             const cancellation = cancelPurchaseRequisitionSchema.parse(req.body)
 
             const params = purchaseRequisitionIdParamsSchema.parse(req.params)
@@ -107,17 +98,13 @@ export class PurchaseRequisitionController {
                 data: cancel
             })
 
-        } catch (err){
-            next(err)
-        }
+  
     }
     
     resubmitRequisition = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
-        try {
+ 
+    )   => {
+          
 
             const params = purchaseRequisitionIdParamsSchema.parse(req.params)
 
@@ -141,17 +128,13 @@ export class PurchaseRequisitionController {
                 }
             })
 
-        } catch (err){
-            next(err)
-        }
+  
     }
 
     requisition = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+ 
     ): Promise<void> => {
-        try {
+          
             const query = PurchaseRequisitionQuerySchema.parse(req.query);
 
             const data: PurchaseRequisitionQuery = {
@@ -175,11 +158,9 @@ export class PurchaseRequisitionController {
     }
 
     details = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
-        try {
+ 
+    )   => {
+          
             const params = purchaseRequisitionIdParamsSchema.parse(req.params)
 
             const requisitionDetails: PurchaseRequisitionIdParams = {
@@ -194,17 +175,13 @@ export class PurchaseRequisitionController {
                 data: details
             })
 
-        } catch (err){
-            next(err)
-        }
+  
     }
 
     update = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
-        try {
+ 
+    )   => {
+          
             const updateContent = updatePurchaseRequisitionSchema.parse(req.body)
 
             const params = purchaseRequisitionIdParamsSchema.parse(req.params)
@@ -221,8 +198,6 @@ export class PurchaseRequisitionController {
                 data: updateReqs
             })
 
-        } catch (err){
-            next(err)
-        }
+  
     }
 }
