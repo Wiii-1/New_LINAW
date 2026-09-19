@@ -1,8 +1,8 @@
-import * as crypto from 'crypto'
 import { AuditTrailRepository } from "./auditTrailRepository.js";
 import { BlockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js"
 import { NotFoundError, UnauthorizedAccessError } from '../../shared/errors/appError.js';
 import { auditIntegrity, searchAudit } from "./auditTrailValidator.js"
+import type { AppEnv } from "../../config/env.js";
 
 type CreateAuditTrailInput = {
     purchaseOrderId: string
@@ -41,7 +41,7 @@ export class AuditTrailService {
         private blockchainAdapter: BlockchainAdapter
     ) {}
 
-    async searchAudit (data: searchAudit) {
+    async searchAudit (env: AppEnv, data: searchAudit) {
         
         const { 
             audit_id, tenant_id, user_id
@@ -59,7 +59,10 @@ export class AuditTrailService {
             throw new NotFoundError("Audit trail not found")
         }        
 
-        const blockchainRecord = await this.blockchainAdapter.getAudit(audit.id)
+        const blockchainRecord = await this.blockchainAdapter.getAudit(
+            env,
+            audit.id
+        )
 
         return {
             audit,
@@ -68,7 +71,7 @@ export class AuditTrailService {
     }
 
 
-    async auditIntegrity(data: auditIntegrity) {
+    async auditIntegrity(env: AppEnv, data: auditIntegrity) {
        
         const { 
             audit_id, tenant_id, user_id
@@ -97,7 +100,7 @@ export class AuditTrailService {
         if (!freshSnapshot) {
             throw new NotFoundError("purchase order snapshot not found");
 }
-        const freshHash = this.generateHash(freshSnapshot)
+        const freshHash = await this.generateHash(freshSnapshot)
 
         const isFreshValid = freshHash === storedHash
 
@@ -111,6 +114,7 @@ export class AuditTrailService {
         // Ask blockchain for the anchored record
 
         const blockchainAudit = await this.blockchainAdapter.getAudit(
+            env,
             audit.blockchain_ref.audit_trail_id
         )
 
@@ -162,7 +166,7 @@ export class AuditTrailService {
             throw new NotFoundError("Purchase order not found")
         }
 
-        const hashValue = this.generateHash(purchaseOrderSnapshot)
+        const hashValue = await this.generateHash(purchaseOrderSnapshot)
 
         const auditRecord = {
             tenant_id: event.tenantId,
@@ -249,14 +253,23 @@ export class AuditTrailService {
 
 
 
-    private generateHash(snapshot: object): string {
+    private async generateHash(snapshot: object): Promise<string>{
 
         const json = JSON.stringify(snapshot)
 
-        return crypto
-            .createHash("sha256")
-            .update(json, "utf8")
-            .digest("hex")
+
+        const data = new TextEncoder().encode(json)
+
+        const hashBuffer = await crypto.subtle.digest(
+            "SHA-256",
+            data
+        )
+
+        const hashArray = Array.from(new Uint8Array(hashBuffer))
+
+        return hashArray
+            .map(byte => byte.toString(16).padStart(2, "0"))
+            .join("")
     }
 
 }

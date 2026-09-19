@@ -1,69 +1,63 @@
+import type { Context, Next } from "hono"
+import type { AppContext } from "../../types/hono.js";
+
+import { createRedis } from "./redis.js";
 import { checkRateLimit } from "./rate-limiter.js";
 
-import type {
-  Request,
-  Response,
-  NextFunction,
-} from "express";
-
 export async function criticalRateLimit(
-  req: Request,
-  res: Response,
-  next: NextFunction,
+  c: Context<AppContext>,
+  next: Next
 ): Promise<void> {
 
-  const userId = req.user.user_id
-  const sessionId = req.user.session_id;
-  const ip = req.ip;
+  const user = c.get("user")
+
+  const userId = user.user_id
+  const sessionId = user.session_id;
+  
+  const ip = 
+    c.req.header("CF-Connecting-IP") ??
+    c.req.header("X-Forwarded-For")
 
   if (!userId) {
-    res.status(401).json({
-      error: "Authenticated user is required",
-    });
-    return;
+      throw new Error("Authenticated user is required");
   }
 
   if (!sessionId) {
-    res.status(401).json({
-      error: "Authenticated session is required",
-    });
-    return;
+      throw new Error("Authenticated session is required");
   }
 
   if (!ip) {
-    res.status(400).json({
-      error: "Client IP is not available",
-    });
-    return;
+      throw new Error("Client IP is not available");
   }
+  
+  const redis = createRedis(c.env)
 
-  const result = await checkRateLimit({
-    userId,
-    sessionId,
-    ip,
-    endpoint: req.path,
-  });
+  const result = await checkRateLimit(
+    redis,
+    {
+      userId,
+      sessionId,
+      ip,
+      endpoint: c.req.path
+    }
+  );
 
   console.log("[RateLimit Middleware] Got result:", result);
 
   if (!result.allowed) {
-    console.log("[RateLimit Middleware] BLOCKED");
+      c.header(
+          "Retry-After",
+          String(result.retryAfter),
+      );
 
-    res.setHeader(
-      "Retry-After",
-      String(result.retryAfter),
-    );
+      c.json({
+          error: "Too many requests",
+          retryAfter: result.retryAfter,
+          reason: result.reason,
+      }, 429);
 
-    res.status(429).json({
-      error: "Too many requests",
-      retryAfter: result.retryAfter,
-      reason: result.reason,
-    });
-
-    return;
+      return
   }
 
-  console.log("[RateLimit Middleware] Calling next()");
-  next();
-  console.log("[RateLimit Middleware] next() returned");
+  await next();
 }

@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/client"
+import { Decimal } from "decimal.js";
 import { prisma } from "../../config/database.js"
 
 /*
@@ -119,6 +119,7 @@ export interface roleCheck {
     user_id: string
     tenant_id: string
 }
+
 
 export class ApprovalWorkflowRepository {
 /*
@@ -393,6 +394,8 @@ export class ApprovalWorkflowRepository {
         })
     }
 
+    
+
     async createLevelOfApproval (
         data: ApprovalLevelData
     ) {
@@ -419,6 +422,7 @@ export class ApprovalWorkflowRepository {
                 tenant_id: tenant_id,
                 company_id: company_id
             }, select: {
+                id: true,
                 role_id: true,
                 level_no: true,
                 min_amount:true,
@@ -461,11 +465,13 @@ export class ApprovalWorkflowRepository {
     }
 
     async getApprovalActionById (
-        approvalWorkflowId: string
+        data: ApprovalRequest
     ) {
         return prisma.approvalAction.findUnique({
             where: {
-                id: approvalWorkflowId
+                id: data.approval_workflow_id
+            }, select: {
+                level_id: true
             }
         })
     }

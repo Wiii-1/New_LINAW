@@ -1,40 +1,48 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import authRoutes from "./modules/authentication/authRouter.js";
-import auditRoutes from "./modules/audit_trail/auditTrailRouter.js"
-import purchaseRoutes from "./modules/purchase_requisition/purchaseRequisitionRouter.js"
-import approvalWorkflow from "./modules/approval_workflow/approvalWorkflowRouter.js"
-import session from "express-session";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { logger } from "hono/logger";
+import { secureHeaders } from "hono/secure-headers";
+import { errorHandler } from "./shared/middleware/errorHandler.js";
 
-import { errorHandler  } from './shared/middleware/errorHandler.js';
-import cookieParser from 'cookie-parser';
+import type { AppContext } from "./shared/types/hono.js";
+import type { AppEnv } from "./config/env.js";
 
-export const app = express();
+import { initializeJWT } from "./modules/authentication/authJWT.js";
+import { createAuthRouter } from "./modules/authentication/authRouter.js";
+import { createAuditRouter } from "./modules/audit_trail/auditTrailRouter.js";
+import { createApprovalWorkflow } from "./modules/approval_workflow/approvalWorkflowRouter.js";
+import { createPurchaseRequistionRouter } from "./modules/purchase_requisition/purchaseRequisitionRouter.js"
+import { AuditTrailRepository } from "./modules/audit_trail/auditTrailRepository.js";
+import { AuditTrailService } from "./modules/audit_trail/auditTrailService.js";
+import { BlockchainAdapter } from "./shared/blockchain/blockchainAdapter.js";
 
-app.use(helmet());
-app.use(morgan('dev'));
-app.use(express.json());
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET ?? "development-secret",
-    resave: false,
-    saveUninitialized: false,
-  }),
-);
+export function createApp(env: AppEnv) {
+    const app = new Hono<AppContext>();
+
+    app.use(cors());
+    app.use(secureHeaders());
+    app.use(logger());
+
+    app.onError(errorHandler);
+
+    const blockchainAdapter = new BlockchainAdapter(env);    
+    const repository = new AuditTrailRepository()
+    const service = new AuditTrailService(repository, blockchainAdapter)
+
+    app.get("/health", (c) => {
+        return c.json({
+            success: true,
+            message: "LINAW API is running",
+        });
+    });
+
+    initializeJWT(env);
+
+    app.route("/auth", createAuthRouter(env));
+    app.route("/auditTrail", createAuditRouter(service))
+    app.route("/approvalWorkflow", createApprovalWorkflow())
+    app.route("/createPurchaseRequisition", createPurchaseRequistionRouter())
 
 
-// routes
-
-app.use(cookieParser());
-
-
-app.use("/api/auth", authRoutes);
-app.use("/api/auditTrail", auditRoutes)
-app.use("/api/purchase-requisition", purchaseRoutes)
-app.use("/api/approval-workflow", approvalWorkflow)
-
-app.use(errorHandler)
-
-
+    return app;
+}

@@ -1,6 +1,10 @@
-import { Request, Response, NextFunction } from "express";
+import type { AppContext } from "../../shared/types/hono.js";
+import { Context } from "hono";
+import { getCookie, deleteCookie } from "hono/cookie"
 import { AuthService } from "./authServices.js";
-import { forgotPasswordSchema, loginSchema, resetPasswordSchema, signupSchema, findByIdSchema, logoutSchema } from "./authValidator.js";
+import { forgotPasswordSchema, loginSchema, resetPasswordSchema, signupSchema, findByIdSchema    } from "./authValidator.js";
+import { InvalidTokenError } from "../../shared/errors/appError.js";
+
 
 
 export class AuthController {
@@ -10,191 +14,169 @@ export class AuthController {
     
 
     getUserById = async (
-        req: Request,
-        res: Response, 
-        next:NextFunction
-    ): Promise<void> => {
-        try {
+        c: Context<AppContext>          
+    ) => {
             
-            const id = findByIdSchema.parse(req.params.id)
+        const id = findByIdSchema.parse(c.req.param("id"))
 
-            const user = await this.service.findId(id)
+        const user = await this.service.findId(id)
 
-            res.status(200).json({
-                id,
-                success: true,
-                message: "USER FOUND",
-                data:user
-            });
-        }
-        catch (err){
-            next(err)
-        }
+        c.json({
+            id,
+            success: true,
+            message: "USER FOUND",
+            data: user
+        }, 200)
+    
     };
 
     createUser = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise<void> => {
-        try {
+        c: Context<AppContext>          
+    ) => {
 
-            console.log("SIGNUP: controller entered");
+        console.log("SIGNUP: controller entered");
 
-            const data = signupSchema.parse(req.body)
+        const body = await c.req.json()
 
-            const result = await this.service.register(data)
+        const data = signupSchema.parse(body)
 
-            res.status(200).json({
-                result,
-                success: true,
-                message: "Account created"
-            })
-        } catch (err) {
-            next (err)
-        }
+        const result = await this.service.register(data)
+
+        c.json({
+            result,
+            success: true,
+            message: "Account Created"
+        }, 200)
     }
 
     loginUser = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void>  => {
-        try {
+        c: Context<AppContext>            
+    ) => {
 
-            console.log("LOGIN: controller entered");
-            
-            const data = loginSchema.parse(req.body)
+        console.log("LOGIN: controller entered");
+        
+        const body = await c.req.json()
 
-            const result = await this.service.login(data)
+        const data = loginSchema.parse(body)
 
-            res.status(200).json({
-                result,
-                success: true,
-                message: "Login Successfully"
-            })
-        } catch (err) {
-            next (err)
-        }
+        const result = await this.service.login(data)
+
+        c.json({
+            result,
+            success: true,
+            message: "Login Successfully"
+        }, 200)
+
     }
 
     forgotPassword = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise<void> => {
-        try {
-            const data = forgotPasswordSchema.parse(req.body)
+        c: Context<AppContext>          
+    ) => {
 
-            await this.service.requestPasswordReset(data)
+        const body = await c.req.json()
 
-            res.status(200).json({
-                success: true,
-                message: "If the account exists, password reset instructions have been sent."
-            })
-        } catch (err) {
-            next(err)
-        }
+        const data = forgotPasswordSchema.parse(body)
+
+        await this.service.requestPasswordReset(data)
+    
+        c.json({
+            success: true,
+            message: "If the account exists, password reset instructions have been sent.",   
+        })
     }
 
     resetPassword = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise<void> => {
-        try {
-            const data = resetPasswordSchema.parse(req.body)
+        c: Context<AppContext>          
+    ) => {
 
-            await this.service.resetPassword(data)
+        const body = await c.req.json()
 
-            res.status(200).json({
-                success: true,
-                message: "Password reset successfully"
-            })
-        } catch (err) {
-            next(err)
-        }
+        const data = resetPasswordSchema.parse(body);
+        
+        const user = c.get("user");
+
+        await this.service.resetPassword({
+            ...data,
+            user_id: user.user_id,
+        })
+
+        c.json({
+            success: true,
+            message: "Password reset successfully"
+        }, 200)
     }
 
     logoutUser = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>          
     ): Promise <void> => {
-        try {
+
             
-            const refreshToken = req.cookies.refreshToken
+        const refreshToken = getCookie(c, "refreshToken")
 
-            const result = await this.service.logout(refreshToken)
+        if (!refreshToken) {
+            throw new InvalidTokenError ("Invalid Token")
+        }        
 
-            res.clearCookie("accessToken", {
-                httpOnly: true,
-                secure:process.env.NODE_ENV === "production",
-                sameSite: "strict"
-            })
+        const result = await this.service.logout(refreshToken)
 
-            res.clearCookie("refreshToken", {
-                httpOnly: true,
-                secure:process.env.NODE_ENV === "production",
-                sameSite: "strict"
-            })
 
-            res.status(200).json({
-                success: true,
-                message: "Logged out successfully",
-                result
-            });
-        } catch (error) {
-            next(error);
-        }
+        deleteCookie(c, "accessToken",{
+            httpOnly: true,
+            secure: c.env.NODE_ENV === "production",
+            sameSite: "Strict"
+        })
+
+        deleteCookie(c, "refreshToken", {
+            httpOnly: true,
+            secure: c.env.NODE_ENV == "producetion",
+            sameSite: "Strict"
+        })
+
+        c.json({
+            success: true,
+            message: "Logged out successfully",
+            result
+        },200)
     }
 
     refreshToken = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
-         try {
+        c: Context<AppContext>          
+    ) => {
 
-            const refreshToken = req.cookies.refreshToken
-            
-            const token = await this.service.refresh(refreshToken)
+        const refreshToken = getCookie(c, "refreshToken")
 
-            res.clearCookie("accessToken", {
-                httpOnly: true,
-                secure:process.env.NODE_ENV === "production",
-                sameSite: "strict"
-            })
+        if (!refreshToken) {
+            throw new InvalidTokenError ("Invalid Token")
+        }          
+        
+        const token = await this.service.refresh(refreshToken)
 
-            res.clearCookie("refreshToken", {
-                httpOnly: true,
-                secure:process.env.NODE_ENV === "production",
-                sameSite: "strict"
-            })
+        deleteCookie(c, "accessToken", {
+            httpOnly: true,
+            secure: c.env.NODE_ENV === "production",
+            sameSite: "Strict"
+        })
 
-            res.status(200).json({
-                success: true,
-                message: "Session refreshed successfully",
-                token
-            });
-        } catch (error) {
-            next(error);
-        }
+        deleteCookie(c, "refreshToken", {
+            httpOnly: true,
+            secure: c.env.NODE_ENV === "production",
+            sameSite: "Strict"
+        })
+
+        return c.json({
+            success: true,
+            message: "Session refreshed successfully",
+            token
+        },200)
     }
 
     validate_token = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
+        c: Context<AppContext>
     ) => {
-        try {
-            res.status(200).json({
-                success: true,
-                message: "Token is valid",
-            });
-        } catch (error) {
-            next(error);
-        }
+        return c.json ({
+            success: true,
+            message: "Token is valid"
+        },)
     }
 
 }; 

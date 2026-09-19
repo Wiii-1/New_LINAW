@@ -32,7 +32,6 @@ import { Prisma,
          PurchaseRequisitionStatus, 
          PurchaseRequisitionPriority, 
          PurchaseRequisition} from "../../generated/prisma/client.js"
-import { randomUUID } from "node:crypto"
 import { EventBus } from "../../shared/events/eventBus.js"
 
 export interface purchaseRequisitionData {
@@ -116,7 +115,7 @@ export class purchaseRequisitionService {
             throw new NotFoundError ("User does not exist")
         }
 
-        const id = randomUUID()
+        const id = crypto.randomUUID()
         const created_at = new Date()
         const generation = 1
 
@@ -302,6 +301,7 @@ export class purchaseRequisitionService {
                 tenantId: submission.tenant_id,
                 companyId: submission.company_id,
                 userId: submission.requested_by_user_id,
+                entityType: submission.purpose,
                 submittedAt: submission.submitted_at,
             }
         )
@@ -519,7 +519,7 @@ export class purchaseRequisitionService {
         
         const nextGeneration = latest.generation + 1;
 
-        const id = randomUUID()
+        const id = crypto.randomUUID()
         const created_at = new Date()
         const generation = nextGeneration
 

@@ -4,13 +4,14 @@ import { forgotPasswordInput, loginInput, resetPasswordInput, signupInput, findB
 import { ConflictError, NotFoundError, UnauthorizedAccessError } from "../../shared/errors/appError.js";
 import { randomBytes, randomUUID } from "node:crypto";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "./authJWT.js";
-import { env } from "../../config/env.js";
+import type { AppEnv } from "../../config/env.js";
 import { AuthNotifier, NoopAuthNotifier } from "./authNotifications.js";
 
 export class AuthService {
 
     constructor (
         private repository: AuthRepository,
+        private env: AppEnv,
         private notifier: AuthNotifier = new NoopAuthNotifier()
     ) {}
     
@@ -99,7 +100,7 @@ export class AuthService {
                 expires_at: expiresAt
             })
 
-        const refreshToken = generateRefreshToken({
+        const refreshToken = await generateRefreshToken({
             user_id: user.id,
             session_id: session.id
         })
@@ -112,7 +113,9 @@ export class AuthService {
         )
 
         const accessToken = await generateAccessToken({
-            user_id: user.id
+            user_id: user.id,
+            session_id: session.id,
+            tenant_id: user.tenant_id
         })
 
         console.log(": service returned");
@@ -142,7 +145,7 @@ export class AuthService {
 
     async logout(refreshToken: string) {
 
-        const payload = verifyRefreshToken(refreshToken)
+        const payload = await verifyRefreshToken(refreshToken)
 
         const session = await this.repository.findSessionById(payload.session_id)
 
@@ -159,7 +162,7 @@ export class AuthService {
 
     async refresh(refreshToken: string) {
 
-        const payload = verifyRefreshToken(refreshToken)
+        const payload = await verifyRefreshToken(refreshToken)
 
         const session = await this.repository.findSessionById(
             payload.session_id
@@ -202,10 +205,12 @@ export class AuthService {
         }
 
         const newAccessToken = generateAccessToken({
-            user_id: user.id
+            user_id: user.id,
+            session_id: session.id,
+            tenant_id: user.tenant_id
         })
 
-        const newRefreshToken = generateRefreshToken({
+        const newRefreshToken = await generateRefreshToken({
             user_id: user.id,
             session_id: session.id
         })
@@ -225,7 +230,9 @@ export class AuthService {
         }
     }
 
-    async requestPasswordReset(data: forgotPasswordInput) {
+    async requestPasswordReset(
+            data: forgotPasswordInput
+        ) {
         const user = await this.repository.findUserWithCredentialsByEmail(data.email)
 
         if (!user) {
@@ -250,7 +257,7 @@ export class AuthService {
             expires_at: expiresAt
         })
 
-        const resetUrl = new URL("/reset-password", env.APP_URL)
+        const resetUrl = new URL("/reset-password", this.env.APP_URL)
         resetUrl.searchParams.set("token", resetToken)
 
         await this.notifier.sendPasswordResetEmail({

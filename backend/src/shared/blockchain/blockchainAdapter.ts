@@ -1,5 +1,7 @@
 import { ethers } from "ethers";
-import { auditTrailContract } from "./blockchainClient.js"; 
+
+import type { AppEnv } from "../../config/env.js";
+import { createAuditTrailContract } from "./blockchainClient.js"; 
 
 type AnchorAuditInput = {
     auditId: string;
@@ -9,9 +11,15 @@ type AnchorAuditInput = {
 
 export class BlockchainAdapter{
 
+    constructor( 
+        private readonly env: AppEnv
+    ) {}
+
     async anchorAudit(
-        input: AnchorAuditInput 
+        input: AnchorAuditInput
     ) {
+
+        const auditTrailContract = createAuditTrailContract(this.env);
 
         // UUID/String - byte32
 
@@ -59,6 +67,8 @@ export class BlockchainAdapter{
         hashValue: string
     ) {
 
+        const auditTrailContract = createAuditTrailContract(this.env);        
+
         const auditIdBytes32 = ethers.id(
             auditId
         );
@@ -81,12 +91,13 @@ export class BlockchainAdapter{
     }
 
     async getAudit(
+        env: AppEnv,
         auditId: string
     ){
+        const auditTrailContract = createAuditTrailContract(env);
+
         return await auditTrailContract.getFunction("getAudit")(
             auditId
         )
     }
 }
-
-export const blockchainAdapter = new BlockchainAdapter()

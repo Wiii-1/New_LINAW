@@ -1,19 +1,4 @@
-/*
- * Questions I still need to answer:
- *
- * - Should the limiter identify clients by IP, session, user ID, or a combination?
- * - What is the request window?
- * - What happens after the limit is exceeded?
- * - Should repeated violations increase the timeout?
- * - How do we avoid blocking legitimate users behind the same IP?
- * - How do multiple application instances share limiter state?
- * - Should Redis failure fail-open or fail-closed?
- * - How do we clean up expired entries?
- * - Should different endpoints have different limits?
- */
-
-
-import { redis }  from "./redis.js"
+import type { Redis } from "@upstash/redis";
 
 import type {
     RateLimitContext,
@@ -76,6 +61,7 @@ return {
 `
 
 export async function checkRateLimit(
+  redis: Redis,
   context: RateLimitContext,
 ): Promise<RateLimitResult> {
 
@@ -92,20 +78,20 @@ export async function checkRateLimit(
 
   console.log("[RateLimit] Executing Redis script...");
 
-  const result = await redis.eval(RATE_LIMIT_SCRIPT, {
-    keys: [
-      sessionKey,
-      userKey,
-      ipKey,
-    ],
-    arguments: [
-      SESSION_LIMIT.toString(),
-      USER_LIMIT.toString(),
-      IP_LIMIT.toString(),
-      WINDOW_SECONDS.toString(),
-    ],
-  }) as [number, number, number];
-
+  const result = await redis.eval(
+      RATE_LIMIT_SCRIPT,
+      [
+          sessionKey,
+          userKey,
+          ipKey,
+      ],
+      [
+          SESSION_LIMIT.toString(),
+          USER_LIMIT.toString(),
+          IP_LIMIT.toString(),
+          WINDOW_SECONDS.toString(),
+      ],
+  ) as [number, number, number];
   console.log("[RateLimit] Redis script completed:", result);
 
   const [allowed, remaining, reasonCode] = result;

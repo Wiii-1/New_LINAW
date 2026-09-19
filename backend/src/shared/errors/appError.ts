@@ -79,3 +79,10 @@ export class ValidationError extends AppError {
         this.name = "validationError"
     }
 }
+
+export class InvalidTokenError extends AppError {
+    constructor (message = "Invalid Token Error",details?:unknown){
+        super(message, 401, "Invalid Token Error", details)
+        this.name = "invalidTokenError"
+    }
+}
