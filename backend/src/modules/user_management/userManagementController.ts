@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { userManagementService} from "./userManagementService.js"
-import { UserProfileSchema, OrganizationRegistrationSchema } from "./userManagementValidator.js";
+import { UserManagementService} from "./userManagementService.js"
+import { UpdateUserProfileSchema, OrganizationRegistrationSchema } from "./userManagementValidator.js";
 
 export class userManagementController {
-    constructor (private service: userManagementService){
+    constructor (private service: UserManagementService){
         this.service = service
     }
 

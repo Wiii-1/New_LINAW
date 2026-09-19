@@ -75,7 +75,6 @@ export interface ApprovalLevelData {
 export interface ApprovalActionData {
     tenant_id: string
     approval_request_id: string
-    level_id: string
     acted_by_user_id: string
     action: ApprovalActionType
     remarks: string | null
@@ -457,7 +456,6 @@ export class ApprovalWorkflowRepository {
             data: {
                 tenant_id: data.tenant_id,
                 approval_request_id: data.approval_request_id,
-                level_id: data.level_id,
                 acted_by_user_id: data.acted_by_user_id,
                 action: data.action,
                 remarks: data.remarks,

@@ -272,7 +272,7 @@ model PurchaseRequisition {
   pr_number            String
   generation           Int
   requested_by_user_id String                         @db.Uuid
-  purpose              String?
+  purpose              String?  // Purpose determines the applicable workflow and the entity type
   justification        String?
   status               PurchaseRequisitionStatus
   priority             PurchaseRequisitionPriority?
@@ -392,7 +392,7 @@ model ApprovalWorkflowLevel {
   created_at DateTime @default(now()) @db.Timestamptz(6)
   updated_at DateTime @updatedAt @db.Timestamptz(6)
 
-  actions  ApprovalAction[]
+  
   workflow ApprovalWorkflowDefinition @relation(fields: [workflow_id], references: [id])
   company  Company?         @relation(fields: [company_id], references: [id])
   role     Role             @relation(fields: [role_id], references: [id])
@@ -408,7 +408,6 @@ model ApprovalWorkflowDefinition {
   id         String  @id @default(uuid()) @db.Uuid
   tenant_id  String? @db.Uuid
   company_id String? @db.Uuid
-
   workflow_code String
   name          String
   description   String?
@@ -430,19 +429,18 @@ model ApprovalWorkflowDefinition {
 }
 
 model ApprovalAction {
-  id                  String                @id @default(uuid()) @db.Uuid
-  tenant_id           String                @db.Uuid
-  approval_request_id String                @db.Uuid
-  level_id            String                @db.Uuid
-  acted_by_user_id    String                @db.Uuid
+  id                  String   @id @default(uuid()) @db.Uuid
+  tenant_id           String   @db.Uuid
+  approval_request_id String   @db.Uuid
+  acted_by_user_id    String   @db.Uuid
   action              String
   remarks             String?
-  acted_at            DateTime              @db.Timestamptz(6)
-  created_at          DateTime              @default(now()) @db.Timestamptz(6)
-  acted_by_user       User                  @relation("UserApprovalActions", fields: [acted_by_user_id], references: [id])
-  approval_request    ApprovalRequest       @relation(fields: [approval_request_id], references: [id])
-  level               ApprovalWorkflowLevel @relation(fields: [level_id], references: [id])
-  tenant              Tenant                @relation(fields: [tenant_id], references: [id])
+  acted_at            DateTime @db.Timestamptz(6)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  acted_by_user    User            @relation("UserApprovalActions", fields: [acted_by_user_id], references: [id])
+  approval_request ApprovalRequest @relation(fields: [approval_request_id], references: [id])
+  tenant           Tenant          @relation(fields: [tenant_id], references: [id])
 
   @@index([tenant_id])
   @@index([approval_request_id])
