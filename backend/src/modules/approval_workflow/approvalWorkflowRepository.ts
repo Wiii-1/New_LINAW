@@ -73,6 +73,7 @@ export interface ApprovalLevelData {
 }
 
 export interface ApprovalActionData {
+    level_id: string
     tenant_id: string
     approval_request_id: string
     acted_by_user_id: string
@@ -454,6 +455,7 @@ export class ApprovalWorkflowRepository {
     ) {
         return prisma.approvalAction.create({
             data: {
+                level_id: data.level_id,
                 tenant_id: data.tenant_id,
                 approval_request_id: data.approval_request_id,
                 acted_by_user_id: data.acted_by_user_id,
