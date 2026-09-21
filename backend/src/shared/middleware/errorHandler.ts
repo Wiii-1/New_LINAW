@@ -1,12 +1,13 @@
-import { Context } from "hono";
-import { AppError } from "../errors/appError.js";
+import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
+import type { AppContext } from "../types/hono.js";
+import { AppError } from "../errors/appError.js";
 
 export function errorHandler(
     err: Error,
-    c: Context
+    c: Context<AppContext>
 ) {
-    console.error(err)
+    console.error(err);
 
     if (err instanceof AppError) {
         return c.json(
@@ -15,13 +16,12 @@ export function errorHandler(
                 error: {
                     code: err.code,
                     message: err.message,
-
-                    ...(process.env.NODE_ENV === "development" && {
-                        details: err.details,
+                    ...(c.env.NODE_ENV === "development" && {
+                        details: err.details
                     }),
                 },
             },
-            err.statusCode as ContentfulStatusCode,
+            err.statusCode as ContentfulStatusCode
         );
     }
 
@@ -30,9 +30,9 @@ export function errorHandler(
             success: false,
             error: {
                 code: "INTERNAL_SERVER_ERROR",
-                message: "something went wrong"
+                message: "something went wrong",
             },
         },
-        500,
-    )
+        500
+    );
 }

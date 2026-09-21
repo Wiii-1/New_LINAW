@@ -1,18 +1,19 @@
 import type { AppContext } from "../../shared/types/hono.js"
 import { Context } from "hono" 
 import { purchaseRequisitionService } from "./purchaseRequisitionService.js"
-import { 
-    purchaseRequisitionIdParamsSchema, 
-    purchaseRequisitionInputSchema, 
-    cancelPurchaseRequisitionSchema, 
-    updatePurchaseRequisitionSchema, 
+import type { 
     PurchaseRequisitionIdParams, 
     PurchaseRequisitionInput, 
     CancelPurchaseRequisitionInput, 
     ResubmitPurchaseRequisitionInput, 
-    PurchaseRequisitionUpdate,
     PurchaseRequisitionQuery,
-    PurchaseRequisitionQuerySchema
+} from "./purchaseRequisitionValidation.js"
+
+import { PurchaseRequisitionQuerySchema, 
+    updatePurchaseRequisitionSchema, 
+    cancelPurchaseRequisitionSchema, 
+    purchaseRequisitionInputSchema, 
+    purchaseRequisitionIdParamsSchema
 } from "./purchaseRequisitionValidation.js"
 import { UnauthorizedAccessError } from "../../shared/errors/appError.js"
 

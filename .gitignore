@@ -8,8 +8,7 @@ backend/dist
 
 # Environment
 .env
-.env.*
-!.env.example
+
 
 # =====================
 # blockchain_test_integration

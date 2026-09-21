@@ -6,7 +6,7 @@ import { Authorize } from "../../shared/Auhorization/authorize.js"
 import { ApprovalWorkflowController } from "./approvalWorkflowController.js"
 import { ApprovalWorkflowService} from "./approvalWorkflowService.js"
 import { ApprovalWorkflowRepository } from "./approvalWorkflowRepository.js"
-import { AppContext } from "../../shared/types/hono.js"
+import type { AppContext } from "../../shared/types/hono.js"
 
 export function createApprovalWorkflow () {
     const router = new Hono<AppContext>()

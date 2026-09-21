@@ -5,7 +5,7 @@ import { AuthRepository } from "./authRepository.js";
 import { authenticate } from "../../shared/middleware/authenticate.js";
 import { criticalRateLimit } from "../../shared/middleware/rateLimit/critical-rate-limit.js";
 import type { AppContext } from "../../shared/types/hono.js";
-import { AppEnv } from "../../config/env.js";
+import type { AppEnv } from "../../config/env.js";
 
 export function createAuthRouter(env: AppEnv){
     const router = new Hono<AppContext>();

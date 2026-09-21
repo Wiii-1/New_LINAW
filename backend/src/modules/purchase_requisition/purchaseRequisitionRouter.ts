@@ -6,7 +6,7 @@ import { purchaseRequisitionRepository } from "./purchaseRequisitionRepository.j
 import { authenticate } from "../../shared/middleware/authenticate.js"
 import { EventBus } from "../../shared/events/eventBus.js"
 import { Authorize } from "../../shared/Auhorization/authorize.js"
-import { systemPermissions, systemPermissionSeeds } from "../../shared/Auhorization/seeds/systemPermissions.js"
+import { systemPermissions } from "../../shared/Auhorization/seeds/systemPermissions.js"
 import { criticalRateLimit } from "../../shared/middleware/rateLimit/critical-rate-limit.js"
 
 export function createPurchaseRequistionRouter () {

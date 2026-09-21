@@ -1,5 +1,5 @@
 import { eventBus } from "../../shared/events/eventBus.js";
-import { purchaseRequisitionSubmittedEvent } from "../../shared/events/purchaseRequisitionSubmissionEvent.js"
+import type { purchaseRequisitionSubmittedEvent } from "../../shared/events/purchaseRequisitionSubmissionEvent.js"
 import { ApprovalWorkflowService } from "./approvalWorkflowService.js";
 
 export function purchaseRequisitionEvent (
