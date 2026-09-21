@@ -10,6 +10,9 @@ export const systemPermissions = {
         update:"pr:update",
         read:"pr:read"
     },
+    approvalWorklfow: {
+        
+    },
 } as const
 
 export type Permission = {

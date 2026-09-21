@@ -28,30 +28,51 @@ export const ContactNumberSchema = z
     });
 
 // =============
+//  GetSchema
+// =============
+
+export const GetSchema = z.object({
+    user_id: z
+        .string()
+        .optional(),
+    tenant_id: z
+        .string()
+        .optional(),
+    company_id: z
+        .string()
+        .optional()
+})
+
+
+// =============
 // UserProfile Update Schema
 // =============
 
-export const UserProfileSchema = z.object({
+export const UpdateUserProfileSchema = z.object({
     first_name: z
         .string()
         .min(3, "Must have a minimum of 3 characters")
-        .max(40, "First name too long"),
+        .max(40, "First name too long")
+        .optional(),
 
     last_name: z
         .string()
         .min(3, "Must have a minimum of 3 characters")
-        .max(40, "First name too long"),
+        .max(40, "First name too long")
+        .optional(),
 
     email: z
         .string()
         .email("Invalid Email")
         .trim()
-        .toLowerCase(),
+        .toLowerCase()
+        .optional(),
 
     job_title: z
         .string()
         .min(3, " Must have minimum of 3 characters")
         .max(40)
+        .optional()
 })
 
 // =============
@@ -89,8 +110,16 @@ export const OrganizationRegistrationSchema = z.object({
 // Interface
 // =============
 
-export type UserProfile =
-    z.infer <typeof UserProfileSchema>
+export type UpdateUserProfile =
+    z.infer <typeof UpdateUserProfileSchema> & {
+        user_id: string
+    }
 
 export type OrganizationRegistration =
-    z.infer <typeof OrganizationRegistrationSchema>
+    z.infer <typeof OrganizationRegistrationSchema> & {
+        user_id: string
+        tenant_id: string
+    }
+
+export type GetSchema = 
+    z.infer <typeof GetSchema>
