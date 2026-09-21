@@ -1,4 +1,4 @@
-import { ApprovalWorkflowRepository,
+import type { ApprovalWorkflowRepository,
          ApprovalLevelData,
          ApprovalWorkflowDefinitionData,
          GetData,
@@ -9,7 +9,7 @@ import { ApprovalWorkflowRepository,
          ApprovalRequestData
        } from "./approvalWorkflowRepository.js";
 import { EventBus } from "../../shared/events/eventBus.js";
-import { ApprovalWorkflowIdParams, 
+import type { ApprovalWorkflowIdParams, 
          RejectApprovalWorkflowBody,
          CreateLevels,
          CreateWorkflow

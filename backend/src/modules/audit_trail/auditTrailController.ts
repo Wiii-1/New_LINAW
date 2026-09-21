@@ -22,7 +22,7 @@ export class auditTrailController {
         tenant_id,
         audit_id
     }
-    const id = await this.service.searchAudit(c.env, search)
+const id = await this.service.searchAudit(search)
 
     c.json({
         success: true,
@@ -46,7 +46,7 @@ export class auditTrailController {
             audit_id
         }
 
-        const data = await this.service.auditIntegrity(c. env, verify)
+        const data = await this.service.auditIntegrity(verify)
 
         c.json({
             success:true,

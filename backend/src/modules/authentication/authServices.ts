@@ -1,11 +1,12 @@
 import { AuthRepository  } from "./authRepository.js";
 import { hashPassword, verifyPassword } from "./authPassword.js"
-import { forgotPasswordInput, loginInput, resetPasswordInput, signupInput, findById } from "./authValidator.js";
+import type { forgotPasswordInput, loginInput, resetPasswordInput, signupInput, findById } from "./authValidator.js";
 import { ConflictError, NotFoundError, UnauthorizedAccessError } from "../../shared/errors/appError.js";
 import { randomBytes, randomUUID } from "node:crypto";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "./authJWT.js";
 import type { AppEnv } from "../../config/env.js";
-import { AuthNotifier, NoopAuthNotifier } from "./authNotifications.js";
+import type { AuthNotifier } from "./authNotifications.js";
+import { NoopAuthNotifier } from "./authNotifications.js" 
 
 export class AuthService {
 
@@ -19,13 +20,6 @@ export class AuthService {
 
         console.log("SIGNUP: calling service");
 
-        const {
-            first_name,
-            last_name,
-            job_title,
-            email,
-            password
-        } = data
 
         const existingEmail = await this.repository.findUserWithCredentialsByEmail(data.email)
 
@@ -72,12 +66,7 @@ export class AuthService {
             expiresAt.getDate() + 30
         )
 
-        const {
-            email,
-            password
-        } = data
-
-        const user = await this.repository.findUserWithCredentialsByEmail(email)
+        const user = await this.repository.findUserWithCredentialsByEmail(data.email)
 
         if(!user) {
             throw new NotFoundError ("Invalid email or password")

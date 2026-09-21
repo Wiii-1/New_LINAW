@@ -21,17 +21,18 @@ import { ConflictError,
          NotFoundError, 
          RestrictedAccessError} from "../../shared/errors/appError.js"
 import { purchaseRequisitionRepository } from "./purchaseRequisitionRepository.js"
-import { PurchaseRequisitionInput, 
+import type { PurchaseRequisitionInput, 
          PurchaseRequisitionIdParams, 
          CancelPurchaseRequisitionInput, 
          ResubmitPurchaseRequisitionInput, 
-         PurchaseRequisitionUpdate, 
          PurchaseRequisitionUpdateData, 
          PurchaseRequisitionQuery} from "./purchaseRequisitionValidation.js"
 import { Prisma, 
          PurchaseRequisitionStatus, 
          PurchaseRequisitionPriority, 
-         PurchaseRequisition} from "../../generated/prisma/client.js"
+         } from "../../generated/prisma/client.js"
+
+import type { PurchaseRequisition } from "../../generated/prisma/client.js"
 import { EventBus } from "../../shared/events/eventBus.js"
 
 export interface purchaseRequisitionData {

@@ -1,8 +1,7 @@
 import { AuditTrailRepository } from "./auditTrailRepository.js";
 import { BlockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js"
 import { NotFoundError, UnauthorizedAccessError } from '../../shared/errors/appError.js';
-import { auditIntegrity, searchAudit } from "./auditTrailValidator.js"
-import type { AppEnv } from "../../config/env.js";
+import type { auditIntegrity, searchAudit } from "./auditTrailValidator.js"
 
 type CreateAuditTrailInput = {
     purchaseOrderId: string
@@ -41,7 +40,7 @@ export class AuditTrailService {
         private blockchainAdapter: BlockchainAdapter
     ) {}
 
-    async searchAudit (env: AppEnv, data: searchAudit) {
+    async searchAudit ( data: searchAudit) {
         
         const { 
             audit_id, tenant_id, user_id
@@ -60,7 +59,6 @@ export class AuditTrailService {
         }        
 
         const blockchainRecord = await this.blockchainAdapter.getAudit(
-            env,
             audit.id
         )
 
@@ -71,7 +69,7 @@ export class AuditTrailService {
     }
 
 
-    async auditIntegrity(env: AppEnv, data: auditIntegrity) {
+    async auditIntegrity( data: auditIntegrity) {
        
         const { 
             audit_id, tenant_id, user_id
@@ -114,7 +112,6 @@ export class AuditTrailService {
         // Ask blockchain for the anchored record
 
         const blockchainAudit = await this.blockchainAdapter.getAudit(
-            env,
             audit.blockchain_ref.audit_trail_id
         )
 

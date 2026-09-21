@@ -37,17 +37,17 @@ export async function authenticate(
     }
 
     if (
-        typeof payload.user_id !== "string" ||
-        typeof payload.session_id !== "string" ||
-        typeof payload.tenant_id !== "string"        
+        typeof payload["user_id"] !== "string" ||
+        typeof payload["session_id"] !== "string" ||
+        typeof payload["tenant_id"] !== "string"        
     ) {
         throw new UnauthorizedAccessError("Invalid Token")
     }
 
     const user: AccessTokenPayload = {
-        user_id: payload.user_id,
-        session_id: payload.session_id,
-        tenant_id: payload.tenant_id
+        user_id: payload["user_id"],
+        session_id: payload["session_id"],
+        tenant_id: payload["tenant_id"]
     }
 
     c.set("user", user)

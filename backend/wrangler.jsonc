@@ -1,9 +1,54 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
 
-  "name": "linaw-api",
+  "name": "linaw-server-worker",
+  "main": "src/server.ts",
 
-  "main": "./src/worker.ts",
+  "compatibility_date": "2026-08-28",  
 
-  "compatibility_date": "2026-09-06"    
+  "workers_dev": true,
+
+  "env": {
+    "local":{
+      "vars": {
+        "NODE_ENV": "development",
+
+        "JWT_ACCESS_EXPIRES": " 60m",
+        "JWT_REFRESH_EXPIRES": "7d",
+
+        "APP_URL": "http://localhost:8787",
+
+        "REDIS_URL": "rediss://default:0rGgSvwKmoQK52Wc2tjEcaGO@linaw-buff-inlet.cloud.layerbase.dev:6379",
+
+        "BLOCKCHAIN_RPC_URL": "http://localhost:8545",
+        "AUDIT_CONTRACT_ADDRESS": "0x5Ec26C9928AbAcec5f5a48bE76E73B27d912Dd77",
+      },
+
+      "secrets": {
+        "required": [
+          "JWT_ACCESS_SECRET",
+          "JWT_REFRESH_SECRET",
+          "REDIS_TOKEN",
+          "BLOCKCHAIN_PRIVATE_KEY",
+          "DATABASE_URL"      
+        ]
+      },
+    },
+
+    "staging":{
+      "vars": {
+        "NODE_ENV": "staging"
+      },
+
+      "secrets": {
+        "required": [
+          "JWT_ACCESS_SECRET",
+          "JWT_REFRESH_SECRET",
+          "REDIS_TOKEN",
+          "BLOCKCHAIN_PRIVATE_KEY",
+          "DATABASE_URL"          
+        ]
+      }
+    }
+  }
 }

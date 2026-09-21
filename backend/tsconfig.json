@@ -1,30 +1,31 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-
+    "lib": ["es2023"],
+    "module": "esnext",
+    "target": "es2023",
+    "strict": true,
+    "alwaysStrict": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
     "rootDir": "./src",
     "outDir": "./dist",
-
-    "strict": true,
-
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-
-    "skipLibCheck": true,
-
-    "resolveJsonModule": true,
-
+    "types": ["node"],
+    "moduleResolution": "bundler",
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-
-    "exactOptionalPropertyTypes": true
+    "noPropertyAccessFromIndexSignature": true
   },
-
-  "include": [
-    "src/**/*",
-    "src/**/*.d.ts"
-  ],
-
+  "include": ["src/**/*", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

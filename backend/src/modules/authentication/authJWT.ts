@@ -72,15 +72,15 @@ export async function verifyRefreshToken(
     )
 
     if (
-        typeof payload.user_id !== "string" ||
-        typeof payload.session_id !== "string"
+        typeof payload["user_id"] !== "string" ||
+        typeof payload["session_id"] !== "string"
     ) {
         throw new Error("Invalid refresh token payload")
     }
 
     return {
-        user_id: payload.user_id,
-        session_id: payload.session_id
+        user_id: payload["user_id"],
+        session_id: payload["session_id"]
     }
 }
 

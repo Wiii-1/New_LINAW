@@ -1,15 +1,13 @@
 import type { AppContext } from "../../shared/types/hono.js";
 import { Context } from "hono"
 import { ApprovalWorkflowService } from "./approvalWorkflowService.js"
-import {    APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA, 
-            APPROVAL_WORKFLOW_QUERY_SCHEMA, 
-            REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA,
-            ApprovalWorkflowIdParams,
-            RejectApprovalWorkflowBody,
+import {    APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA,  
+            REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA, 
             APPROVAL_WORKFLOW_LEVEL_CREATION,
             APPROVAL_WORKFLOW_CREATION,
-            CreateWorkflow,
         } from "./approvalWorkflowValidator.js";
+
+import type { CreateWorkflow, RejectApprovalWorkflowBody, ApprovalWorkflowIdParams } from "./approvalWorkflowValidator.js"
 
 export class ApprovalWorkflowController {
     constructor(private service: ApprovalWorkflowService) {
