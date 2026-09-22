@@ -110,10 +110,15 @@ export const OrganizationRegistrationSchema = z.object({
 // Interface
 // =============
 
+<<<<<<< Updated upstream
 export type UpdateUserProfile =
     z.infer <typeof UpdateUserProfileSchema> & {
         user_id: string
     }
+=======
+export type UserProfile =
+    z.infer <typeof UpdateUserProfileSchema>
+>>>>>>> Stashed changes
 
 export type OrganizationRegistration =
     z.infer <typeof OrganizationRegistrationSchema> & {

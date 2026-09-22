@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import { EventBus } from "../../shared/events/eventBus.js";
 import { UserManagementRepository  } from "./userManagementRepository.js";
 import { GetSchema, OrganizationRegistration, UpdateUserProfile } from "./userManagementValidator.js";
@@ -12,11 +13,25 @@ export class UserManagementService {
     async companyRegistration (
         input: OrganizationRegistration
     ) {
+=======
+import { UserManagementRepository } from "./userManagementRepository.js"
+
+export class UserManagementService {
+
+    constructor(
+        private repository: UserManagementRepository
+    ) {}
+
+    // get
+
+    async profile () {
+>>>>>>> Stashed changes
         /*
         
         */
     }
 
+<<<<<<< Updated upstream
     // patch 
     async updateProfile (
         input: UpdateUserProfile
@@ -30,11 +45,15 @@ export class UserManagementService {
     async company (
         input: GetSchema
     ) {
+=======
+    async company() {
+>>>>>>> Stashed changes
         /*
         
         */
     }
 
+<<<<<<< Updated upstream
     async profile (
         input: GetSchema
     ) {
@@ -42,4 +61,23 @@ export class UserManagementService {
         
         */
     }    
+=======
+    // patch
+
+    async updateProfile () {
+        /*
+        
+        */
+    }
+
+    // post 
+
+    async companyRegister () {
+        /*
+        
+        */
+    }
+ 
+
+>>>>>>> Stashed changes
 }
