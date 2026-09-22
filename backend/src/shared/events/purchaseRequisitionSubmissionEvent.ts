@@ -3,7 +3,11 @@ export type purchaseRequisitionSubmittedEvent = {
     tenantId: string;
     companyId: string;
     userId: string;
+<<<<<<< Updated upstream
     entityType: string;    
+=======
+    entityType: string
+>>>>>>> Stashed changes
     submitted_At: Date;
 }
 

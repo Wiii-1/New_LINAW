@@ -1,5 +1,11 @@
+<<<<<<< Updated upstream
 import { Request, Response, NextFunction } from "express";
 import { UserManagementService} from "./userManagementService.js"
+=======
+import type { AppContext } from "../../shared/types/hono.js";
+import { Context } from "hono";
+import { UserManagementService } from "./userManagementService.js";
+>>>>>>> Stashed changes
 import { UpdateUserProfileSchema, OrganizationRegistrationSchema } from "./userManagementValidator.js";
 
 export class userManagementController {
@@ -8,34 +14,26 @@ export class userManagementController {
     }
 
     profile = async (
-        req: Request,
-        res: Response,
-        next:NextFunction
-    ): Promise<void> => {
+        c: Context<AppContext>
+    ) => {
         
     }
 
     updateProfile = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
+        c: Context<AppContext>
+    ) => {
 
     }
 
     companyRegistration = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
+        c: Context<AppContext>
+    ) => {
 
     }
 
     companyId = async (
-        req: Request,
-        res: Response,
-        next: NextFunction
-    ): Promise <void> => {
+        c: Context<AppContext>
+    ) => {
 
     }
 }
