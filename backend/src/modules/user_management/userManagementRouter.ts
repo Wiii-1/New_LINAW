@@ -2,21 +2,12 @@ import type { AppContext } from "../../shared/types/hono.js";
 import { Hono } from "hono";
 import { authenticate } from "../../shared/middleware/authenticate.js";
 import { userManagementController } from "./userManagementController.js"
-<<<<<<< Updated upstream
-import { UserManagementService } from "./userManagementService.js"
-import { UserManagementRepository} from "./userManagementRepository.js"
-import { EventBus } from "../../shared/events/eventBus.js";
-
-
-const router = Router();
-const service = new UserManagementService( new UserManagementRepository(), new EventBus())
-const controller = new userManagementController(service)
-=======
 import { UserManagementService } from "./userManagementService.js";
+import { UserManagementRepository } from "./userManagementRepository.js";
 
 export function createUserManagementRouter () {
     const router = new Hono<AppContext>();
-    const service = new UserManagementService()
+    const service = new UserManagementService(new UserManagementRepository())
     const controller = new userManagementController(service)
 
     router.use(authenticate)
@@ -27,9 +18,7 @@ export function createUserManagementRouter () {
 
 
     // Organization Onboarding
-    router.post("/companies/register", controller.companyRegistration)
-    router.get("/companies/:companyId", controller.companyId)    
->>>>>>> Stashed changes
+    router.post("/companies/register", controller.companyRegistration)   
 
     return router
 }

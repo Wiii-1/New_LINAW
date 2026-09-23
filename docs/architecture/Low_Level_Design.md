@@ -241,281 +241,281 @@ Authentication service unavailable
 
 ---
 
-# Module 2
+  # Module 2
 
-User Management
+  User Management
 
----
+  ---
 
-## Responsibilities
+  ## Responsibilities
 
-- Register new user accounts in the system.
-- Register new organizations during the onboarding process.
-- Automatically assign the registering user as the initial organization administrator after successful organization registration.
-- Allow authenticated users to view and update their own profile information.
-- Maintain user account and organization profile information created during onboarding.
-- Provide authenticated user identity information required by other system modules.
+  - Register new user accounts in the system.
+  - Register new organizations during the onboarding process.
+  - Automatically assign the registering user as the initial organization administrator after successful organization registration.
+  - Allow authenticated users to view and update their own profile information.
+  - Maintain user account and organization profile information created during onboarding.
+  - Provide authenticated user identity information required by other system modules.
 
----
+  ---
 
-## Module Dependencies
+  ## Module Dependencies
 
-- Depends on: Authentication, `User`, `UserCredential`, `Company`, `CompanyMembership`, `Role`, and `UserRole`.
-- Produces: user accounts, credential records, company records, profile updates, company membership records, and initial administrator role assignments.
+  - Depends on: Authentication, `User`, `UserCredential`, `Company`, `CompanyMembership`, `Role`, and `UserRole`.
+  - Produces: user accounts, credential records, company records, profile updates, company membership records, and initial administrator role assignments.
 
----
+  ---
 
-## Functional Requirements
+  ## Functional Requirements
 
-- The system shall allow new users to register an account.
-- The system shall allow a registered user who is not yet associated with an organization to register a new company.
-- The system shall automatically assign the registering user as the initial organization administrator after successful company registration.
-- The system shall allow authenticated users to view their own profile information.
-- The system shall allow authenticated users to update their own profile information.
-- The system shall provide authenticated user identity information required by authorized system modules.
+  - The system shall allow new users to register an account.
+  - The system shall allow a registered user who is not yet associated with an organization to register a new company.
+  - The system shall automatically assign the registering user as the initial organization administrator after successful company registration.
+  - The system shall allow authenticated users to view their own profile information.
+  - The system shall allow authenticated users to update their own profile information.
+  - The system shall provide authenticated user identity information required by authorized system modules.
 
----
+  ---
 
-## Business Rules
+  ## Business Rules
 
-- A registered user who is not associated with an organization may register a new company.
-- The user who successfully registers a company shall automatically become its initial organization administrator.
-- A user may only register one organization unless otherwise permitted by the system.
-- Authenticated users may view and update only their own profile information.
-- Organization administration functions shall become available only after successful company registration.
-- User authentication data shall be stored separately from user profile data.
-- Tenant isolation shall be enforced for all user, company, and membership records.
+  - A registered user who is not associated with an organization may register a new company.
+  - The user who successfully registers a company shall automatically become its initial organization administrator.
+  - A user may only register one organization unless otherwise permitted by the system.
+  - Authenticated users may view and update only their own profile information.
+  - Organization administration functions shall become available only after successful company registration.
+  - User authentication data shall be stored separately from user profile data.
+  - Tenant isolation shall be enforced for all user, company, and membership records.
 
----
+  ---
 
-## Internal Sections
+  ## Internal Sections
 
-### User Profile Management
+  ### User Profile Management
 
-Handles retrieval and updates of the authenticated user's personal profile information.
+  Handles retrieval and updates of the authenticated user's personal profile information.
 
-**API Endpoints**
+  **API Endpoints**
 
-GET
+  GET
 
-/api/users/profile
+  /api/users/profile
 
-PUT
+  PATCH
 
-/api/users/profile
+  /api/users/profile
 
-**Validation**
+  **Validation**
 
-- first_name
-- last_name
-- email
-- job_title
-- status
-- Email must be in a valid format.
-- User email must be unique within the tenant.
-- Profile updates shall only affect the authenticated user.
-- Account status must match an allowed user state.
+  - first_name
+  - last_name
+  - email
+  - job_title
+  - status
+  - Email must be in a valid format.
+  - User email must be unique within the tenant.
+  - Profile updates shall only affect the authenticated user.
+  - Account status must match an allowed user state.
 
----
+  ---
 
-### Organization Registration
+  ### Organization Registration
 
-Handles organization registration during the onboarding process and associates the registering user as the initial organization administrator.
+  Handles organization registration during the onboarding process and associates the registering user as the initial organization administrator.
 
-**API Endpoints**
+  **API Endpoints**
 
-POST
+  POST
 
-/api/companies/register
+  /api/companies/register
 
-GET
+  GET
 
-/api/companies/:companyId
+  /api/companies/:companyId
 
-**Validation**
+  **Validation**
 
-- legal_name
-- display_name
-- tax_id
-- address
-- contact_email
-- contact_phone
-- Company legal name must not be empty.
-- Company registration information must be complete before onboarding is finalized.
-- Company email must be in a valid format when provided.
-- Company contact phone must follow the accepted format when provided.
-
----
-
-## API Endpoints
-
-POST
-
-/api/companies/register
-
-GET
-
-/api/users/profile
-/api/companies/:companyId
-
-PUT
-
-/api/users/profile
+  - legal_name
+  - display_name
+  - tax_id
+  - address
+  - contact_email
+  - contact_phone
+  - Company legal name must not be empty.
+  - Company registration information must be complete before onboarding is finalized.
+  - Company email must be in a valid format when provided.
+  - Company contact phone must follow the accepted format when provided.
+
+  ---
+
+  ## API Endpoints
+
+  POST
+
+  /api/companies/register
+
+  GET
+
+  /api/users/profile
+  /api/companies/:companyId
+
+  PUT
+
+  /api/users/profile
 
----
+  ---
 
-## Validation
+  ## Validation
 
-- first_name
-- last_name
-- email
-- password
-- job_title
-- status
-- legal_name
-- display_name
-- tax_id
-- address
-- contact_email
-- contact_phone
-- Email must be in a valid format.
-- User email must be unique within the tenant.
-- Password must satisfy the configured security requirements.
-- Company registration information must be complete before onboarding is finalized.
-- User authentication data shall be provided separately from profile data.
+  - first_name
+  - last_name
+  - email
+  - password
+  - job_title
+  - status
+  - legal_name
+  - display_name
+  - tax_id
+  - address
+  - contact_email
+  - contact_phone
+  - Email must be in a valid format.
+  - User email must be unique within the tenant.
+  - Password must satisfy the configured security requirements.
+  - Company registration information must be complete before onboarding is finalized.
+  - User authentication data shall be provided separately from profile data.
 
----
+  ---
 
-## Database Tables
+  ## Database Tables
 
-- **Tenant**
-  - Stores tenant scope and isolation boundaries.
-  - Ensures users and companies are isolated by tenant.
+  - **Tenant**
+    - Stores tenant scope and isolation boundaries.
+    - Ensures users and companies are isolated by tenant.
 
-- **User**
-  - Stores user account information and profile data.
-  - Includes identity, contact information, job title, and account status.
+  - **User**
+    - Stores user account information and profile data.
+    - Includes identity, contact information, job title, and account status.
 
-- **UserCredential**
-  - Stores authentication data separate from the user profile.
-  - Includes the password hash and credential lifecycle data.
+  - **UserCredential**
+    - Stores authentication data separate from the user profile.
+    - Includes the password hash and credential lifecycle data.
 
-- **Company**
-  - Stores organization records created during onboarding.
-  - Includes organization identity, contact information, and profile details.
+  - **Company**
+    - Stores organization records created during onboarding.
+    - Includes organization identity, contact information, and profile details.
 
-- **CompanyMembership**
-  - Stores the relationship between users and companies.
-  - Tracks membership and employment status within the organization.
+  - **CompanyMembership**
+    - Stores the relationship between users and companies.
+    - Tracks membership and employment status within the organization.
 
-- **Role**
-  - Stores tenant-scoped role definitions.
+  - **Role**
+    - Stores tenant-scoped role definitions.
 
-- **UserRole**
-  - Stores role assignments for users.
-  - May be linked to a company when the role is organization-specific.
+  - **UserRole**
+    - Stores role assignments for users.
+    - May be linked to a company when the role is organization-specific.
 
----
+  ---
 
-## Sequence Diagram
+  ## Sequence Diagram
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant UI as User Management Page
-    participant API as Backend API
-    participant UM as User Management Module
-    participant DB as Database
+  ```mermaid
+  sequenceDiagram
+      actor User
+      participant UI as User Management Page
+      participant API as Backend API
+      participant UM as User Management Module
+      participant DB as Database
 
-    User->>UI: Register account
-    UI->>API: Submit registration
-    API->>UM: Validate registration
-    UM->>DB: Create user account
-    UM->>DB: Create credential record
-    DB-->>UM: User created
-    UM-->>API: Registration successful
-    API-->>UI: Display registration result
+      User->>UI: Register account
+      UI->>API: Submit registration
+      API->>UM: Validate registration
+      UM->>DB: Create user account
+      UM->>DB: Create credential record
+      DB-->>UM: User created
+      UM-->>API: Registration successful
+      API-->>UI: Display registration result
 
-    User->>UI: Register organization
-    UI->>API: Submit organization information
-    API->>UM: Validate organization data
-    UM->>DB: Create company record
-    UM->>DB: Create membership record
-    UM->>DB: Assign initial administrator role
-    DB-->>UM: Organization registered
-    UM-->>API: Return onboarding result
-    API-->>UI: Display successful organization setup
+      User->>UI: Register organization
+      UI->>API: Submit organization information
+      API->>UM: Validate organization data
+      UM->>DB: Create company record
+      UM->>DB: Create membership record
+      UM->>DB: Assign initial administrator role
+      DB-->>UM: Organization registered
+      UM-->>API: Return onboarding result
+      API-->>UI: Display successful organization setup
 
-    User->>UI: View or update profile
-    UI->>API: Submit profile request
-    API->>UM: Validate profile data
-    UM->>DB: Retrieve or update profile
-    DB-->>UM: Profile processed
-    UM-->>API: Return profile information
-    API-->>UI: Display updated profile
-```
+      User->>UI: View or update profile
+      UI->>API: Submit profile request
+      API->>UM: Validate profile data
+      UM->>DB: Retrieve or update profile
+      DB-->>UM: Profile processed
+      UM-->>API: Return profile information
+      API-->>UI: Display updated profile
+  ```
 
----
+  ---
 
-## Classes
+  ## Classes
 
-### userRouter
+  ### userRouter
 
-Defines the API routes for user registration, organization registration, and authenticated user profile management.
+  Defines the API routes for user registration, organization registration, and authenticated user profile management.
 
-### userController
+  ### userController
 
-Handles incoming requests related to user registration, organization onboarding, and user profile management. It validates requests, invokes the service layer, and returns appropriate responses.
+  Handles incoming requests related to user registration, organization onboarding, and user profile management. It validates requests, invokes the service layer, and returns appropriate responses.
 
-### userService
+  ### userService
 
-Contains the business logic for user account and onboarding operations. It creates user accounts, registers organizations, assigns company membership, automatically grants the initial organization administrator role, manages authenticated user profile updates, and provides user identity information to other modules.
+  Contains the business logic for user account and onboarding operations. It creates user accounts, registers organizations, assigns company membership, automatically grants the initial organization administrator role, manages authenticated user profile updates, and provides user identity information to other modules.
 
-### userRepository
+  ### userRepository
 
-Handles database operations related to user accounts, credentials, companies, memberships, and role assignments.
+  Handles database operations related to user accounts, credentials, companies, memberships, and role assignments.
 
-### userValidator
+  ### userValidator
 
-Validates registration, onboarding, and profile management requests before they are processed.
+  Validates registration, onboarding, and profile management requests before they are processed.
 
----
+  ---
 
-## Error Handling
+  ## Error Handling
 
-400
+  400
 
-Invalid user management request data
+  Invalid user management request data
 
-401
+  401
 
-Unauthorized access
+  Unauthorized access
 
-403
+  403
 
-Access denied
+  Access denied
 
-404
+  404
 
-User or organization not found
+  User or organization not found
 
-409
+  409
 
-User account or organization already exists
+  User account or organization already exists
 
-422
+  422
 
-Validation failed
+  Validation failed
 
-500
+  500
 
-Internal server error
+  Internal server error
 
-503
+  503
 
-User management service unavailable
+  User management service unavailable
 
----
+  ---
 
 ## Module 3
 

@@ -28,23 +28,6 @@ export const ContactNumberSchema = z
     });
 
 // =============
-//  GetSchema
-// =============
-
-export const GetSchema = z.object({
-    user_id: z
-        .string()
-        .optional(),
-    tenant_id: z
-        .string()
-        .optional(),
-    company_id: z
-        .string()
-        .optional()
-})
-
-
-// =============
 // UserProfile Update Schema
 // =============
 
@@ -107,24 +90,22 @@ export const OrganizationRegistrationSchema = z.object({
 })
 
 // =============
+// UserId
+// =============
+
+export const UserIdSchema = z.object({
+    userId: z
+        .string()
+})
+
+// =============
 // Interface
 // =============
 
-<<<<<<< Updated upstream
 export type UpdateUserProfile =
     z.infer <typeof UpdateUserProfileSchema> & {
-        user_id: string
+        userId: string
     }
-=======
-export type UserProfile =
-    z.infer <typeof UpdateUserProfileSchema>
->>>>>>> Stashed changes
 
 export type OrganizationRegistration =
-    z.infer <typeof OrganizationRegistrationSchema> & {
-        user_id: string
-        tenant_id: string
-    }
-
-export type GetSchema = 
-    z.infer <typeof GetSchema>
+    z.infer <typeof OrganizationRegistrationSchema>
