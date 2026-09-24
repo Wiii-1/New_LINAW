@@ -2,18 +2,24 @@ export type SystemRoles =
  | "Organization Admin"
  | "Employee"
  | "Procurement Officer"
+ | "Auditor"
  
 
- export const systemRoles = [
+export const systemRoles = [
     {
-        code: "ADMIN",
-        name: "Administrator",
-        description: "System administrator.",
+        code: "ORGANIZATION_ADMIN",
+        name: "Organization Admin",
+        description: "Manages organization users, roles, and system access.",
     },
     {
-        code: "PURCHASING_OFFICER",
-        name: "Purchasing Officer",
-        description: "Manages purchase requisitions.",
+        code: "EMPLOYEE",
+        name: "Employee",
+        description: "Creates and manages purchase requisitions.",
+    },
+    {
+        code: "PROCUREMENT_OFFICER",
+        name: "Procurement Officer",
+        description: "Manages and processes purchase requisitions.",
     },
     {
         code: "AUDITOR",
@@ -21,3 +27,6 @@ export type SystemRoles =
         description: "Reviews and verifies audit records.",
     },
 ] as const;
+
+export type SystemRoleCode =
+    (typeof systemRoles)[number]["code"];

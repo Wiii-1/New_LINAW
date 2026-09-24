@@ -92,4 +92,23 @@ export class UserManagementRepository {
             }
         });
     }
+
+    async findRoleByCode(code: string) {
+        return prisma.role.findFirst({
+            where: {
+                code,
+                is_system: true,
+            },
+        });
+    }
+
+    async findSystemRoleByCode(code: string) {
+        return prisma.role.findFirst({
+            where: {
+                code,
+                is_system: true,
+                tenant_id: null,
+            },
+        });
+    }
 }

@@ -1,4 +1,5 @@
 import { NotFoundError } from "../../shared/errors/appError.js";
+import { EventBus } from "../../shared/events/eventBus.js";
 import { UserManagementRepository } from "./userManagementRepository.js";
 import type {
     OrganizationRegistration,
@@ -8,7 +9,8 @@ import type {
 export class UserManagementService {
 
     constructor(
-        private repository: UserManagementRepository
+        private repository: UserManagementRepository,
+        private eventBus: EventBus
     ) {}
 
     // get
@@ -104,24 +106,38 @@ export class UserManagementService {
             tenantId: userData.tenantId,
         });
 
+        const ownerRole = await this.repository.findSystemRoleByCode(
+            "ORGANIZATION_ADMIN"
+        );
+
+        if (!ownerRole) {
+            throw new NotFoundError("Organization Admin role not found");
+        }
+
         // 4. Register the user as a company member
         //    with the appropriate owner/admin role.
         await this.repository.createCompanyMembership({
             userId: userData.userId,
             companyId: company.id,
             tenantId: userData.tenantId,
-            roleId: role.owner,
+        });
+
+        await this.repository.createUserRole({
+            userId: userData.userId,
+            companyId: company.id,
+            tenantId: userData.tenantId,
+            roleId: ownerRole.id,
         });
 
         // 5. Publish event
-        await this.eventBus.publish({
-            type: "organization.registered",
-            payload: {
+        await this.eventBus.publish(
+            "organization.registered",
+            {
                 companyId: company.id,
-                tenantId,
-                userId,
-            },
-        });
+                tenantId: user.tenant_id,
+                userId,                
+            }
+        )
 
         // 6. Return
         return {

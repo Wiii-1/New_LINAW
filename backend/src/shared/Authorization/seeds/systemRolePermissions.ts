@@ -1,19 +1,57 @@
 export const systemRolePermissions = {
     ORGANIZATION_ADMIN: [
+        "organization:read",
+        "organization:update",
+
+        "organization_member:invite",
+        "organization_member:read",
+        "organization_member:update",
+        "organization_member:remove",
+
+        "organization_role:create",
+        "organization_role:read",
+        "organization_role:update",
+        "organization_role:delete",
+
+        "organization_role_permission:add",
+        "organization_role_permission:remove",
+    ],
+
+    EMPLOYEE: [
         "pr:create",
         "pr:cancel",
         "pr:submit",
         "pr:update",
         "pr:read",
-        "audit_trail:search",
-        "audit_trail:verify",
     ],
 
-    PURCHASING_OFFICER: [
-        "pr:create",
+    PROCUREMENT_OFFICER: [
+        "pr:read",
         "pr:update",
         "pr:submit",
-        "pr:read",
+
+        "purchase_order:read",
+        "purchase_order:create_rfq",
+        "purchase_order:update_rfq",
+        "purchase_order:delete_rfq",
+        "purchase_order:cancel_rfq",
+
+        "purchase_order:accept_quotation",
+        "purchase_order:reject_quotation",
+        "purchase_order:negotiate",
+
+        "approval_workflow:create_level",
+        "approval_workflow:create_workflow",
+        "approval_workflow:approve",
+        "approval_workflow:reject",
+        "approval_workflow:read",
+        "approval_workflow:cancel",
+
+        "supplier_management:read",
+        "supplier_management:invite_supplier",
+        "supplier_management:read_supplier",
+        "supplier_management:update_supplier",
+        "supplier_management:remove_supplier",
     ],
 
     AUDITOR: [
