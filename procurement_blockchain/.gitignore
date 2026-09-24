@@ -1,0 +1,15 @@
+# =====================
+# Blockchain
+# =====================
+
+# Besu runtime data
+procurement_blockchain/data/
+
+# Besu private keys
+procurement_blockchain/**/key
+procurement_blockchain/**/keys/
+procurement_blockchain/**/private*
+
+# Blockchain logs
+procurement_blockchain/**/*.log
+procurement_blockchain/logs/

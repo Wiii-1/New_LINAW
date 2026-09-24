@@ -26,6 +26,9 @@
     "noUncheckedIndexedAccess": true,
     "noPropertyAccessFromIndexSignature": true
   },
-  "include": ["src/**/*", "src/**/*.d.ts"],
+    "include": [
+    "src/**/*.ts",
+    "worker-configuration.d.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

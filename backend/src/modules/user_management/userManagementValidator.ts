@@ -7,25 +7,34 @@ import { z } from "zod"
 export const PhilippineTaxIdSchema = z
     .string()
     .trim()
-    .regex(/^[0-9-]+$/, "Tax ID may contain only digits and hyphens.")
-    .transform((value) => value.replace(/-/g, ""))
-    .refine(
-        (value) => value.length === 9 || value.length === 12,
-        "Tax ID must contain 9 or 12 digits." 
+    .regex(
+        /^[0-9-]+$/,
+        "Tax ID may contain only digits and hyphens.",
     )
+    .transform((value: string) => value.replace(/-/g, ""))
+    .refine(
+        (value: string) => value.length === 9 || value.length === 12,
+        "Tax ID must contain 9 or 12 digits.",
+    );
 
 
 // =============
-//  Contact Number schema 
+// Contact Number schema
 // =============
 
 export const ContactNumberSchema = z
     .string()
-    .regex(/^\+?[0-9-]+$/, " Contact Number may contain only digits, hyphens and plus sign")
-    .transform((val) => val.replace(/[^0-9]/g, ""))
-    .refine((val) => val.length >= 4 && val.length <= 15, {
-        message: "Phone number must be between 4 and 15 digits long",
-    });
+    .regex(
+        /^\+?[0-9-]+$/,
+        "Contact Number may contain only digits, hyphens and plus sign",
+    )
+    .transform((val: string) => val.replace(/[^0-9]/g, ""))
+    .refine(
+        (val: string) => val.length >= 4 && val.length <= 15,
+        {
+            message: "Phone number must be between 4 and 15 digits long",
+        },
+    );
 
 // =============
 // UserProfile Update Schema
@@ -89,23 +98,13 @@ export const OrganizationRegistrationSchema = z.object({
     contact_phone: ContactNumberSchema.optional()
 })
 
-// =============
-// UserId
-// =============
-
-export const UserIdSchema = z.object({
-    userId: z
-        .string()
-})
 
 // =============
 // Interface
 // =============
 
 export type UpdateUserProfile =
-    z.infer <typeof UpdateUserProfileSchema> & {
-        userId: string
-    }
+    z.infer <typeof UpdateUserProfileSchema> 
 
 export type OrganizationRegistration =
     z.infer <typeof OrganizationRegistrationSchema>

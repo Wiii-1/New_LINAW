@@ -10,9 +10,7 @@ import {    APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA,
 import type { CreateWorkflow, RejectApprovalWorkflowBody, ApprovalWorkflowIdParams } from "./approvalWorkflowValidator.js"
 
 export class ApprovalWorkflowController {
-    constructor(private service: ApprovalWorkflowService) {
-        this.service = service
-    }
+    constructor(private service: ApprovalWorkflowService) {}
 
     approve = async (
         c: Context<AppContext>

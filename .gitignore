@@ -1,27 +1,3 @@
-# =====================
-# Backend
-# =====================
-
-backend/node_modules/
-backend/generated/
-backend/dist
-
-# Environment
-.env
-
-
-# =====================
-# blockchain_test_integration
-# =====================
-blockchain_test_integration/node_modules
-
-
-# =====================
-# Editor
-# =====================
-
-.vscode/
-
 
 # =====================
 # Blockchain

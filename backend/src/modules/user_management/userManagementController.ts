@@ -5,9 +5,7 @@ import { UpdateUserProfileSchema, OrganizationRegistrationSchema } from "./userM
 
 
 export class userManagementController {
-    constructor (private service: UserManagementService){
-        this.service = service
-    }
+    constructor (private service: UserManagementService){}
 
     profile = async (
         c: Context<AppContext>
@@ -32,9 +30,7 @@ export class userManagementController {
 
         const userProfileUpdate = UpdateUserProfileSchema.parse( await c.req.json())
 
-        const data = { userId, userProfileUpdate}
-
-        const Profile = await this.service.updateProfile(data)
+        const Profile = await this.service.updateProfile(userId, userProfileUpdate)
 
         return c.json({
             success: true,
@@ -46,10 +42,11 @@ export class userManagementController {
     companyRegistration = async (
         c: Context<AppContext>
     ) => {
+        const userId = c.get("user").user_id
 
         const companyRegister = OrganizationRegistrationSchema.parse( await c.req.json())
 
-        const company = await this.service.companyRegister(companyRegister)
+        const company = await this.service.companyRegister(userId, companyRegister)
 
         return c.json({
             success: true,

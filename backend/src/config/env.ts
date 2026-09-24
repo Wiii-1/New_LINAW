@@ -1,25 +1,3 @@
-export type AppBindings = {
-    JWT_ACCESS_SECRET: string;
-    JWT_REFRESH_SECRET: string;
-    JWT_ACCESS_EXPIRES?: string;
-    JWT_REFRESH_EXPIRES?: string;
-
-    REDIS_URL: string;
-    REDIS_TOKEN: string;
-
-    BLOCKCHAIN_RPC_URL: string;
-    AUDIT_CONTRACT_ADDRESS: string;
-    BLOCKCHAIN_PRIVATE_KEY: string;
-
-    FRONTEND_APP_URL?: string;
-    APP_URL?: string;
-
-    DATABASE_URL: string;
-    TEST_DATABASE_URL: string;
-
-    NODE_ENV?: string;
-};
-
 export type AppEnv = {
     JWT_ACCESS_SECRET: string;
     JWT_REFRESH_SECRET: string;
@@ -34,14 +12,19 @@ export type AppEnv = {
     BLOCKCHAIN_PRIVATE_KEY: string;
 
     APP_URL: string;
+    ALLOWED_ORIGIN: string;
 
     DATABASE_URL: string;
-    TEST_DATABASE_URL: string;
 
     NODE_ENV: string;
 };
 
-export function createEnv(bindings: AppBindings): AppEnv {
+export function createEnv(bindings: CloudflareBindings): AppEnv {
+
+    if (!bindings.ALLOWED_ORIGIN) {
+    throw new Error("ALLOWED_ORIGIN is required");
+}
+
     if (!bindings.REDIS_URL) {
         throw new Error("REDIS_URL is required");
     }
@@ -74,10 +57,6 @@ export function createEnv(bindings: AppBindings): AppEnv {
         throw new Error("DATABASE_URL is required");
     }
 
-    if (!bindings.TEST_DATABASE_URL) {
-        throw new Error("TEST_DATABASE_URL is required");
-    }
-
     const jwtAccessExpires =
         bindings.JWT_ACCESS_EXPIRES ?? "60m";
 
@@ -85,16 +64,14 @@ export function createEnv(bindings: AppBindings): AppEnv {
         bindings.JWT_REFRESH_EXPIRES ?? "7d";
 
     const appUrl =
-        bindings.FRONTEND_APP_URL ??
-        bindings.APP_URL ??
-        "http://localhost:3000";
+        bindings.APP_URL ?? "http://localhost:3000";
 
     return {
         JWT_ACCESS_SECRET: bindings.JWT_ACCESS_SECRET,
         JWT_REFRESH_SECRET: bindings.JWT_REFRESH_SECRET,
 
-        JWT_ACCESS_EXPIRES: jwtAccessExpires as string,
-        JWT_REFRESH_EXPIRES: jwtRefreshExpires as string,
+        JWT_ACCESS_EXPIRES: jwtAccessExpires,
+        JWT_REFRESH_EXPIRES: jwtRefreshExpires,
 
         REDIS_URL: bindings.REDIS_URL,
         REDIS_TOKEN: bindings.REDIS_TOKEN,
@@ -104,9 +81,9 @@ export function createEnv(bindings: AppBindings): AppEnv {
         BLOCKCHAIN_PRIVATE_KEY: bindings.BLOCKCHAIN_PRIVATE_KEY,
 
         APP_URL: appUrl,
+        ALLOWED_ORIGIN: bindings.ALLOWED_ORIGIN,
 
         DATABASE_URL: bindings.DATABASE_URL,
-        TEST_DATABASE_URL: bindings.TEST_DATABASE_URL,
 
         NODE_ENV: bindings.NODE_ENV ?? "development",
     };

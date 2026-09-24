@@ -4,8 +4,8 @@ import { auditTrailController } from "./auditTrailController.js"
 import { AuditTrailService } from "./auditTrailService.js"
 import { authenticate } from "../../shared/middleware/authenticate.js"
 
-import { Authorize } from "../../shared/Auhorization/authorize.js"
-import { systemPermissions } from "../../shared/Auhorization/seeds/systemPermissions.js"
+import { Authorize } from "../../shared/Authorization/authorize.js"
+import { systemPermissions } from "../../shared/Authorization/seeds/systemPermissions.js"
 import { criticalRateLimit } from "../../shared/middleware/rateLimit/critical-rate-limit.js"
 import type { AppContext } from "../../shared/types/hono.js"
 

@@ -24,7 +24,7 @@ let prisma: PrismaClientInstance;
 
 export function initializePrisma(env: AppEnv): PrismaClientInstance {
     if (!prisma) {
-        prisma = createPrismaClient(env.TEST_DATABASE_URL);
+        prisma = createPrismaClient(env.DATABASE_URL);
     }
 
     return prisma;

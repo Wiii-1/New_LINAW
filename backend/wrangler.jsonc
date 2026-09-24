@@ -2,7 +2,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
 
   "name": "linaw-server-worker",
-  "main": "src/server.ts",
+  "main": "src/app.ts",
 
   "compatibility_date": "2026-08-28",  
 
@@ -13,15 +13,16 @@
       "vars": {
         "NODE_ENV": "development",
 
-        "JWT_ACCESS_EXPIRES": " 60m",
+        "JWT_ACCESS_EXPIRES": "60m",
         "JWT_REFRESH_EXPIRES": "7d",
 
         "APP_URL": "http://localhost:8787",
+        "ALLOWED_ORIGIN": "http://localhost:3000",
 
         "REDIS_URL": "rediss://default:0rGgSvwKmoQK52Wc2tjEcaGO@linaw-buff-inlet.cloud.layerbase.dev:6379",
 
         "BLOCKCHAIN_RPC_URL": "http://localhost:8545",
-        "AUDIT_CONTRACT_ADDRESS": "0x5Ec26C9928AbAcec5f5a48bE76E73B27d912Dd77",
+        "AUDIT_CONTRACT_ADDRESS": "0x5Ec26C9928AbAcec5f5a48bE76E73B27d912Dd77"
       },
 
       "secrets": {
@@ -37,7 +38,8 @@
 
     "staging":{
       "vars": {
-        "NODE_ENV": "staging"
+        "NODE_ENV": "staging",
+        "ALLOWED_ORIGIN": "https://your-frontend-domain.com"
       },
 
       "secrets": {

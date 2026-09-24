@@ -41,13 +41,12 @@ export const purchaseRequisitionStatusSchema = z.enum([
 
 // Prisma:
 // Decimal(18, 4)
-// Allows up to 4 decimal places.
 const quantitySchema = z
     .number()
     .finite("Quantity must be a valid number.")
     .positive("Quantity must be greater than zero.")
     .refine(
-        (value) => Number.isInteger(value * 10_000),
+        (value: number) => Number.isInteger(value * 10_000),
         "Quantity cannot have more than 4 decimal places."
     );
 
@@ -59,7 +58,7 @@ const estimatedUnitCostSchema = z
     .finite("Estimated unit cost must be a valid number.")
     .nonnegative("Estimated unit cost cannot be negative.")
     .refine(
-        (value) => Number.isInteger(value * 100),
+        (value: number) => Number.isInteger(value * 100),
         "Estimated unit cost cannot have more than 2 decimal places."
     );
 

@@ -138,7 +138,8 @@ export class purchaseRequisitionService {
         }
 
         const total_amount = items.reduce(
-            (total, item) => total + item.quantity * item.estimated_unit_cost,
+            (total: number, item: { quantity: number; estimated_unit_cost: number }) =>
+                total + item.quantity * item.estimated_unit_cost,
             0
         );
 
@@ -533,7 +534,8 @@ export class purchaseRequisitionService {
         }
 
         const total_amount = items.reduce(
-            (total, item) => total + item.quantity * item.estimated_unit_cost,
+            (total: number, item: { quantity: number; estimated_unit_cost: number }) =>
+                total + item.quantity * item.estimated_unit_cost,
             0
         );
 

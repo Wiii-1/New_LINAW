@@ -41,7 +41,11 @@ export const resetPasswordSchema = z.object({
     confirmPassword: z
         .string()
 }).refine(
-    (data) => data.password === data.confirmPassword,
+    (data: {
+        resetToken: string;
+        password: string;
+        confirmPassword: string;
+    }) => data.password === data.confirmPassword,
     {
         message: "Password do not match",
         path: ["confirmPassword"]
@@ -82,11 +86,18 @@ export const signupSchema = z.object ({
     confirmPassword: z
         .string()
 }).refine(
-    (data) => data.password === data.confirmPassword,
+    (data: {
+        first_name: string;
+        last_name: string;
+        job_title: string;
+        email: string;
+        password: string;
+        confirmPassword: string;
+    }) => data.password === data.confirmPassword,
     {
         message: "Password do not match",
         path: ["confirmPassword"]
-    }   
+    }
 )
 
 // ==========
