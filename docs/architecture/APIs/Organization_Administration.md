@@ -2,11 +2,13 @@
 
 ---
 
-## POST /api/org-admin/users
+## POST /api/org-admin/members
 
 ### Description
 
-Create a user account within the organization administration scope.
+Add or invite a user to the administrator's organization.
+
+The operation may either associate an existing user account with the organization or initiate an organization invitation for a user who does not yet have an account.
 
 ### Authentication
 
@@ -22,13 +24,10 @@ Authorization: Bearer <access_token>
 
 ```json
 {
+    "email": "",
     "first_name": "",
     "last_name": "",
-    "email": "",
-    "password": "",
-    "role_id": "",
-    "account_status": "",
-    "organization_id": ""
+    "role_id": ""
 }
 ```
 
@@ -37,7 +36,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": true,
-    "message": "Organization user created successfully.",
+    "message": "Organization member added successfully.",
     "data": {
         "user_id": "",
         "organization_id": "",
@@ -53,7 +52,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Invalid organization user data."
+    "message": "Invalid organization member data."
 }
 ```
 
@@ -71,7 +70,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Insufficient privileges to manage organization users."
+    "message": "Insufficient privileges to manage organization members."
 }
 ```
 
@@ -80,7 +79,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Duplicate email or conflicting organization configuration."
+    "message": "User is already a member of the organization."
 }
 ```
 
@@ -93,11 +92,13 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## GET /api/org-admin/users
+---
+
+## GET /api/org-admin/members
 
 ### Description
 
-List organization users.
+List members belonging to the administrator's organization.
 
 ### Authentication
 
@@ -114,9 +115,9 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": true,
-    "message": "Organization users retrieved successfully.",
+    "message": "Organization members retrieved successfully.",
     "data": {
-        "organization_users": []
+        "organization_members": []
     }
 }
 ```
@@ -137,7 +138,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Insufficient privileges to view organization users."
+    "message": "Insufficient privileges to view organization members."
 }
 ```
 
@@ -150,11 +151,13 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## GET /api/org-admin/users/:userId
+---
+
+## GET /api/org-admin/members/:userId
 
 ### Description
 
-Retrieve an organization user.
+Retrieve a member belonging to the administrator's organization.
 
 ### Authentication
 
@@ -177,7 +180,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": true,
-    "message": "Organization user retrieved successfully.",
+    "message": "Organization member retrieved successfully.",
     "data": {
         "user_id": "",
         "first_name": "",
@@ -204,7 +207,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Organization user not found."
+    "message": "Organization member not found."
 }
 ```
 
@@ -217,11 +220,13 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## PUT /api/org-admin/users/:userId
+---
+
+## PUT /api/org-admin/members/:userId
 
 ### Description
 
-Update an organization user.
+Update information associated with an organization member.
 
 ### Authentication
 
@@ -245,10 +250,7 @@ Authorization: Bearer <access_token>
 {
     "first_name": "",
     "last_name": "",
-    "email": "",
-    "password": "",
-    "role_id": "",
-    "organization_id": ""
+    "email": ""
 }
 ```
 
@@ -257,7 +259,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": true,
-    "message": "Organization user updated successfully.",
+    "message": "Organization member updated successfully.",
     "data": {
         "user_id": "",
         "organization_id": ""
@@ -272,7 +274,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Invalid organization user update data."
+    "message": "Invalid organization member update data."
 }
 ```
 
@@ -290,7 +292,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Insufficient privileges to update organization users."
+    "message": "Insufficient privileges to update organization members."
 }
 ```
 
@@ -299,7 +301,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Organization user not found."
+    "message": "Organization member not found."
 }
 ```
 
@@ -308,7 +310,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Duplicate email or conflicting organization configuration."
+    "message": "Email is already associated with another user account."
 }
 ```
 
@@ -321,11 +323,13 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## PATCH /api/org-admin/users/:userId/status
+---
+
+## PATCH /api/org-admin/members/:userId/status
 
 ### Description
 
-Update the account status of an organization user.
+Update the organization membership status of a member.
 
 ### Authentication
 
@@ -356,10 +360,96 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": true,
-    "message": "Organization user status updated successfully.",
+    "message": "Organization member status updated successfully.",
     "data": {
         "user_id": "",
         "account_status": ""
+    }
+}
+```
+
+### Error Responses
+
+#### 400 Bad Request
+
+```json
+{
+    "success": false,
+    "message": "Invalid organization member status."
+}
+```
+
+#### 401 Unauthorized
+
+```json
+{
+    "success": false,
+    "message": "Unauthorized access."
+}
+```
+
+#### 403 Forbidden
+
+```json
+{
+    "success": false,
+    "message": "Insufficient privileges to update organization member status."
+}
+```
+
+#### 404 Not Found
+
+```json
+{
+    "success": false,
+    "message": "Organization member not found."
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+    "success": false,
+    "message": "Internal server error."
+}
+```
+
+---
+
+## DELETE /api/org-admin/members/:userId
+
+### Description
+
+Remove a user's membership from the administrator's organization.
+
+The global user account is not deleted.
+
+### Authentication
+
+Bearer Token Required
+
+### Headers
+
+```text
+Authorization: Bearer <access_token>
+```
+
+### Path Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| userId | string | Yes | User identifier. |
+
+### Success Response (200 OK)
+
+```json
+{
+    "success": true,
+    "message": "Organization member removed successfully.",
+    "data": {
+        "user_id": "",
+        "organization_id": ""
     }
 }
 ```
@@ -380,7 +470,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Insufficient privileges to update organization user status."
+    "message": "Insufficient privileges to remove organization members."
 }
 ```
 
@@ -389,7 +479,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Organization user not found."
+    "message": "Organization member not found."
 }
 ```
 
@@ -402,11 +492,103 @@ Authorization: Bearer <access_token>
 }
 ```
 
+---
+
+# Organization Roles
+
+## POST /api/org-admin/roles
+
+### Description
+
+Create an organization-scoped role.
+
+### Authentication
+
+Bearer Token Required
+
+### Headers
+
+```text
+Authorization: Bearer <access_token>
+```
+
+### Request Body
+
+```json
+{
+    "name": "",
+    "description": ""
+}
+```
+
+### Success Response (201 Created)
+
+```json
+{
+    "success": true,
+    "message": "Organization role created successfully.",
+    "data": {
+        "role_id": "",
+        "organization_id": "",
+        "name": ""
+    }
+}
+```
+
+### Error Responses
+
+#### 400 Bad Request
+
+```json
+{
+    "success": false,
+    "message": "Invalid organization role data."
+}
+```
+
+#### 401 Unauthorized
+
+```json
+{
+    "success": false,
+    "message": "Unauthorized access."
+}
+```
+
+#### 403 Forbidden
+
+```json
+{
+    "success": false,
+    "message": "Insufficient privileges to create organization roles."
+}
+```
+
+#### 409 Conflict
+
+```json
+{
+    "success": false,
+    "message": "An organization role with the same name already exists."
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+    "success": false,
+    "message": "Internal server error."
+}
+```
+
+---
+
 ## GET /api/org-admin/roles
 
 ### Description
 
-List organization roles.
+List organization-scoped roles belonging to the administrator's organization.
 
 ### Authentication
 
@@ -459,11 +641,13 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## POST /api/org-admin/roles
+---
+
+## GET /api/org-admin/roles/:roleId
 
 ### Description
 
-Create or register an organization role.
+Retrieve an organization-scoped role belonging to the administrator's organization.
 
 ### Authentication
 
@@ -475,40 +659,28 @@ Bearer Token Required
 Authorization: Bearer <access_token>
 ```
 
-### Request Body
+### Path Parameters
 
-```json
-{
-    "role_id": "",
-    "organization_id": "",
-    "account_status": ""
-}
-```
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| roleId | string | Yes | Role identifier. |
 
-### Success Response (201 Created)
+### Success Response (200 OK)
 
 ```json
 {
     "success": true,
-    "message": "Organization role saved successfully.",
+    "message": "Organization role retrieved successfully.",
     "data": {
         "role_id": "",
         "organization_id": "",
-        "account_status": ""
+        "name": "",
+        "description": ""
     }
 }
 ```
 
 ### Error Responses
-
-#### 400 Bad Request
-
-```json
-{
-    "success": false,
-    "message": "Invalid organization role data."
-}
-```
 
 #### 401 Unauthorized
 
@@ -519,21 +691,12 @@ Authorization: Bearer <access_token>
 }
 ```
 
-#### 403 Forbidden
+#### 404 Not Found
 
 ```json
 {
     "success": false,
-    "message": "Insufficient privileges to manage organization roles."
-}
-```
-
-#### 409 Conflict
-
-```json
-{
-    "success": false,
-    "message": "Organization role is in a conflicting state."
+    "message": "Organization role not found."
 }
 ```
 
@@ -546,11 +709,13 @@ Authorization: Bearer <access_token>
 }
 ```
 
+---
+
 ## PUT /api/org-admin/roles/:roleId
 
 ### Description
 
-Update an organization role.
+Update an organization-scoped role belonging to the administrator's organization.
 
 ### Authentication
 
@@ -572,9 +737,8 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "role_id": "",
-    "organization_id": "",
-    "account_status": ""
+    "name": "",
+    "description": ""
 }
 ```
 
@@ -586,12 +750,22 @@ Authorization: Bearer <access_token>
     "message": "Organization role updated successfully.",
     "data": {
         "role_id": "",
-        "organization_id": ""
+        "organization_id": "",
+        "name": ""
     }
 }
 ```
 
 ### Error Responses
+
+#### 400 Bad Request
+
+```json
+{
+    "success": false,
+    "message": "Invalid organization role update data."
+}
+```
 
 #### 401 Unauthorized
 
@@ -625,7 +799,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Organization role is in a conflicting state."
+    "message": "An organization role with the same name already exists."
 }
 ```
 
@@ -638,11 +812,595 @@ Authorization: Bearer <access_token>
 }
 ```
 
+---
+
+## DELETE /api/org-admin/roles/:roleId
+
+### Description
+
+Delete an organization-scoped role belonging to the administrator's organization.
+
+### Authentication
+
+Bearer Token Required
+
+### Headers
+
+```text
+Authorization: Bearer <access_token>
+```
+
+### Path Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| roleId | string | Yes | Role identifier. |
+
+### Success Response (200 OK)
+
+```json
+{
+    "success": true,
+    "message": "Organization role deleted successfully.",
+    "data": {
+        "role_id": "",
+        "organization_id": ""
+    }
+}
+```
+
+### Error Responses
+
+#### 401 Unauthorized
+
+```json
+{
+    "success": false,
+    "message": "Unauthorized access."
+}
+```
+
+#### 403 Forbidden
+
+```json
+{
+    "success": false,
+    "message": "Insufficient privileges to delete organization roles."
+}
+```
+
+#### 404 Not Found
+
+```json
+{
+    "success": false,
+    "message": "Organization role not found."
+}
+```
+
+#### 409 Conflict
+
+```json
+{
+    "success": false,
+    "message": "Organization role cannot be deleted while assigned to organization members."
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+    "success": false,
+    "message": "Internal server error."
+}
+```
+
+---
+
+# Role Assignment
+
+## POST /api/org-admin/members/:userId/roles
+
+### Description
+
+Assign an organization-scoped role to a member.
+
+### Authentication
+
+Bearer Token Required
+
+### Headers
+
+```text
+Authorization: Bearer <access_token>
+```
+
+### Path Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| userId | string | Yes | User identifier. |
+
+### Request Body
+
+```json
+{
+    "role_id": ""
+}
+```
+
+### Success Response (201 Created)
+
+```json
+{
+    "success": true,
+    "message": "Organization role assigned successfully.",
+    "data": {
+        "user_id": "",
+        "role_id": ""
+    }
+}
+```
+
+### Error Responses
+
+#### 400 Bad Request
+
+```json
+{
+    "success": false,
+    "message": "Invalid role assignment data."
+}
+```
+
+#### 401 Unauthorized
+
+```json
+{
+    "success": false,
+    "message": "Unauthorized access."
+}
+```
+
+#### 403 Forbidden
+
+```json
+{
+    "success": false,
+    "message": "Insufficient privileges to assign organization roles."
+}
+```
+
+#### 404 Not Found
+
+```json
+{
+    "success": false,
+    "message": "Organization member or role not found."
+}
+```
+
+#### 409 Conflict
+
+```json
+{
+    "success": false,
+    "message": "Role is already assigned to the organization member."
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+    "success": false,
+    "message": "Internal server error."
+}
+```
+
+---
+
+## DELETE /api/org-admin/members/:userId/roles/:roleId
+
+### Description
+
+Revoke an organization-scoped role from a member.
+
+### Authentication
+
+Bearer Token Required
+
+### Headers
+
+```text
+Authorization: Bearer <access_token>
+```
+
+### Path Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| userId | string | Yes | User identifier. |
+| roleId | string | Yes | Role identifier. |
+
+### Success Response (200 OK)
+
+```json
+{
+    "success": true,
+    "message": "Organization role revoked successfully.",
+    "data": {
+        "user_id": "",
+        "role_id": ""
+    }
+}
+```
+
+### Error Responses
+
+#### 401 Unauthorized
+
+```json
+{
+    "success": false,
+    "message": "Unauthorized access."
+}
+```
+
+#### 403 Forbidden
+
+```json
+{
+    "success": false,
+    "message": "Insufficient privileges to revoke organization roles."
+}
+```
+
+#### 404 Not Found
+
+```json
+{
+    "success": false,
+    "message": "Organization member or role assignment not found."
+}
+```
+
+#### 409 Conflict
+
+```json
+{
+    "success": false,
+    "message": "Organization member must retain at least one active role."
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+    "success": false,
+    "message": "Internal server error."
+}
+```
+
+---
+
+# Role Permissions
+
+## GET /api/org-admin/permissions
+
+### Description
+
+List system-defined permissions available for organization role configuration.
+
+Organization administrators have read-only access to the permission catalog.
+
+### Authentication
+
+Bearer Token Required
+
+### Headers
+
+```text
+Authorization: Bearer <access_token>
+```
+
+### Success Response (200 OK)
+
+```json
+{
+    "success": true,
+    "message": "Available permissions retrieved successfully.",
+    "data": {
+        "permissions": []
+    }
+}
+```
+
+### Error Responses
+
+#### 401 Unauthorized
+
+```json
+{
+    "success": false,
+    "message": "Unauthorized access."
+}
+```
+
+#### 403 Forbidden
+
+```json
+{
+    "success": false,
+    "message": "Insufficient privileges to view permissions."
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+    "success": false,
+    "message": "Internal server error."
+}
+```
+
+---
+
+## GET /api/org-admin/roles/:roleId/permissions
+
+### Description
+
+List permissions currently assigned to an organization-scoped role.
+
+### Authentication
+
+Bearer Token Required
+
+### Headers
+
+```text
+Authorization: Bearer <access_token>
+```
+
+### Path Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| roleId | string | Yes | Role identifier. |
+
+### Success Response (200 OK)
+
+```json
+{
+    "success": true,
+    "message": "Role permissions retrieved successfully.",
+    "data": {
+        "role_id": "",
+        "permissions": []
+    }
+}
+```
+
+### Error Responses
+
+#### 401 Unauthorized
+
+```json
+{
+    "success": false,
+    "message": "Unauthorized access."
+}
+```
+
+#### 404 Not Found
+
+```json
+{
+    "success": false,
+    "message": "Organization role not found."
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+    "success": false,
+    "message": "Internal server error."
+}
+```
+
+---
+
+## POST /api/org-admin/roles/:roleId/permissions
+
+### Description
+
+Map a system-defined permission to an organization-scoped role.
+
+### Authentication
+
+Bearer Token Required
+
+### Headers
+
+```text
+Authorization: Bearer <access_token>
+```
+
+### Path Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| roleId | string | Yes | Role identifier. |
+
+### Request Body
+
+```json
+{
+    "permission_id": ""
+}
+```
+
+### Success Response (201 Created)
+
+```json
+{
+    "success": true,
+    "message": "Permission assigned to organization role successfully.",
+    "data": {
+        "role_id": "",
+        "permission_id": ""
+    }
+}
+```
+
+### Error Responses
+
+#### 400 Bad Request
+
+```json
+{
+    "success": false,
+    "message": "Invalid role permission data."
+}
+```
+
+#### 401 Unauthorized
+
+```json
+{
+    "success": false,
+    "message": "Unauthorized access."
+}
+```
+
+#### 403 Forbidden
+
+```json
+{
+    "success": false,
+    "message": "Insufficient privileges to manage role permissions."
+}
+```
+
+#### 404 Not Found
+
+```json
+{
+    "success": false,
+    "message": "Organization role or permission not found."
+}
+```
+
+#### 409 Conflict
+
+```json
+{
+    "success": false,
+    "message": "Permission is already assigned to the organization role."
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+    "success": false,
+    "message": "Internal server error."
+}
+```
+
+---
+
+## DELETE /api/org-admin/roles/:roleId/permissions/:permissionId
+
+### Description
+
+Remove a permission mapping from an organization-scoped role.
+
+The system-defined permission itself is not deleted.
+
+### Authentication
+
+Bearer Token Required
+
+### Headers
+
+```text
+Authorization: Bearer <access_token>
+```
+
+### Path Parameters
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| roleId | string | Yes | Role identifier. |
+| permissionId | string | Yes | Permission identifier. |
+
+### Success Response (200 OK)
+
+```json
+{
+    "success": true,
+    "message": "Permission removed from organization role successfully.",
+    "data": {
+        "role_id": "",
+        "permission_id": ""
+    }
+}
+```
+
+### Error Responses
+
+#### 401 Unauthorized
+
+```json
+{
+    "success": false,
+    "message": "Unauthorized access."
+}
+```
+
+#### 403 Forbidden
+
+```json
+{
+    "success": false,
+    "message": "Insufficient privileges to manage role permissions."
+}
+```
+
+#### 404 Not Found
+
+```json
+{
+    "success": false,
+    "message": "Role permission mapping not found."
+}
+```
+
+#### 500 Internal Server Error
+
+```json
+{
+    "success": false,
+    "message": "Internal server error."
+}
+```
+
+---
+
+# Organization Settings
+
 ## GET /api/org-admin/settings
 
 ### Description
 
-List organization settings.
+Retrieve configurable organization information and administrative settings.
 
 ### Authentication
 
@@ -661,7 +1419,10 @@ Authorization: Bearer <access_token>
     "success": true,
     "message": "Organization settings retrieved successfully.",
     "data": {
-        "organization_settings": []
+        "organization_settings": {
+            "contact_email": "",
+            "contact_number": ""
+        }
     }
 }
 ```
@@ -695,11 +1456,13 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## POST /api/org-admin/settings
+---
+
+## PUT /api/org-admin/settings
 
 ### Description
 
-Create an organization setting.
+Update configurable organization information and administrative settings.
 
 ### Authentication
 
@@ -715,22 +1478,21 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "setting_key": "",
-    "setting_value": "",
-    "organization_id": ""
+    "contact_email": "",
+    "contact_number": ""
 }
 ```
 
-### Success Response (201 Created)
+### Success Response (200 OK)
 
 ```json
 {
     "success": true,
-    "message": "Organization setting saved successfully.",
+    "message": "Organization settings updated successfully.",
     "data": {
-        "setting_key": "",
-        "setting_value": "",
-        "organization_id": ""
+        "organization_id": "",
+        "contact_email": "",
+        "contact_number": ""
     }
 }
 ```
@@ -742,83 +1504,9 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Invalid organization setting data."
+    "message": "Invalid organization settings."
 }
 ```
-
-#### 401 Unauthorized
-
-```json
-{
-    "success": false,
-    "message": "Unauthorized access."
-}
-```
-
-#### 403 Forbidden
-
-```json
-{
-    "success": false,
-    "message": "Insufficient privileges to manage organization settings."
-}
-```
-
-#### 500 Internal Server Error
-
-```json
-{
-    "success": false,
-    "message": "Internal server error."
-}
-```
-
-## PUT /api/org-admin/settings/:settingId
-
-### Description
-
-Update an organization setting.
-
-### Authentication
-
-Bearer Token Required
-
-### Headers
-
-```text
-Authorization: Bearer <access_token>
-```
-
-### Path Parameters
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| settingId | string | Yes | Setting identifier. |
-
-### Request Body
-
-```json
-{
-    "setting_key": "",
-    "setting_value": "",
-    "organization_id": ""
-}
-```
-
-### Success Response (200 OK)
-
-```json
-{
-    "success": true,
-    "message": "Organization setting updated successfully.",
-    "data": {
-        "setting_key": "",
-        "setting_value": ""
-    }
-}
-```
-
-### Error Responses
 
 #### 401 Unauthorized
 
@@ -838,15 +1526,6 @@ Authorization: Bearer <access_token>
 }
 ```
 
-#### 404 Not Found
-
-```json
-{
-    "success": false,
-    "message": "Organization setting not found."
-}
-```
-
 #### 500 Internal Server Error
 
 ```json
@@ -856,11 +1535,17 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## GET /api/org-admin/audit-logs
+---
+
+# Administrative Audit Trail
+
+## GET /api/org-admin/audit-trail
 
 ### Description
 
-Retrieve administrative audit logs for the organization.
+Retrieve organization administrative audit trail records.
+
+Only records belonging to the administrator's organization are accessible.
 
 ### Authentication
 
@@ -877,7 +1562,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": true,
-    "message": "Audit logs retrieved successfully.",
+    "message": "Organization audit trail retrieved successfully.",
     "data": {
         "audit_logs": []
     }
@@ -900,7 +1585,7 @@ Authorization: Bearer <access_token>
 ```json
 {
     "success": false,
-    "message": "Insufficient privileges to view audit logs."
+    "message": "Insufficient privileges to view organization audit trail."
 }
 ```
 
@@ -912,6 +1597,3 @@ Authorization: Bearer <access_token>
     "message": "Internal server error."
 }
 ```
-
----
-

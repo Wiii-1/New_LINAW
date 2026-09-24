@@ -2240,46 +2240,73 @@ Organization Administration
 
 ## Responsibilities
 
-- Manage organization members within the organization.
-- Invite, update, deactivate, and remove organization members.
-- Assign and manage organization roles and permissions.
+- Manage organization membership within the administrator's organization.
+- Invite or add users to the organization.
+- View, update, activate, deactivate, and remove organization memberships.
+- Create and manage organization-scoped roles.
+- Assign and revoke organization roles from organization members.
+- View system-defined permissions available for organization role configuration.
+- Map and unmap system-defined permissions to organization-scoped roles.
 - Maintain organization settings and administrative configurations.
 - Monitor organization administrative activities through audit trail records.
 - Enforce organization-scoped administrative access and security policies.
+- Prevent organization administrators from accessing or modifying resources belonging to other organizations.
 
 ---
 
 ## Module Dependencies
 
 - Depends on: Authentication, `Tenant`, `User`, `Company`, `CompanyMembership`, `Role`, `Permission`, `RolePermission`, and `AuditTrail`.
-- Produces: organization member records, role assignments, permission mappings, administrative configuration records, and audit trail entries.
+- Produces: organization membership records, organization-scoped roles, role assignments, role-permission mappings, administrative configuration records, and audit trail entries.
 
 ---
 
 ## Functional Requirements
 
-- The system shall allow authorized organization administrators to invite or add users to the organization.
-- The system shall allow authorized organization administrators to view organization members.
-- The system shall allow authorized organization administrators to update organization member information.
-- The system shall allow authorized organization administrators to deactivate or remove organization members.
-- The system shall allow authorized organization administrators to assign, modify, and revoke organization roles.
-- The system shall allow authorized organization administrators to view available organization permissions.
-- The system shall allow authorized organization administrators to configure organization settings.
-- The system shall allow authorized organization administrators to view organization administrative audit trail records.
-- The system shall enforce organization-level access restrictions so administrators may manage only resources belonging to their own organization.
+- The system shall allow authorized organization administrators to invite or add users to their organization.
+- The system shall allow authorized organization administrators to view members belonging to their organization.
+- The system shall allow authorized organization administrators to update organization membership information that they are permitted to manage.
+- The system shall allow authorized organization administrators to activate or deactivate organization memberships.
+- The system shall allow authorized organization administrators to remove users from their organization.
+- The system shall allow authorized organization administrators to create organization-scoped roles.
+- The system shall allow authorized organization administrators to view roles belonging to their organization.
+- The system shall allow authorized organization administrators to modify organization-scoped roles that belong to their organization.
+- The system shall allow authorized organization administrators to assign organization roles to members of their organization.
+- The system shall allow authorized organization administrators to revoke organization roles from members of their organization.
+- The system shall allow authorized organization administrators to view system-defined permissions available for role configuration.
+- The system shall allow authorized organization administrators to map system-defined permissions to organization-scoped roles.
+- The system shall allow authorized organization administrators to remove permissions from organization-scoped roles.
+- The system shall not allow organization administrators to create, modify, or delete system-defined permissions.
+- The system shall allow authorized organization administrators to view and configure organization settings.
+- The system shall allow authorized organization administrators to view administrative audit trail records belonging to their organization.
+- The system shall enforce organization-level access restrictions so administrators may access and manage only resources belonging to their own organization.
+- The system shall prevent organization administrators from accessing or modifying another organization's members, roles, role-permission mappings, settings, or audit trail records.
 
 ---
 
 ## Business Rules
 
 - Organization administration shall only be available after an organization has been successfully registered.
-- Only users assigned an organization administrator role may access organization administration functions.
+- Only users assigned an authorized organization administrator role may access organization administration functions.
 - Organization administrators may manage only members belonging to their own organization.
-- Every organization member shall belong to one valid organization.
-- Organization members shall be assigned at least one organization role before accessing protected organization functions.
+- Every organization membership shall reference one valid organization and one valid user.
+- Duplicate membership of the same user within the same organization is not allowed.
+- A deactivated organization membership shall not grant access to protected organization resources.
+- An organization member must have at least one active organization role with the required permissions before accessing protected organization functions.
+- Organization roles shall belong to a specific tenant or organization.
+- Organization administrators may create roles only within their own organization.
+- Organization administrators may modify or delete only roles belonging to their own organization and for which they have the required administrative permission.
+- System-defined permissions are globally defined and cannot be created, modified, or deleted by organization administrators.
+- Organization administrators may only view permissions available for organization role configuration.
+- Permissions may only be assigned to or revoked from roles belonging to the administrator's organization.
+- A role-permission mapping shall reference one valid organization role and one valid system-defined permission.
+- Duplicate role-permission mappings are not allowed.
 - Organization settings may only be modified by authorized administrators with the required permission.
-- Deactivated organization members shall not be allowed to access protected organization resources.
-- All administrative actions affecting users, roles, permissions, and organization settings shall be recorded in the audit trail.
+- Organization administrators may only access settings belonging to their own organization.
+- Organization administrators may only access administrative audit records belonging to their own organization.
+- All administrative actions affecting organization memberships, roles, role-permission mappings, and organization settings shall be recorded in the audit trail.
+- Cross-organization access or modification attempts shall be rejected by the authorization and organization-scope validation layer.
+- Removing or deactivating an organization member shall not delete the global user account unless explicitly handled by a separate system-level process.
 
 ---
 
@@ -2287,77 +2314,77 @@ Organization Administration
 
 ### Organization Member Management
 
-Handles organization member retrieval, invitation, updates, deactivation, and removal.
+Handles organization member retrieval, invitation, manual addition, updates, deactivation, and removal.
 
 **API Endpoints**
 
 POST
 
-/api/org-admin/users
+/api/org-admin/members
 
 GET
 
-/api/org-admin/users
+/api/org-admin/members
 
-/api/org-admin/users/:userId
+/api/org-admin/members/:userId
 
 PUT
 
-/api/org-admin/users/:userId
+/api/org-admin/members/:userId
 
 PATCH
 
-/api/org-admin/users/:userId/status
+/api/org-admin/members/:userId/status
 
 DELETE
 
-/api/org-admin/users/:userId
-
-**Validation**
-
-- first_name
-- last_name
-- email
-- account_status
-- Email must be in a valid format.
-- User must belong to the administrator's organization.
-- Duplicate organization membership is not allowed.
+/api/org-admin/members/:userId
 
 ---
 
 ### Organization Role & Permission Management
 
-Handles organization role assignments and permission management.
+Handles organization-scoped role creation, modification, deletion, role assignment, and role-permission mapping.
 
 **API Endpoints**
 
 POST
 
-/api/org-admin/users/:userId/roles
+/api/org-admin/roles
 
-DELETE
-
-/api/org-admin/users/:userId/roles/:roleId
+/api/org-admin/members/:userId/roles
 
 GET
 
 /api/org-admin/roles
 
+/api/org-admin/roles/:roleId
+
+/api/org-admin/roles/:roleId/permissions
+
 /api/org-admin/permissions
 
-**Validation**
+PUT
 
-- role_id
-- permission_id
-- Role must exist within the tenant.
-- Permission reference must be valid.
-- Organization members must have at least one assigned role before accessing protected modules.
+/api/org-admin/roles/:roleId
+
+POST
+
+/api/org-admin/roles/:roleId/permissions
+
+DELETE
+
+/api/org-admin/roles/:roleId
+
+/api/org-admin/roles/:roleId/permissions/:permissionId
+
+/api/org-admin/members/:userId/roles/:roleId
 
 ---
 
 ### Organization Settings
 
-Handles organization configuration and administrative preferences.
+Handles organization/company information and administrative configuration.
 
 **API Endpoints**
 
@@ -2368,13 +2395,6 @@ GET
 PUT
 
 /api/org-admin/settings
-
-**Validation**
-
-- setting_key
-- setting_value
-- Required settings must contain valid values.
-- Only authorized administrators may modify organization settings.
 
 ---
 
@@ -2394,17 +2414,25 @@ GET
 
 POST
 
-/api/org-admin/users
+/api/org-admin/members
 
-/api/org-admin/users/:userId/roles
+/api/org-admin/roles
+
+/api/org-admin/members/:userId/roles
+
+/api/org-admin/roles/:roleId/permissions
 
 GET
 
-/api/org-admin/users
+/api/org-admin/members
 
-/api/org-admin/users/:userId
+/api/org-admin/members/:userId
 
 /api/org-admin/roles
+
+/api/org-admin/roles/:roleId
+
+/api/org-admin/roles/:roleId/permissions
 
 /api/org-admin/permissions
 
@@ -2414,69 +2442,106 @@ GET
 
 PUT
 
-/api/org-admin/users/:userId
+/api/org-admin/members/:userId
+
+/api/org-admin/roles/:roleId
 
 /api/org-admin/settings
 
 PATCH
 
-/api/org-admin/users/:userId/status
+/api/org-admin/members/:userId/status
 
 DELETE
 
-/api/org-admin/users/:userId
+/api/org-admin/members/:userId
 
-/api/org-admin/users/:userId/roles/:roleId
+/api/org-admin/roles/:roleId
+
+/api/org-admin/roles/:roleId/permissions/:permissionId
+
+/api/org-admin/members/:userId/roles/:roleId
 
 ---
 
 ## Validation
 
-- first_name
-- last_name
-- email
-- role_id
-- permission_id
-- account_status
-- setting_key
-- setting_value
+- `first_name`
+- `last_name`
+- `email`
+- `role_id`
+- `permission_id`
+- `account_status`
+- `setting_key`
+- `setting_value`
 - Email must be in a valid format.
-- Organization member must belong to the administrator's organization.
-- Role assignment must reference an existing tenant role.
-- Permission reference must be valid.
+- Organization membership must belong to the administrator's organization.
+- Role references must resolve to an existing role within the administrator's organization.
+- Permission references must resolve to an existing system-defined permission.
+- Organization administrators cannot create, modify, or delete system-defined permissions.
+- Role-permission mappings must reference a role belonging to the administrator's organization.
+- Duplicate organization membership is not allowed.
+- Duplicate role-permission mappings are not allowed.
 - Organization settings must satisfy configured validation rules.
+- All organization administration operations must pass organization-scope authorization checks.
 
 ---
 
 ## Database Tables
 
-- **CompanyMembership**
-  - Stores organization membership records.
-  - Associates users with their organization.
+### CompanyMembership
 
-- **Role**
-  - Stores tenant-scoped role definitions.
-  - Defines access levels used within an organization.
+- Stores organization membership records.
+- Associates users with their organization.
+- Stores organization-specific membership state.
+- Determines whether a user is active within an organization.
+- Prevents duplicate membership of the same user within the same organization.
 
-- **Permission**
-  - Stores globally defined permissions available for access control.
+### Role
 
-- **RolePermission**
-  - Stores mappings between roles and permissions.
+- Stores organization-scoped role definitions.
+- Associates roles with a tenant or organization.
+- Defines named access roles used within an organization.
+- Allows organization administrators to create and manage organization-specific roles.
 
-- **AuditTrail**
-  - Stores administrative activities, system events, and historical snapshots.
+### Permission
+
+- Stores globally defined system permissions.
+- Defines individual authorization capabilities available to roles.
+- Is not created, modified, or deleted by organization administrators.
+- Acts as the permission catalog available for organization role configuration.
+
+### RolePermission
+
+- Stores mappings between roles and system-defined permissions.
+- Associates permissions with organization-scoped roles.
+- Allows organization administrators to configure the permissions of roles belonging to their organization.
+- Must prevent duplicate role-permission mappings.
+
+### AuditTrail
+
+- Stores administrative activities, system events, and historical records.
+- Records organization administration actions affecting memberships, roles, permissions mappings, and settings.
+- Provides organization-scoped administrative activity history.
 
 ### Referenced Existing Tables
 
-- **Tenant**
-  - Stores the tenant boundary used for isolation.
+### Tenant
 
-- **User**
-  - Stores user account information.
+- Stores the tenant boundary used for organization isolation.
+- Determines the administrative scope for organization resources.
 
-- **Company**
-  - Stores organization information.
+### User
+
+- Stores global user account information.
+- Represents the user identity associated with an organization membership.
+- Is not deleted when an organization membership is removed.
+
+### Company
+
+- Stores organization information.
+- Represents the organization managed by the organization administrator.
+- Provides the organization boundary for membership, roles, settings, and audit records.
 
 ---
 
@@ -2492,19 +2557,24 @@ sequenceDiagram
 
     Admin->>UI: Open Organization Administration
     UI->>API: Request organization data
-    API->>ORG: Validate organization scope
-    ORG->>DB: Retrieve members, roles, settings, and audit trail records
-    DB-->>ORG: Return organization data
+    API->>ORG: Authenticate and validate organization scope
+    ORG->>DB: Retrieve organization members, roles, permissions, settings, and audit records
+    DB-->>ORG: Return organization-scoped data
     ORG-->>API: Return organization information
     API-->>UI: Display administration dashboard
 
-    Admin->>UI: Manage organization member
-    UI->>API: Submit member update
-    API->>ORG: Validate permissions
-    ORG->>DB: Save organization changes
+    Admin->>UI: Manage organization resource
+    UI->>API: Submit administrative request
+    API->>ORG: Validate authorization and organization scope
+    ORG->>DB: Verify resource belongs to administrator's organization
+    DB-->>ORG: Resource scope validated
+
+    ORG->>DB: Apply organization-scoped change
     DB-->>ORG: Update successful
+
     ORG->>DB: Record audit trail entry
     DB-->>ORG: Audit trail entry stored
+
     ORG-->>API: Return success
     API-->>UI: Display confirmation
 ```
@@ -2515,59 +2585,89 @@ sequenceDiagram
 
 ### organizationAdminRouter
 
-Defines API routes for organization member management, role assignment, organization settings, and administrative audit trail operations.
+Defines API routes for organization membership management, organization role management, role-permission mapping, organization settings, and administrative audit trail operations.
 
 ### organizationAdminController
 
-Receives organization administration requests, validates inputs, invokes the service layer, and returns appropriate responses.
+Receives organization administration requests, validates request data, invokes the service layer, and returns appropriate responses.
 
 ### organizationAdminService
 
-Contains the business logic for organization administration. It manages organization members, role assignments, permission enforcement, organization settings, and administrative audit trail logging while enforcing organization scope.
+Contains the business logic for organization administration.
+
+Responsibilities include:
+
+- Managing organization memberships.
+- Creating and managing organization-scoped roles.
+- Assigning and revoking roles from organization members.
+- Mapping and removing system-defined permissions from organization roles.
+- Validating organization ownership and scope.
+- Enforcing organization administrative permissions.
+- Managing organization settings.
+- Retrieving organization administrative audit records.
+- Creating audit trail entries for administrative operations.
 
 ### organizationAdminRepository
 
-Handles database operations for organization members, roles, permissions, organization settings, and administrative audit trail records.
+Handles database operations for:
+
+- Organization memberships.
+- Organization-scoped roles.
+- System-defined permissions.
+- Role-permission mappings.
+- Organization settings.
+- Organization administrative audit records.
+
+The repository shall apply organization-scope conditions to organization-owned resources where applicable.
 
 ### organizationAdminValidator
 
-Validates organization administration requests before they are processed.
+Validates organization administration request payloads and parameters.
+
+Responsibilities include:
+
+- Validating member information.
+- Validating role identifiers.
+- Validating permission identifiers.
+- Validating membership status.
+- Validating organization settings.
+- Enforcing input constraints before service-layer processing.
 
 ---
 
 ## Error Handling
 
-400
+**400**
 
-Invalid input data
+Invalid input data or malformed request.
 
-401
+**401**
 
-Unauthorized access
+Unauthenticated access.
 
-403
+**403**
 
-Insufficient organization administrative privileges
+Insufficient organization administrative privileges or attempted access outside the administrator's organization scope.
 
-404
+**404**
 
-Organization member, role, permission, or setting not found
+Organization member, organization role, permission, setting, or audit record not found within the administrator's organization scope.
 
-409
+**409**
 
-Duplicate organization membership or conflicting organization configuration
+Duplicate organization membership, duplicate role-permission mapping, or conflicting organization configuration.
 
-422
+**422**
 
-Validation failed
+Validation failed.
 
-500
+**500**
 
-Internal server error
+Internal server error.
 
-503
+**503**
 
-Organization Administration service unavailable
+Organization Administration service unavailable.
 
 ## Module 12
 
