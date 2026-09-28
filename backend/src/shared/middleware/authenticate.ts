@@ -39,7 +39,8 @@ export async function authenticate(
     if (
         typeof payload["user_id"] !== "string" ||
         typeof payload["session_id"] !== "string" ||
-        typeof payload["tenant_id"] !== "string"        
+        typeof payload["tenant_id"] !== "string" ||
+        typeof payload["company_id"] !== "string"
     ) {
         throw new UnauthorizedAccessError("Invalid Token")
     }
@@ -47,7 +48,8 @@ export async function authenticate(
     const user: AccessTokenPayload = {
         user_id: payload["user_id"],
         session_id: payload["session_id"],
-        tenant_id: payload["tenant_id"]
+        tenant_id: payload["tenant_id"],
+        company_id: payload["company_id"]
     }
 
     c.set("user", user)

@@ -51,6 +51,7 @@ model Tenant {
   user_roles                       UserRole[]
   user_sessions                    UserSession[]
   ApprovalWorkflowDefinition       ApprovalWorkflowDefinition[]
+  companyInvitations               CompanyInvitation[]
 
   @@index([status])
 }
@@ -61,7 +62,6 @@ model User {
   email                                     String
   first_name                                String
   last_name                                 String
-  job_title                                 String?
   status                                    String
   created_at                                DateTime                        @default(now()) @db.Timestamptz(6)
   updated_at                                DateTime                        @updatedAt @db.Timestamptz(6)
@@ -125,6 +125,8 @@ model Company {
   supplier_company_relationships SupplierCompanyRelationship[]
   user_roles                     UserRole[]
   ApprovalWorkflowDefinition     ApprovalWorkflowDefinition[]
+  invitations                    CompanyInvitation[]
+  roles                          Role[]
 
   @@index([tenant_id])
 }
@@ -134,17 +136,42 @@ model CompanyMembership {
   tenant_id         String   @db.Uuid
   company_id        String   @db.Uuid
   user_id           String   @db.Uuid
-  employment_status String
+  job_title         String?
+  role_id           String?
+  employment_status String?
   department        String?
   created_at        DateTime @default(now()) @db.Timestamptz(6)
   updated_at        DateTime @updatedAt @db.Timestamptz(6)
   company           Company  @relation(fields: [company_id], references: [id])
   tenant            Tenant   @relation(fields: [tenant_id], references: [id])
   user              User     @relation("UserCompanyMemberships", fields: [user_id], references: [id])
+  role              Role?    @relation("CompanyMembershipRole", fields: [role_id], references: [id])
 
   @@unique([tenant_id, company_id, user_id])
   @@index([tenant_id])
   @@index([employment_status])
+}
+
+model CompanyInvitation {
+  id         String @id @default(uuid()) @db.Uuid
+  tenant_id  String @db.Uuid
+  company_id String @db.Uuid
+
+  email String
+
+  invite_token_hash String @unique
+
+  invited_by String @db.Uuid
+
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  accepted_at DateTime? @db.Timestamptz(6)
+
+  company Company @relation(fields: [company_id], references: [id])
+  tenant  Tenant  @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([company_id])
+  @@index([email])
 }
 
 model UserSession {
@@ -200,18 +227,22 @@ model PasswordResetToken {
 // Access Controll
 
 model Role {
-  id                       String                  @id @default(uuid()) @db.Uuid
-  tenant_id                String?                 @db.Uuid
-  code                     String
-  name                     String
-  description              String?
-  is_system                Boolean                 @default(false)
-  created_at               DateTime                @default(now()) @db.Timestamptz(6)
-  updated_at               DateTime                @updatedAt @db.Timestamptz(6)
+  id          String   @id @default(uuid()) @db.Uuid
+  tenant_id   String?  @db.Uuid
+  company_id  String?  @db.Uuid
+  code        String
+  name        String
+  description String?
+  is_system   Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @updatedAt @db.Timestamptz(6)
+
   approval_workflow_levels ApprovalWorkflowLevel[]
   tenant                   Tenant?                 @relation(fields: [tenant_id], references: [id])
+  company                  Company?                @relation(fields: [company_id], references: [id])
   role_permissions         RolePermission[]
   user_roles               UserRole[]
+  company_memberships      CompanyMembership[]     @relation("CompanyMembershipRole")
 
   @@unique([tenant_id, code])
   @@index([tenant_id])
@@ -272,7 +303,7 @@ model PurchaseRequisition {
   pr_number            String
   generation           Int
   requested_by_user_id String                         @db.Uuid
-  purpose              String?  // Purpose determines the applicable workflow and the entity type
+  purpose              String? // Purpose determines the applicable workflow and the entity type
   justification        String?
   status               PurchaseRequisitionStatus
   priority             PurchaseRequisitionPriority?
@@ -392,11 +423,11 @@ model ApprovalWorkflowLevel {
   created_at DateTime @default(now()) @db.Timestamptz(6)
   updated_at DateTime @updatedAt @db.Timestamptz(6)
 
-  
-  workflow ApprovalWorkflowDefinition @relation(fields: [workflow_id], references: [id])
-  company  Company?         @relation(fields: [company_id], references: [id])
-  role     Role             @relation(fields: [role_id], references: [id])
-  tenant   Tenant           @relation(fields: [tenant_id], references: [id])
+  workflow        ApprovalWorkflowDefinition @relation(fields: [workflow_id], references: [id])
+  company         Company?                   @relation(fields: [company_id], references: [id])
+  role            Role                       @relation(fields: [role_id], references: [id])
+  tenant          Tenant                     @relation(fields: [tenant_id], references: [id])
+  approvalActions ApprovalAction[]
 
   @@unique([workflow_id, level_no])
   @@index([tenant_id])
@@ -405,9 +436,9 @@ model ApprovalWorkflowLevel {
 }
 
 model ApprovalWorkflowDefinition {
-  id         String  @id @default(uuid()) @db.Uuid
-  tenant_id  String? @db.Uuid
-  company_id String? @db.Uuid
+  id            String  @id @default(uuid()) @db.Uuid
+  tenant_id     String? @db.Uuid
+  company_id    String? @db.Uuid
   workflow_code String
   name          String
   description   String?
@@ -418,8 +449,8 @@ model ApprovalWorkflowDefinition {
   created_at DateTime @default(now()) @db.Timestamptz(6)
   updated_at DateTime @updatedAt @db.Timestamptz(6)
 
-  tenant  Tenant?   @relation(fields: [tenant_id], references: [id])
-  company Company?  @relation(fields: [company_id], references: [id])
+  tenant  Tenant?  @relation(fields: [tenant_id], references: [id])
+  company Company? @relation(fields: [company_id], references: [id])
 
   levels ApprovalWorkflowLevel[]
 
@@ -432,18 +463,21 @@ model ApprovalAction {
   id                  String   @id @default(uuid()) @db.Uuid
   tenant_id           String   @db.Uuid
   approval_request_id String   @db.Uuid
+  level_id            String   @db.Uuid
   acted_by_user_id    String   @db.Uuid
   action              String
   remarks             String?
   acted_at            DateTime @db.Timestamptz(6)
   created_at          DateTime @default(now()) @db.Timestamptz(6)
 
-  acted_by_user    User            @relation("UserApprovalActions", fields: [acted_by_user_id], references: [id])
-  approval_request ApprovalRequest @relation(fields: [approval_request_id], references: [id])
-  tenant           Tenant          @relation(fields: [tenant_id], references: [id])
+  acted_by_user    User                  @relation("UserApprovalActions", fields: [acted_by_user_id], references: [id])
+  approval_request ApprovalRequest       @relation(fields: [approval_request_id], references: [id])
+  level            ApprovalWorkflowLevel @relation(fields: [level_id], references: [id])
+  tenant           Tenant                @relation(fields: [tenant_id], references: [id])
 
   @@index([tenant_id])
   @@index([approval_request_id])
+  @@index([level_id])
   @@index([action])
 }
 
@@ -993,4 +1027,10 @@ enum ApprovalActionType {
   approved
   rejected
   cancelled
+}
+
+enum CompanyMembershipStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }

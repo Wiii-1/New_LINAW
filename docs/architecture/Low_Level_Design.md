@@ -2328,11 +2328,9 @@ GET
 
 /api/org-admin/members/:userId
 
-PUT
+PATCH
 
 /api/org-admin/members/:userId
-
-PATCH
 
 /api/org-admin/members/:userId/status
 
@@ -2354,6 +2352,8 @@ POST
 
 /api/org-admin/members/:userId/roles
 
+/api/org-admin/roles/:roleId/permissions
+
 GET
 
 /api/org-admin/roles
@@ -2364,13 +2364,9 @@ GET
 
 /api/org-admin/permissions
 
-PUT
+PATCH
 
 /api/org-admin/roles/:roleId
-
-POST
-
-/api/org-admin/roles/:roleId/permissions
 
 DELETE
 

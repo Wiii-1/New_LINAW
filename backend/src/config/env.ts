@@ -17,6 +17,10 @@ export type AppEnv = {
     DATABASE_URL: string;
 
     NODE_ENV: string;
+
+    MAILGUN_API_KEY: string
+    MAILGUN_DOMAIN: string
+    MAILGUN_FROM: string
 };
 
 export function createEnv(bindings: CloudflareBindings): AppEnv {
@@ -57,6 +61,18 @@ export function createEnv(bindings: CloudflareBindings): AppEnv {
         throw new Error("DATABASE_URL is required");
     }
 
+    if (!bindings.MAILGUN_API_KEY) {
+    throw new Error("MAILGUN_API_KEY is required");
+    }
+
+    if (!bindings.MAILGUN_DOMAIN) {
+        throw new Error("MAILGUN_DOMAIN is required");
+    }
+
+    if (!bindings.MAILGUN_FROM) {
+        throw new Error("MAILGUN_FROM is required");
+    }
+
     const jwtAccessExpires =
         bindings.JWT_ACCESS_EXPIRES ?? "60m";
 
@@ -86,5 +102,9 @@ export function createEnv(bindings: CloudflareBindings): AppEnv {
         DATABASE_URL: bindings.DATABASE_URL,
 
         NODE_ENV: bindings.NODE_ENV ?? "development",
+
+        MAILGUN_API_KEY: bindings.MAILGUN_API_KEY,
+        MAILGUN_DOMAIN: bindings.MAILGUN_DOMAIN,
+        MAILGUN_FROM: bindings.MAILGUN_FROM,
     };
 }
