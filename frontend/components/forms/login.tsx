@@ -15,7 +15,11 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { loginSchema, type LoginFormValues } from "@/validators/auth";
+
+const formSchema = z.object({
+  email: z.email().min(1),
+  password: z.string().min(8),
+});
 
 export function LoginForm({
   className,
@@ -32,42 +36,33 @@ export function LoginForm({
     },
   });
 
-  async function onSubmit(values: LoginFormValues) {
+  /*
+    async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      const data = (await response.json()) as {
-        success?: boolean;
-        message?: string;
-      };
+    const { success, message } = await signIn(
+      values.email,
+      values.password,
+    );
 
-      if (!response.ok || data.success !== true) {
-        form.setError("root", {
-          message: data.message ?? "Login failed. Please try again.",
-        });
-        return;
-      }
-
+    if (success) {
+      toast.success(
+        `${message as string} Related to login success.`,
+      );
       router.push("/dashboard");
-    } catch {
-      form.setError("root", {
-        message: "Unable to reach the login service. Please try again.",
-      });
-    } finally {
-      setIsLoading(false);
+    } else {
+      toast.error(message as string);
     }
+
+    setIsLoading(false);
   }
+  */
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form
         id="login-form"
-        onSubmit={form.handleSubmit(onSubmit)}
+        //onSubmit={form.handleSubmit(onSubmit)}
       >
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
