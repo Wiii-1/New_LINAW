@@ -6,11 +6,6 @@ type PurchaseOrderWithRelations = Prisma.PurchaseOrderGetPayload<{
         company: true;
         supplier: true;
         items: true;
-        approvals: {
-            include: {
-                approved_by_user: true;
-            };
-        };
         goods_receipts: {
             include: {
                 received_by_user: true;
@@ -18,7 +13,6 @@ type PurchaseOrderWithRelations = Prisma.PurchaseOrderGetPayload<{
         };
     };
 }>;
-
 
 export type PurchaseOrderSnapshot = {
     purchase_order_id: string;
@@ -115,28 +109,37 @@ export class AuditTrailRepository {
         const po: PurchaseOrderWithRelations | null =
             await prisma.purchaseOrder.findUnique({
                 where: {
-                    id: purchaseOrderId
+                    id: purchaseOrderId,
                 },
                 include: {
                     company: true,
                     supplier: true,
                     items: true,
-                    approvals: {
-                        include: {
-                            approved_by_user: true
-                        }
-                    },
                     goods_receipts: {
                         include: {
-                            received_by_user: true
-                        }
-                    }
-                }
+                            received_by_user: true,
+                        },
+                    },
+                },
             });
 
         if (!po) {
             return null;
         }
+
+        const approvalRequest = await prisma.approvalRequest.findFirst({
+            where: {
+                entity_id: po.id,
+                entity_type: "PURCHASE_ORDER",
+            },
+            include: {
+                actions: {
+                    include: {
+                        acted_by_user: true,
+                    },
+                },
+            },
+        });        
 
         const items = po.items.map((item) => ({
             description: item.description,
@@ -145,14 +148,14 @@ export class AuditTrailRepository {
             total_price: Number(item.total_price)
         }));
 
-        const approvals = po.approvals.map((action) => ({
+        const approvals = approvalRequest?.actions.map((action) => ({
             approved_by: {
-                id: action.approved_by_user.id,
-                name: action.approved_by_user.last_name
+                id: action.acted_by_user.id,
+                name: action.acted_by_user.last_name,
             },
             action: action.action,
-            timestamp: action.acted_at
-        }));
+            timestamp: action.acted_at,
+        })) ?? [];
 
         return {
             purchase_order_id: po.id,
