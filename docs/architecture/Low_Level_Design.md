@@ -29,6 +29,7 @@ Modules Included
 
 ## Module 1
 
+
 Authentication
 
 ---
@@ -241,281 +242,282 @@ Authentication service unavailable
 
 ---
 
-  # Module 2
+## Module 2
 
-  User Management
 
-  ---
+User Management
 
-  ## Responsibilities
+---
 
-  - Register new user accounts in the system.
-  - Register new organizations during the onboarding process.
-  - Automatically assign the registering user as the initial organization administrator after successful organization registration.
-  - Allow authenticated users to view and update their own profile information.
-  - Maintain user account and organization profile information created during onboarding.
-  - Provide authenticated user identity information required by other system modules.
+### Responsibilities
 
-  ---
+- Register new user accounts in the system.
+- Register new organizations during the onboarding process.
+- Automatically assign the registering user as the initial organization administrator after successful organization registration.
+- Allow authenticated users to view and update their own profile information.
+- Maintain user account and organization profile information created during onboarding.
+- Provide authenticated user identity information required by other system modules.
 
-  ## Module Dependencies
+---
 
-  - Depends on: Authentication, `User`, `UserCredential`, `Company`, `CompanyMembership`, `Role`, and `UserRole`.
-  - Produces: user accounts, credential records, company records, profile updates, company membership records, and initial administrator role assignments.
+### Module Dependencies
 
-  ---
+- Depends on: Authentication, `User`, `UserCredential`, `Company`, `CompanyMembership`, `Role`, and `UserRole`.
+- Produces: user accounts, credential records, company records, profile updates, company membership records, and initial administrator role assignments.
 
-  ## Functional Requirements
+---
 
-  - The system shall allow new users to register an account.
-  - The system shall allow a registered user who is not yet associated with an organization to register a new company.
-  - The system shall automatically assign the registering user as the initial organization administrator after successful company registration.
-  - The system shall allow authenticated users to view their own profile information.
-  - The system shall allow authenticated users to update their own profile information.
-  - The system shall provide authenticated user identity information required by authorized system modules.
+### Functional Requirements
 
-  ---
+- The system shall allow new users to register an account.
+- The system shall allow a registered user who is not yet associated with an organization to register a new company.
+- The system shall automatically assign the registering user as the initial organization administrator after successful company registration.
+- The system shall allow authenticated users to view their own profile information.
+- The system shall allow authenticated users to update their own profile information.
+- The system shall provide authenticated user identity information required by authorized system modules.
 
-  ## Business Rules
+---
 
-  - A registered user who is not associated with an organization may register a new company.
-  - The user who successfully registers a company shall automatically become its initial organization administrator.
-  - A user may only register one organization unless otherwise permitted by the system.
-  - Authenticated users may view and update only their own profile information.
-  - Organization administration functions shall become available only after successful company registration.
-  - User authentication data shall be stored separately from user profile data.
-  - Tenant isolation shall be enforced for all user, company, and membership records.
+### Business Rules
 
-  ---
+- A registered user who is not associated with an organization may register a new company.
+- The user who successfully registers a company shall automatically become its initial organization administrator.
+- A user may only register one organization unless otherwise permitted by the system.
+- Authenticated users may view and update only their own profile information.
+- Organization administration functions shall become available only after successful company registration.
+- User authentication data shall be stored separately from user profile data.
+- Tenant isolation shall be enforced for all user, company, and membership records.
 
-  ## Internal Sections
+---
 
-  ### User Profile Management
+### Internal Sections
 
-  Handles retrieval and updates of the authenticated user's personal profile information.
+#### User Profile Management
 
-  **API Endpoints**
+Handles retrieval and updates of the authenticated user's personal profile information.
 
-  GET
+**API Endpoints**
 
-  /api/users/profile
+GET
 
-  PATCH
+/api/users/profile
 
-  /api/users/profile
+PATCH
 
-  **Validation**
+/api/users/profile
 
-  - first_name
-  - last_name
-  - email
-  - job_title
-  - status
-  - Email must be in a valid format.
-  - User email must be unique within the tenant.
-  - Profile updates shall only affect the authenticated user.
-  - Account status must match an allowed user state.
+**Validation**
 
-  ---
+- first_name
+- last_name
+- email
+- job_title
+- status
+- Email must be in a valid format.
+- User email must be unique within the tenant.
+- Profile updates shall only affect the authenticated user.
+- Account status must match an allowed user state.
 
-  ### Organization Registration
+---
 
-  Handles organization registration during the onboarding process and associates the registering user as the initial organization administrator.
+#### Organization Registration
 
-  **API Endpoints**
+Handles organization registration during the onboarding process and associates the registering user as the initial organization administrator.
 
-  POST
+**API Endpoints**
 
-  /api/companies/register
+POST
 
-  GET
+/api/companies/register
 
-  /api/companies/:companyId
+GET
 
-  **Validation**
+/api/companies/:companyId
 
-  - legal_name
-  - display_name
-  - tax_id
-  - address
-  - contact_email
-  - contact_phone
-  - Company legal name must not be empty.
-  - Company registration information must be complete before onboarding is finalized.
-  - Company email must be in a valid format when provided.
-  - Company contact phone must follow the accepted format when provided.
-
-  ---
-
-  ## API Endpoints
-
-  POST
-
-  /api/companies/register
-
-  GET
-
-  /api/users/profile
-  /api/companies/:companyId
-
-  PUT
-
-  /api/users/profile
+**Validation**
 
-  ---
+- legal_name
+- display_name
+- tax_id
+- address
+- contact_email
+- contact_phone
+- Company legal name must not be empty.
+- Company registration information must be complete before onboarding is finalized.
+- Company email must be in a valid format when provided.
+- Company contact phone must follow the accepted format when provided.
+
+---
+
+### API Endpoints
+
+POST
+
+/api/companies/register
+
+GET
+
+/api/users/profile
+/api/companies/:companyId
+
+PUT
+
+/api/users/profile
+
+---
 
-  ## Validation
+### Validation
 
-  - first_name
-  - last_name
-  - email
-  - password
-  - job_title
-  - status
-  - legal_name
-  - display_name
-  - tax_id
-  - address
-  - contact_email
-  - contact_phone
-  - Email must be in a valid format.
-  - User email must be unique within the tenant.
-  - Password must satisfy the configured security requirements.
-  - Company registration information must be complete before onboarding is finalized.
-  - User authentication data shall be provided separately from profile data.
+- first_name
+- last_name
+- email
+- password
+- job_title
+- status
+- legal_name
+- display_name
+- tax_id
+- address
+- contact_email
+- contact_phone
+- Email must be in a valid format.
+- User email must be unique within the tenant.
+- Password must satisfy the configured security requirements.
+- Company registration information must be complete before onboarding is finalized.
+- User authentication data shall be provided separately from profile data.
 
-  ---
+---
 
-  ## Database Tables
+### Database Tables
 
-  - **Tenant**
-    - Stores tenant scope and isolation boundaries.
-    - Ensures users and companies are isolated by tenant.
+- **Tenant**
+  - Stores tenant scope and isolation boundaries.
+  - Ensures users and companies are isolated by tenant.
 
-  - **User**
-    - Stores user account information and profile data.
-    - Includes identity, contact information, job title, and account status.
+- **User**
+  - Stores user account information and profile data.
+  - Includes identity, contact information, job title, and account status.
 
-  - **UserCredential**
-    - Stores authentication data separate from the user profile.
-    - Includes the password hash and credential lifecycle data.
+- **UserCredential**
+  - Stores authentication data separate from the user profile.
+  - Includes the password hash and credential lifecycle data.
 
-  - **Company**
-    - Stores organization records created during onboarding.
-    - Includes organization identity, contact information, and profile details.
+- **Company**
+  - Stores organization records created during onboarding.
+  - Includes organization identity, contact information, and profile details.
 
-  - **CompanyMembership**
-    - Stores the relationship between users and companies.
-    - Tracks membership and employment status within the organization.
+- **CompanyMembership**
+  - Stores the relationship between users and companies.
+  - Tracks membership and employment status within the organization.
 
-  - **Role**
-    - Stores tenant-scoped role definitions.
+- **Role**
+  - Stores tenant-scoped role definitions.
 
-  - **UserRole**
-    - Stores role assignments for users.
-    - May be linked to a company when the role is organization-specific.
+- **UserRole**
+  - Stores role assignments for users.
+  - May be linked to a company when the role is organization-specific.
 
-  ---
+---
 
-  ## Sequence Diagram
+### Sequence Diagram
 
-  ```mermaid
-  sequenceDiagram
-      actor User
-      participant UI as User Management Page
-      participant API as Backend API
-      participant UM as User Management Module
-      participant DB as Database
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as User Management Page
+    participant API as Backend API
+    participant UM as User Management Module
+    participant DB as Database
 
-      User->>UI: Register account
-      UI->>API: Submit registration
-      API->>UM: Validate registration
-      UM->>DB: Create user account
-      UM->>DB: Create credential record
-      DB-->>UM: User created
-      UM-->>API: Registration successful
-      API-->>UI: Display registration result
+    User->>UI: Register account
+    UI->>API: Submit registration
+    API->>UM: Validate registration
+    UM->>DB: Create user account
+    UM->>DB: Create credential record
+    DB-->>UM: User created
+    UM-->>API: Registration successful
+    API-->>UI: Display registration result
 
-      User->>UI: Register organization
-      UI->>API: Submit organization information
-      API->>UM: Validate organization data
-      UM->>DB: Create company record
-      UM->>DB: Create membership record
-      UM->>DB: Assign initial administrator role
-      DB-->>UM: Organization registered
-      UM-->>API: Return onboarding result
-      API-->>UI: Display successful organization setup
+    User->>UI: Register organization
+    UI->>API: Submit organization information
+    API->>UM: Validate organization data
+    UM->>DB: Create company record
+    UM->>DB: Create membership record
+    UM->>DB: Assign initial administrator role
+    DB-->>UM: Organization registered
+    UM-->>API: Return onboarding result
+    API-->>UI: Display successful organization setup
 
-      User->>UI: View or update profile
-      UI->>API: Submit profile request
-      API->>UM: Validate profile data
-      UM->>DB: Retrieve or update profile
-      DB-->>UM: Profile processed
-      UM-->>API: Return profile information
-      API-->>UI: Display updated profile
-  ```
+    User->>UI: View or update profile
+    UI->>API: Submit profile request
+    API->>UM: Validate profile data
+    UM->>DB: Retrieve or update profile
+    DB-->>UM: Profile processed
+    UM-->>API: Return profile information
+    API-->>UI: Display updated profile
+```
 
-  ---
+---
 
-  ## Classes
+### Classes
 
-  ### userRouter
+#### userRouter
 
-  Defines the API routes for user registration, organization registration, and authenticated user profile management.
+Defines the API routes for user registration, organization registration, and authenticated user profile management.
 
-  ### userController
+#### userController
 
-  Handles incoming requests related to user registration, organization onboarding, and user profile management. It validates requests, invokes the service layer, and returns appropriate responses.
+Handles incoming requests related to user registration, organization onboarding, and user profile management. It validates requests, invokes the service layer, and returns appropriate responses.
 
-  ### userService
+#### userService
 
-  Contains the business logic for user account and onboarding operations. It creates user accounts, registers organizations, assigns company membership, automatically grants the initial organization administrator role, manages authenticated user profile updates, and provides user identity information to other modules.
+Contains the business logic for user account and onboarding operations. It creates user accounts, registers organizations, assigns company membership, automatically grants the initial organization administrator role, manages authenticated user profile updates, and provides user identity information to other modules.
 
-  ### userRepository
+#### userRepository
 
-  Handles database operations related to user accounts, credentials, companies, memberships, and role assignments.
+Handles database operations related to user accounts, credentials, companies, memberships, and role assignments.
 
-  ### userValidator
+#### userValidator
 
-  Validates registration, onboarding, and profile management requests before they are processed.
+Validates registration, onboarding, and profile management requests before they are processed.
 
-  ---
+---
 
-  ## Error Handling
+### Error Handling
 
-  400
+400
 
-  Invalid user management request data
+Invalid user management request data
 
-  401
+401
 
-  Unauthorized access
+Unauthorized access
 
-  403
+403
 
-  Access denied
+Access denied
 
-  404
+404
 
-  User or organization not found
+User or organization not found
 
-  409
+409
 
-  User account or organization already exists
+User account or organization already exists
 
-  422
+422
 
-  Validation failed
+Validation failed
 
-  500
+500
 
-  Internal server error
+Internal server error
 
-  503
+503
 
-  User management service unavailable
+User management service unavailable
 
-  ---
+---
 
 ## Module 3
 
@@ -1189,208 +1191,435 @@ Supplier management service unavailable
 
 ---
 
-## Module 6
+**## Module 6**
 
 Purchase Order Management
 
----
+**---**
 
-### Responsibilities
+**### Responsibilities**
 
-- Create, manage, and track purchase orders within the procurement process.
-- Store purchase order details including supplier, items, quantities, prices, totals, and status.
-- Support submission, review, approval, and updating of purchase orders by authorized users.
-- Maintain purchase order records linked to related procurement documents and supplier information.
-- Provide status visibility for draft, submitted, approved, rejected, and completed purchase orders.
+- Manage procurement activities after a Purchase Requisition has been approved.
 
-### Module Dependencies
+- Allow authorized Procurement Officers to create and manage Requests for Quotation (RFQs) based on approved procurement requirements.
 
-- Depends On: Authentication, `users`, `companies`, `suppliers`, `purchase_requisitions`, and `quotations`.
-- Produces: `purchase_orders`, `purchase_order_items`, and `purchase_order_approvals`.
+- Store RFQ details including procurement items, quantities, specifications, dates, and status.
 
----
+- Publish created RFQs to the Supplier Dashboard for supplier response.
 
-### Functional Requirements
+- Retrieve and manage supplier quotations submitted through the Supplier Dashboard.
 
-- The system shall allow authorized users to create purchase orders based on approved procurement data or manual entry.
-- The system shall allow authorized users to add supplier information, item details, quantities, prices, and totals to a purchase order.
-- The system shall allow authorized users to save purchase orders in draft status before submission.
-- The system shall allow authorized users to submit purchase orders for approval.
-- The system shall allow authorized approvers to approve or reject submitted purchase orders.
-- The system shall update the purchase order status based on user actions and workflow outcomes.
-- The system shall allow authorized users to view, search, and filter purchase orders by supplier, date, status, or reference number.
-- The system shall maintain links between purchase orders and related requisitions, quotations, or supplier records where applicable.
+- Support quotation review, comparison, and selection by authorized Procurement Officers.
 
----
+- Create purchase orders based on selected supplier quotations.
 
-### Business Rules
+- Maintain purchase order details including supplier, items, quantities, prices, totals, references, and status.
 
-- Only authorized users shall be allowed to create, edit, submit, approve, or reject purchase orders based on their assigned roles.
-- A purchase order must contain a valid supplier before it can be submitted.
-- A purchase order must contain at least one valid line item before submission.
-- Purchase order totals must be computed from the associated line items.
-- Approved purchase orders shall become read-only to normal users unless an authorized revision or change process is allowed.
-- Rejected purchase orders may be edited and resubmitted by authorized users.
-- A purchase order shall not be marked as completed unless the related procurement process has reached the required completion state.
-- All approval or rejection actions must be recorded with the acting user, timestamp, and resulting status.
+- Maintain links between Purchase Orders, selected quotations, RFQs, and originating Purchase Requisitions.
 
----
+- Provide procurement status visibility throughout the RFQ, quotation, and purchase order lifecycle.
 
-### API Endpoints
+**### Module Dependencies**
 
-POST  
-/api/purchase-orders  
-/api/purchase-orders/:poId/submit  
-/api/purchase-orders/:poId/approve  
-/api/purchase-orders/:poId/reject
+- Depends On: Authentication, Authorization/RBAC, `users`, `companies`, `purchase_requisitions`, Supplier Dashboard, Supplier Management, and Audit Trail.
 
-GET  
-/api/purchase-orders  
-/api/purchase-orders/:poId  
-/api/purchase-orders?status=approved  
-/api/purchase-orders?supplierId=:supplierId  
-/api/purchase-orders?referenceNo=:referenceNo
+- Produces: `rfqs`, `rfq_items`, and `purchase_orders` with their associated purchase order items.
 
-PUT  
-/api/purchase-orders/:poId  
-/api/purchase-orders/:poId/status
+- Consumes: `supplier_quotations` and `supplier_quotation_items` submitted through the Supplier Dashboard.
 
-DELETE  
-/api/purchase-orders/:poId
+**---**
 
----
+**### Functional Requirements**
 
-### Validation
+- The system shall allow authorized Procurement Officers to view approved Purchase Requisitions available for procurement.
 
-- po_number
-- supplier_id
-- company_id
-- order_date
-- status
-- total_amount
-- created_by
-- approved_by
-- approval_timestamp
-- line_items
-- Purchase order must contain a valid supplier reference
-- Purchase order must contain at least one line item
-- Each line item must contain a valid item description or item reference
-- Each line item must contain a valid quantity and unit price
-- Total amount must equal the computed sum of all purchase order line items
-- Approval action must be blocked if required purchase order data is incomplete
-- Status transitions must follow the allowed purchase order workflow
+- The system shall allow authorized Procurement Officers to create Requests for Quotation based on approved procurement requirements.
 
----
+- The system shall allow authorized users to add procurement items, quantities, units of measure, and specifications to an RFQ.
 
-### Database Tables
+- The system shall allow authorized users to save RFQs in draft status before publication.
 
-- **purchase_orders**
-  - Stores the main purchase order records.
-  - Includes purchase order number, supplier reference, company reference, order date, total amount, status, creator, approver, and approval timestamp.
+- The system shall allow authorized Procurement Officers to publish RFQs to the Supplier Dashboard.
 
-- **purchase_order_items**
-  - Stores the line items associated with each purchase order.
-  - Includes purchase order reference, item description or item reference, quantity, unit price, subtotal, and remarks.
+- The system shall allow POM to retrieve supplier quotations submitted against published RFQs.
 
-- **purchase_order_approvals**
-  - Stores approval and rejection actions related to purchase orders.
-  - Includes purchase order reference, approver, action type, remarks, action timestamp, and resulting status.
+- The system shall allow authorized Procurement Officers to view and compare submitted supplier quotations.
+
+- The system shall allow authorized Procurement Officers to select a supplier quotation for procurement.
+
+- The system shall allow authorized Procurement Officers to create a Purchase Order based on a selected supplier quotation.
+
+- The system shall allow authorized users to view, search, and filter RFQs and Purchase Orders by status, date, reference number, or related procurement record.
+
+- The system shall maintain links between Purchase Orders, selected quotations, RFQs, and originating Purchase Requisitions where applicable.
+
+- The system shall maintain procurement status changes throughout the RFQ and Purchase Order lifecycle.
+
+- The system shall record significant procurement actions for audit purposes.
+
+**---**
+
+**### Business Rules**
+
+- Only authorized Procurement Officers or users with the required procurement permissions shall be allowed to create, publish, evaluate, select, or manage procurement records.
+
+- A Purchase Requisition must be approved before it can normally be used to initiate an RFQ.
+
+- Approval of a Purchase Requisition shall not automatically create an RFQ.
+
+- An RFQ must contain at least one valid procurement item before it can be published.
+
+- RFQ items must contain valid quantities and units of measure.
+
+- Published RFQs shall not be freely modified once supplier responses are being accepted.
+
+- Supplier quotations must belong to the RFQ against which they were submitted.
+
+- Only valid submitted quotations may be selected for Purchase Order creation.
+
+- POM shall not automatically select the lowest quotation unless an explicit procurement policy requires such behavior.
+
+- A Purchase Order must reference the selected quotation from which it was created.
+
+- Purchase Order line items and totals must be derived from valid procurement data.
+
+- A Purchase Order shall maintain traceability to its selected quotation, RFQ, and originating Purchase Requisition where applicable.
+
+- Critical procurement actions such as RFQ publication, quotation selection, and Purchase Order creation shall be recorded in the Audit Trail.
+
+- All procurement records must be isolated by tenant and company according to the authenticated user's access.
+
+**---**
+
+**### API Endpoints**
+
+POST
+
+`/api/purchase-orders/rfqs`
+
+`/api/purchase-orders/rfqs/:rfqId/publish`
+
+`/api/purchase-orders`
+
+GET
+
+`/api/purchase-orders/rfqs`
+
+`/api/purchase-orders/rfqs/:rfqId`
+
+`/api/purchase-orders/rfqs/:rfqId/quotations`
+
+`/api/purchase-orders/rfqs/:rfqId/quotations/:quotationId`
+
+`/api/purchase-orders`
+
+`/api/purchase-orders/:poId`
+
+`/api/purchase-orders?status=:status`
+
+`/api/purchase-orders?referenceNo=:referenceNo`
+
+PATCH
+
+`/api/purchase-orders/rfqs/:rfqId`
+
+`/api/purchase-orders/:poId`
+
+DELETE
+
+`/api/purchase-orders/rfqs/:rfqId`
+
+`/api/purchase-orders/:poId`
+
+POST
+
+`/api/purchase-orders/rfqs/:rfqId/quotations/:quotationId/select`
+
+**---**
+
+**### Validation**
+
+- `rfq_number`
+
+- `purchase_requisition_id`
+
+- `company_id`
+
+- `title`
+
+- `description`
+
+- `status`
+
+- `issue_date`
+
+- `closing_date`
+
+- `rfq_items`
+
+- `line_no`
+
+- `quantity`
+
+- `unit_of_measure`
+
+- `specification`
+
+- `quotation_id`
+
+- `purchase_order_number`
+
+- `supplier_id`
+
+- `order_date`
+
+- `total_amount`
+
+- `created_by`
+
+- `purchase_order_items`
+
+- RFQ must contain at least one valid item before publication.
+
+- Each RFQ item must contain a valid quantity and unit of measure.
+
+- Closing date must be valid and applicable to the RFQ lifecycle.
+
+- A quotation must belong to the RFQ from which it is being selected.
+
+- Only submitted and valid quotations may be selected.
+
+- A Purchase Order must contain a valid selected quotation reference.
+
+- Each Purchase Order line item must contain a valid quantity and unit price.
+
+- Purchase Order totals must equal the computed sum of its line items.
+
+- Status transitions must follow the allowed RFQ, quotation, and Purchase Order workflows.
+
+- Cross-tenant or unauthorized procurement references must be rejected.
+
+**---**
+
+**### Database Tables**
+
+- **`rfqs`**
+
+- Stores the main Request for Quotation records.
+
+- Includes RFQ number, company reference, originating Purchase Requisition reference, title, description, status, issue date, closing date, creator, and timestamps.
+
+- **`rfq_items`**
+
+- Stores the procurement items associated with each RFQ.
+
+- Includes RFQ reference, originating Purchase Requisition Item reference where applicable, line number, description, quantity, unit of measure, specification, and timestamps.
+
+- **`supplier_quotations`**
+
+- Stores supplier quotations submitted against an RFQ.
+
+- Includes RFQ reference, supplier reference, quotation number, currency, total amount, status, submission date, validity date, and timestamps.
+
+- **`supplier_quotation_items`**
+
+- Stores the individual supplier quotation line items.
+
+- Includes quotation reference, RFQ item reference, line number, quoted quantity, unit price, total price, lead time, remarks, and timestamps.
+
+- **`purchase_orders`**
+
+- Stores the main Purchase Order records created from selected supplier quotations.
+
+- Includes Purchase Order number, supplier reference, RFQ reference, selected quotation reference, company reference, order date, total amount, status, creator, and relevant timestamps.
+
+- **`purchase_order_items`**
+
+- Stores the line items associated with each Purchase Order.
+
+- Includes Purchase Order reference, item description or source item reference, quantity, unit price, subtotal, and remarks.
 
 - **Referenced Existing Tables**
-  - `suppliers` — stores supplier information linked to purchase orders.
-  - `users` — stores the users who create, update, submit, approve, or reject purchase orders.
-  - `companies` — stores the company context associated with the purchase order.
-  - `purchase_requisitions` or `rfqs` — stores upstream procurement records referenced by the purchase order where applicable.
-  - `quotations` — stores supplier quotation data used as the basis for selected purchase order details where applicable.
 
----
+- `purchase_requisitions` — stores the approved procurement request that may serve as the origin of an RFQ.
 
-### Sequence Diagram
+- `purchase_requisition_items` — stores the original procurement requirements referenced by RFQ items where applicable.
+
+- `suppliers` — provides supplier information referenced by submitted quotations and Purchase Orders. Supplier management remains outside POM.
+
+- `users` — stores the users who create RFQs, manage procurement records, evaluate quotations, and create Purchase Orders.
+
+- `companies` — stores the company context associated with procurement records.
+
+**---**
+
+**### Sequence Diagram**
 
 ```mermaid
 sequenceDiagram
-    actor User
-    participant UI as Purchase Order Page
+
+    actor User as Procurement Officer
+
+    participant UI as Procurement Page
+
     participant API as Backend API
+
     participant POM as Purchase Order Module
+
     participant DB as Database
 
-    User->>UI: Create or update purchase order
-    UI->>API: Submit purchase order data
-    API->>POM: Validate and process request
-    POM->>DB: Save purchase order and line items
-    DB-->>POM: Purchase order saved
-    POM-->>API: Return purchase order result
-    API-->>UI: Display saved purchase order
+    participant SD as Supplier Dashboard
 
-    User->>UI: Submit purchase order for approval
-    UI->>API: Send submission request
-    API->>POM: Change status to submitted
-    POM->>DB: Update purchase order status
-    DB-->>POM: Status updated
-    POM-->>API: Return submission status
-    API-->>UI: Display submitted status
+    User->>UI: View approved purchase requisitions
 
-    User->>UI: Approve or reject purchase order
-    UI->>API: Send approval decision
-    API->>POM: Process approval action
-    POM->>DB: Save approval record and update status
-    DB-->>POM: Approval action saved
-    POM-->>API: Return approval result
-    API-->>UI: Display updated purchase order status
+    UI->>API: Request approved procurement data
+
+    API->>POM: Retrieve approved PRs
+
+    POM->>DB: Query approved purchase requisitions
+
+    DB-->>POM: Return approved PRs
+
+    POM-->>API: Return procurement data
+
+    API-->>UI: Display approved PRs
+
+    User->>UI: Create RFQ
+
+    UI->>API: Submit RFQ and item data
+
+    API->>POM: Validate and create RFQ
+
+    POM->>DB: Save RFQ and RFQ items
+
+    DB-->>POM: RFQ saved
+
+    POM-->>API: Return RFQ
+
+    API-->>UI: Display created RFQ
+
+    User->>UI: Publish RFQ
+
+    UI->>API: Publish RFQ request
+
+    API->>POM: Validate and publish RFQ
+
+    POM->>DB: Update RFQ status
+
+    POM->>SD: Publish RFQ
+
+    SD-->>POM: RFQ published
+
+    POM-->>API: Return publication result
+
+    API-->>UI: Display published status
+
+    SD->>POM: Supplier quotation submitted
+
+    POM->>DB: Store quotation data
+
+    DB-->>POM: Quotation saved
+
+    User->>UI: Review quotations
+
+    UI->>API: Request RFQ quotations
+
+    API->>POM: Retrieve quotations
+
+    POM->>DB: Query submitted quotations
+
+    DB-->>POM: Return quotations
+
+    POM-->>API: Return quotation data
+
+    API-->>UI: Display quotations
+
+    User->>UI: Select quotation
+
+    UI->>API: Submit quotation selection
+
+    API->>POM: Validate quotation selection
+
+    POM->>DB: Record selected quotation
+
+    DB-->>POM: Selection saved
+
+    User->>UI: Create Purchase Order
+
+    UI->>API: Submit Purchase Order
+
+    API->>POM: Validate and create PO
+
+    POM->>DB: Save Purchase Order and items
+
+    DB-->>POM: Purchase Order saved
+
+    POM-->>API: Return Purchase Order
+
+    API-->>UI: Display Purchase Order
 ```
 
----
+**---**
 
-### Classes
+**### Classes**
 
-#### purchaseOrderRouter
+**#### purchaseOrderRouter**
 
-Defines the API routes for purchase order creation, retrieval, updating, submission, approval, rejection, and deletion. It maps incoming HTTP requests to the appropriate controller functions.
+Defines the API routes for procurement queue access, RFQ creation, RFQ publication, quotation retrieval and selection, Purchase Order creation, retrieval, updating, and deletion. It maps incoming HTTP requests to the appropriate controller functions.
 
-#### purchaseOrderController
+**#### purchaseOrderController**
 
-Handles purchase order API requests and responses. It receives requests for creating, updating, submitting, approving, rejecting, and viewing purchase orders, then returns the appropriate response to the client.
+Handles POM API requests and responses. It receives requests for creating and managing RFQs, publishing RFQs, retrieving quotations, selecting quotations, and creating or managing Purchase Orders.
 
-#### purchaseOrderService
+**#### purchaseOrderService**
 
-Contains the business logic for purchase order operations. It validates purchase order data, computes totals, manages workflow status changes, and coordinates approval or rejection actions.
+Contains the business logic for POM operations. It validates procurement state, manages RFQ lifecycle operations, retrieves and evaluates quotation data, processes quotation selection, creates Purchase Orders, maintains document relationships, and coordinates procurement status changes.
 
-#### purchaseOrderRepository
+**#### purchaseOrderRepository**
 
-Handles data access and database queries related to purchase orders, line items, and approval records.
+Handles data access and database queries related to RFQs, RFQ items, supplier quotations, supplier quotation items, Purchase Orders, and Purchase Order items.
 
-#### purchaseOrderValidator
+**#### purchaseOrderValidator**
 
-Validates request data for purchase order operations. It ensures supplier references, line items, totals, and workflow actions are complete and correctly formatted before processing.
+Validates request data for POM operations. It ensures RFQ information, procurement items, quotation references, Purchase Order data, quantities, prices, totals, and status transitions are correctly formatted and complete before processing.
 
----
+**---**
 
-### Error Handling
+**### Error Handling**
 
-400  
-Invalid purchase order request data
+400
 
-401  
+Invalid RFQ, quotation, or Purchase Order request data
+
+401
+
 Unauthorized access
 
-403  
-Insufficient privileges to manage purchase orders
+403
 
-404  
-Purchase order or related record not found
+Insufficient privileges to manage procurement records
 
-409  
-Purchase order already submitted, approved, or in conflicting state
+404
 
-422  
-Purchase order validation failed
+RFQ, quotation, Purchase Order, or related procurement record not found
 
-500  
+409
+
+RFQ, quotation, or Purchase Order already exists or is in a conflicting state
+
+422
+
+RFQ, quotation, or Purchase Order validation failed
+
+500
+
 Internal server error
 
-503  
-Purchase order service unavailable
+503
+
+POM or dependent procurement service unavailable
+
+**---**
 
 ---
 
@@ -2023,7 +2252,8 @@ Audit Trail
 
   GET /api/audit-trails/search
   GET /api/audit-trails/:auditId/verify
-  ---
+  
+---
 
 ### Validation
 

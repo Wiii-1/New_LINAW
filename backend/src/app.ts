@@ -14,6 +14,8 @@ import { createAuthRouter } from "./modules/authentication/authRouter.js";
 import { createAuditRouter } from "./modules/audit_trail/auditTrailRouter.js";
 import { createApprovalWorkflow } from "./modules/approval_workflow/approvalWorkflowRouter.js";
 import { createPurchaseRequistionRouter } from "./modules/purchase_requisition/purchaseRequisitionRouter.js";
+import { createOrganizationAdministration } from "./modules/organization_administration/organizationAdministrationRouter.js";
+import { createPurchaseOrderManagement } from "./modules/purchase_order_management/purchaseOrderManagementRouter.js";
 
 import { AuditTrailRepository } from "./modules/audit_trail/auditTrailRepository.js";
 import { AuditTrailService } from "./modules/audit_trail/auditTrailService.js";
@@ -56,6 +58,8 @@ app.all("*", async (c: Context<AppContext>) => {
     const auditRouter = createAuditRouter(service);
     const approvalWorkflowRouter = createApprovalWorkflow();
     const purchaseRequisitionRouter = createPurchaseRequistionRouter();
+    const organizationAdministrationRouter = createOrganizationAdministration();
+    const purchaseOrderManagementRouter = createPurchaseOrderManagement();
 
     const router = new Hono<AppContext>();
 
@@ -66,6 +70,8 @@ app.all("*", async (c: Context<AppContext>) => {
         "/createPurchaseRequisition",
         purchaseRequisitionRouter,
     );
+    router.route("/organizationManagement", organizationAdministrationRouter)
+    router.route("/purcahseOrderManagementRouter", purchaseOrderManagementRouter)
 
     return router.fetch(c.req.raw, c.env);
 });
