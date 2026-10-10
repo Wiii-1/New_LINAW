@@ -122,15 +122,15 @@ GET
 
 ### Database Tables
 
-- **user_sessions**
+- user_sessions
   - Stores the active and historical authenticated sessions of users.
   - Includes user reference, session token reference, login timestamp, expiration timestamp, logout timestamp, session status, and client metadata.
 
-- **refresh_tokens**
+- refresh_tokens
   - Stores refresh token records used for token renewal and session continuation.
   - Includes user reference, token value or token identifier, issued timestamp, expiration timestamp, revocation status, and revocation timestamp.
 
-- **Referenced Existing Tables**
+- Referenced Existing Tables
   - `users` — stores the registered user accounts allowed to sign up and authenticate into the application.
   - `audit_trails` — stores significant authentication-related events where applicable.
 
@@ -296,7 +296,7 @@ User Management
 
 Handles retrieval and updates of the authenticated user's personal profile information.
 
-**API Endpoints**
+API Endpoints
 
 GET
 
@@ -306,7 +306,7 @@ PATCH
 
 /api/users/profile
 
-**Validation**
+Validation
 
 - first_name
 - last_name
@@ -324,7 +324,7 @@ PATCH
 
 Handles organization registration during the onboarding process and associates the registering user as the initial organization administrator.
 
-**API Endpoints**
+API Endpoints
 
 POST
 
@@ -334,7 +334,7 @@ GET
 
 /api/companies/:companyId
 
-**Validation**
+Validation
 
 - legal_name
 - display_name
@@ -390,30 +390,30 @@ PUT
 
 ### Database Tables
 
-- **Tenant**
+- Tenant
   - Stores tenant scope and isolation boundaries.
   - Ensures users and companies are isolated by tenant.
 
-- **User**
+- User
   - Stores user account information and profile data.
   - Includes identity, contact information, job title, and account status.
 
-- **UserCredential**
+- UserCredential
   - Stores authentication data separate from the user profile.
   - Includes the password hash and credential lifecycle data.
 
-- **Company**
+- Company
   - Stores organization records created during onboarding.
   - Includes organization identity, contact information, and profile details.
 
-- **CompanyMembership**
+- CompanyMembership
   - Stores the relationship between users and companies.
   - Tracks membership and employment status within the organization.
 
-- **Role**
+- Role
   - Stores tenant-scoped role definitions.
 
-- **UserRole**
+- UserRole
   - Stores role assignments for users.
   - May be linked to a company when the role is organization-specific.
 
@@ -616,19 +616,19 @@ DELETE
 
 ### Database Tables
 
-- **purchase_requisitions**
+- purchase_requisitions
   - Stores the main purchase requisition records.
   - Includes requisition number, requester reference, company reference, request date, justification, total estimated amount, status, creator, and submission timestamp.
 
-- **purchase_requisition_items**
+- purchase_requisition_items
   - Stores the line items associated with each purchase requisition.
   - Includes purchase requisition reference, item description or item reference, quantity, estimated unit cost, subtotal, and remarks.
 
-- **purchase_requisition_status_logs**
+- purchase_requisition_status_logs
   - Stores the status history and tracking records for purchase requisitions.
   - Includes purchase requisition reference, previous status, new status, action by, action timestamp, and remarks.
 
-- **Referenced Existing Tables**
+- Referenced Existing Tables
   - `users` — stores the users who create, update, submit, cancel, or track purchase requisitions.
   - `companies` — stores the company context associated with the purchase requisition.
   - `approval_requests` — stores related approval workflow records where requisitions are submitted for approval.
@@ -821,19 +821,19 @@ PUT
 
 ### Database Tables
 
-- **approval_requests**
+- approval_requests
   - Stores the main approval workflow records.
   - Includes request reference, request type, requester, current approval level, current approver, approval status, and submission timestamp.
 
-- **approval_actions**
+- approval_actions
   - Stores the approval decisions and action history for each approval request.
   - Includes approval request reference, approver, action type, remarks, action timestamp, and resulting status.
 
-- **approval_workflow_levels**
+- approval_workflow_levels
   - Stores the configured approval workflow levels or routing definitions.
   - Includes request type, approval level, assigned approver or role, sequence order, and workflow rules.
 
-- **Referenced Existing Tables**
+- Referenced Existing Tables
   - `users` — stores the users who submit, review, approve, reject, cancel, or resubmit requests.
   - `companies` — stores the company context associated with approval requests.
   - Transactional tables such as `purchase_requisitions`, `rfqs`, `purchase_orders`, or other request records — store the business documents subject to approval.
@@ -926,278 +926,676 @@ Approval workflow service unavailable
 
 ---
 
-## Module 5
+## Module 5 —
 
 Supplier Management
 
----
+--- 
 
-### Responsibilities
+### 5.1 Responsibilities
 
-- Manage supplier records, supplier onboarding invitations, and quotation-related information within the procurement system.
-- Store and maintain supplier profile details, contact information, business references, and registration status.
-- Generate and manage invitation links for supplier onboarding and self-registration.
-- Support creation, submission, review, and tracking of supplier quotations.
-- Maintain links between suppliers, invitations, quotations, and related procurement documents.
-- Allow authorized users to search, view, update, and monitor supplier, invitation, and quotation records.
+The Supplier Management module manages supplier identities, company-to-supplier relationships, supplier onboarding invitations, and supplier-facing procurement activities within LINAW.
 
-### Module Dependencies
+The module consists of three dedicated services:
 
-- Depends On: Authentication, `users`, `companies`, `rfqs`, and `purchase_orders`.
-- Produces: `suppliers`, `supplier_invitations`, `supplier_quotations`, and `supplier_quotation_items`.
+#### 1. Supplier Governance Service
 
----
+Responsible for managing supplier records and company-supplier relationships from the perspective of the organization managing its suppliers.
 
-### Functional Requirements
+- Retrieve, search, and view supplier records and their associated information.
+- Maintain supplier profile information and supplier status.
+- Display suppliers associated with the currently active company.
+- Allow authorized users to remove a supplier relationship from their company.
+- Preserve supplier records and historical procurement information when a relationship is removed.
+- Prevent inactive supplier relationships from being used for new procurement activities where an active relationship is required.
 
-- The system shall allow authorized users to create, view, update, and archive supplier records.
-- The system shall allow authorized users to store supplier details such as company name, contact person, address, email, phone number, and status.
-- The system shall allow authorized users to generate supplier invitation links for onboarding or self-registration.
-- The system shall allow authorized users to send supplier invitations through the configured communication channel.
-- The system shall allow the system to track invitation status such as not sent, invited, opened, in progress, expired, completed, or approved.
-- The system shall allow authorized users to resend or regenerate supplier invitation links when necessary.
-- The system shall allow invited suppliers to complete registration using the invitation link.
-- The system shall update the supplier registration status after onboarding actions are performed.
-- The system shall allow authorized users to record and manage quotations submitted by suppliers.
-- The system shall allow authorized users to link supplier quotations to related requests for quotation and procurement transactions.
-- The system shall allow authorized users to view quotation details such as offered items, prices, quantities, terms, and submission date.
-- The system shall allow authorized users to compare quotations from different suppliers for the same procurement requirement.
-- The system shall allow authorized users to search and filter suppliers, invitations, and quotations by name, status, date, or related document reference.
-- The system shall restrict supplier, invitation, and quotation management functions to authorized users only.
+Removing a supplier from a company's supplier list does not delete the supplier identity or historical procurement records. It deactivates the relevant company-supplier relationship.
 
----
+#### 2. Supplier Invitation Service
 
-### Business Rules
+Responsible for inviting companies to establish supplier relationships and coordinating supplier onboarding.
 
-- Only authorized users shall be allowed to create, update, archive, invite, or view supplier records and quotations.
-- Each supplier record must contain unique and valid identifying information before it can be saved.
-- A supplier invitation must be associated with an existing supplier record or an authorized new supplier entry.
-- Each supplier invitation link must be unique and time-bound according to the configured expiration policy.
-- Expired or invalid invitation links shall not allow supplier registration completion.
-- Supplier registration status shall progress only through valid onboarding states defined by the system.
-- Archived or inactive suppliers shall not be available for new procurement transactions unless reactivated by an authorized user.
-- A quotation must be associated with an existing supplier record.
-- A quotation must be associated with a valid procurement reference where applicable.
-- Supplier quotations shall remain read-only after final submission unless revision is allowed through an authorized process.
-- Quotation comparisons must use quotation records linked to the same procurement requirement or request.
-- Deleting supplier records through normal application functions shall not be allowed if related invitations, quotations, or procurement transactions already exist.
+- Generate secure, time-limited supplier invitation links.
+- Send invitations through the configured email service.
+- Validate invitation tokens and expiration.
+- Determine whether the invited company's organization already exists in LINAW.
+- Allow an existing company to accept an invitation and establish or reactivate its supplier relationship.
+- Coordinate new-company onboarding with the existing authentication and organization management workflows.
+- Track invitation lifecycle status and prevent expired, invalid, or previously consumed invitations from being accepted.
+- Preserve existing supplier identities and avoid duplicate supplier records when an invitation is accepted.
 
----
+The Invitation Service coordinates onboarding but does not independently reimplement authentication, account registration, or organization creation.
 
-### API Endpoints
+#### 3. Supplier Portal Service
 
-POST  
-/api/suppliers  
-/api/suppliers/:supplierId/invite  
-/api/suppliers/:supplierId/resend-invite  
-/api/suppliers/:supplierId/quotations  
-/api/suppliers/:supplierId/archive  
-/api/supplier-invitations/validate/:token
+Responsible for supplier-facing procurement operations.
 
-GET  
-/api/suppliers  
-/api/suppliers/:supplierId  
-/api/suppliers?status=active  
-/api/suppliers?status=invited  
-/api/suppliers?name=:supplierName  
-/api/suppliers/:supplierId/invitations  
-/api/suppliers/:supplierId/quotations  
-/api/quotations/:quotationId  
-/api/quotations?rfqId=:rfqId
+- Determine whether the authenticated user's active company is eligible to access the supplier portal.
+- Retrieve RFQs that the supplier is authorized to view and respond to.
+- Retrieve RFQ details and relevant line items.
+- Allow authorized supplier users to submit quotations against eligible RFQs.
+- Retrieve quotations submitted by the supplier's company.
+- Display quotation details, submission status, pricing, quantities, and other relevant information.
+- Enforce supplier eligibility, company boundaries, user permissions, and RFQ-specific restrictions.
 
-PUT  
-/api/suppliers/:supplierId  
-/api/supplier-invitations/:invitationId/status  
-/api/quotations/:quotationId
+The Supplier Portal Service handles supplier-facing quotation submission and retrieval. It does not own RFQ creation, publication, quotation selection, or purchase order creation.
 
-DELETE  
-/api/quotations/:quotationId
+These purchasing-side operations remain the responsibility of the Purchase Order Management (POM) module.
 
 ---
 
-### Validation
+### 5.2 Module Dependencies
 
-- supplier_name
-- contact_person
-- email
-- phone_number
-- address
-- supplier_status
-- registration_status
-- invitation_email
-- invitation_token
-- invitation_status
-- expires_at
-- quotation_id
-- rfq_id
-- quotation_date
-- quotation_total
-- quotation_status
-- Supplier name must not be empty
-- Email must be in a valid format
-- Phone number must be in a valid format
-- Supplier record must contain required contact and identification details
-- Invitation email must be valid before an invitation link is generated
-- Invitation token must be unique
-- Invitation expiration date must be a valid future date at the time of generation
-- Expired or invalid invitation tokens must be rejected
-- Quotation must reference an existing supplier
-- Quotation total must be a valid numeric value
-- Quotation date must be a valid date
-- Quotation submission must be blocked if required supplier or quotation details are incomplete
+#### Depends On
+
+- **Authentication:** Authenticated user identity, access-token validation, and session-related authorization context.
+- **Company Management:** Company records and organization lifecycle operations.
+- **User Management and RBAC:** Company memberships, user permissions, and authorization checks.
+- **Email Service:** Delivery of supplier invitation emails.
+- **Purchase Order Management (POM):** RFQs, RFQ items, supplier quotations, and related procurement records.
+- **Database Access Layer:** Prisma-based persistence and retrieval of supplier-related records.
+
+#### Owns
+
+The Supplier Management module owns the supplier-specific business logic associated with:
+
+- `Supplier`
+- `SupplierInvitation`
+- `SupplierCompanyRelationship`
+- `SupplierQuotation`
+- `SupplierQuotationItem`
+
+The module also coordinates with existing `Company`, `User`, `CompanyMembership`, `RFQ`, `RFQItem`, and `PurchaseOrder` records where required.
+
+**Ownership boundary:** Although Supplier Management provides supplier-facing quotation operations, the existing POM module remains responsible for procurement-side RFQ and purchase order workflows. The implementation must respect the existing database schema and avoid duplicating POM business logic.
 
 ---
 
-### Database Tables
+### 5.3 Functional Requirements
 
-- **suppliers**
-  - Stores the main supplier records.
-  - Includes supplier name, contact person, email, phone number, address, status, registration status, and related company information.
+#### 5.3.1 Supplier Governance
 
-- **supplier_invitations**
-  - Stores onboarding invitation records for suppliers.
-  - Includes supplier reference, invitation email, invitation token, invitation status, sent timestamp, opened timestamp, expiration timestamp, and completion timestamp.
+- The system shall allow authorized users to retrieve and view supplier records associated with their active company.
+- The system shall allow authorized users to search and filter supplier records by supported criteria, such as supplier name and status.
+- The system shall display supplier information, including legal name, display name, contact information, supplier status, and relevant company relationships.
+- The system shall allow authorized users to remove a supplier relationship from their company.
+- The system shall preserve the supplier identity and associated historical procurement records when a relationship is removed.
+- The system shall prevent users from modifying supplier records or relationships outside their authorized company and permission scope.
+- The system shall distinguish the overall supplier status from the status of an individual company-supplier relationship.
 
-- **supplier_quotations**
-  - Stores quotations submitted or recorded for suppliers.
-  - Includes supplier reference, related procurement reference, quotation date, total amount, status, terms, and remarks.
+#### 5.3.2 Supplier Invitations
 
-- **supplier_quotation_items**
-  - Stores the line items included in each supplier quotation.
-  - Includes quotation reference, item description or item reference, quantity, unit price, subtotal, and remarks.
+- The system shall allow authorized users to invite a company to establish a supplier relationship.
+- The system shall generate a unique, unpredictable, time-limited invitation token.
+- The system shall store a hash of the invitation token rather than the raw token.
+- The system shall send the invitation link through the configured email service.
+- The system shall allow an invitee to validate an invitation before accepting it.
+- The system shall determine whether the invited company already exists in LINAW and direct the invitee through the appropriate onboarding flow.
+- The system shall allow an existing company to accept an invitation without creating a duplicate company or user account.
+- The system shall coordinate new-company onboarding with existing authentication and company registration workflows.
+- The system shall establish or reactivate the appropriate company-supplier relationship after successful acceptance.
+- The system shall not reactivate a supplier relationship merely because an invitation has been created or sent.
+- The system shall prevent expired, invalid, cancelled, or previously consumed invitations from being accepted.
+- The system shall track invitation lifecycle status and relevant timestamps supported by the data model.
 
-- **Referenced Existing Tables**
-  - `users` — stores the users who create, update, review, invite, or compare supplier and quotation records.
-  - `companies` — stores the company context associated with supplier management records.
-  - `rfqs` — stores the request for quotation records linked to supplier quotations.
-  - `purchase_orders` — stores purchase orders that may reference selected supplier quotations where applicable.
+#### 5.3.3 Supplier Portal
+
+- The system shall allow supplier portal access only when the authenticated user's active company satisfies supplier eligibility requirements.
+- The system shall independently enforce supplier eligibility and authorization on every protected portal operation.
+- The system shall allow eligible supplier users to retrieve RFQs that their company is authorized to access.
+- The system shall display the relevant RFQ details and line items required to prepare a quotation.
+- The system shall allow authorized supplier users to submit quotations against eligible RFQs.
+- The system shall validate quotation data and its relationship to the relevant RFQ and supplier identity.
+- The system shall allow supplier users to retrieve quotations associated with their company, subject to authorization.
+- The system shall prevent supplier users from accessing another supplier's restricted quotations.
+- The system shall prevent quotation submissions for RFQs that are unavailable, closed, or otherwise ineligible for submission.
+- The system shall not allow supplier users to select the winning quotation or create purchase orders through the Supplier Portal.
+- The system shall not expose supplier portal functionality to companies that do not satisfy supplier eligibility requirements.
 
 ---
 
-### Sequence Diagram
+### 5.4 Business Rules
+
+#### 5.4.1 Supplier Identity and Relationships
+
+1. A supplier identity represents a company participating as a supplier in LINAW.
+2. A company may participate in procurement as both a buyer and a supplier. These roles do not require duplicate company identities.
+3. The `Supplier.company_id` field identifies the company represented by the supplier record.
+4. The `SupplierCompanyRelationship.company_id` field identifies the company that maintains the supplier relationship.
+5. The supplier identity and the relationship between two companies are separate concepts.
+6. A supplier may maintain relationships with multiple purchasing companies.
+7. Deactivating one company-supplier relationship shall not automatically deactivate the supplier's relationships with other companies.
+8. Removing a supplier relationship shall not hard-delete the supplier or cascade-delete its historical procurement records.
+9. Reinviting a previously associated supplier shall reuse the existing supplier identity and relationship where appropriate rather than creating duplicates.
+10. An inactive supplier relationship shall not be treated as active merely because a new invitation has been issued.
+
+#### 5.4.2 Supplier Eligibility and Authorization
+
+1. Supplier portal eligibility shall be evaluated using the authenticated user's active company and the supplier identity associated with that company.
+2. The existence of a supplier record alone shall not grant every user in the company access to the supplier portal.
+3. User-level access shall be enforced through the existing authentication, company membership, and RBAC mechanisms.
+4. Supplier portal access and individual operations shall be enforced by the backend, not solely by frontend visibility.
+5. Supplier-specific operations shall derive or verify the supplier identity from trusted company context. The backend shall not blindly trust a client-supplied `supplier_id`.
+6. Access to RFQs shall additionally depend on the RFQ's availability and the supplier's authorization to participate.
+7. An inactive or globally suspended supplier shall not regain eligibility simply by accepting an invitation. Reactivation of the supplier identity, where required, must follow the appropriate authorized process.
+
+#### 5.4.3 Invitation Lifecycle
+
+1. Each invitation shall have a unique token and an expiration time.
+2. The raw invitation token shall not be stored in the database.
+3. An invitation shall be accepted only when its token is valid, its expiration time has not passed, and its lifecycle state permits acceptance.
+4. Invitation acceptance shall be performed in a way that prevents replay and concurrent duplicate acceptance.
+5. Acceptance shall establish or reactivate the relevant company-supplier relationship only after successful validation and acceptance processing.
+6. Existing companies shall be associated with the invitation rather than recreated.
+7. New companies shall be registered through existing LINAW onboarding workflows.
+8. Invitation status shall represent invitation lifecycle, not supplier eligibility or company-supplier relationship status.
+9. Sending an invitation shall not, by itself, grant supplier portal access.
+
+#### 5.4.4 Supplier Quotations
+
+1. Each supplier quotation shall reference an existing supplier, RFQ, and associated company context.
+2. A supplier shall submit quotations only for RFQs it is authorized to access and that permit quotation submission.
+3. The quotation's supplier identity shall be derived from or verified against the authenticated supplier company.
+4. Quotation items shall reference valid RFQ items and satisfy the applicable quantity and pricing validations.
+5. Quotation totals shall be consistent with the accepted quotation data and applicable pricing rules.
+6. Submitted quotations shall follow the quotation status and revision rules defined by the existing procurement workflow.
+7. Suppliers shall not be allowed to select quotations, approve their own quotations, or create purchase orders through the Supplier Portal.
+8. Procurement-side quotation evaluation and selection shall remain under POM.
+9. Historical quotations shall be retained according to the system's data-retention and audit requirements, even if the associated company-supplier relationship becomes inactive.
+
+---
+
+### 5.5 API Design
+
+All routes are relative to the `/api` base path. The exact route names may be adjusted to match the existing routing conventions.
+
+The API is grouped by the responsibility of each service.
+
+#### 5.5.1 Governance Routes
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/suppliers` | Retrieve suppliers associated with the active company. |
+| GET | `/suppliers/:supplierId` | Retrieve supplier details after verifying the relevant company relationship. |
+| DELETE | `/suppliers/:supplierId/relationship` | Deactivate the supplier relationship with the active company. |
+
+**Notes:**
+
+- `GET /suppliers` may support pagination and filters such as `status` and `name`.
+- The delete operation deactivates a relationship; it does not delete the supplier record.
+- Changes must be scoped to the authenticated user's authorized company.
+- Creating or editing supplier invitations belongs to the Invitation Service rather than the Governance Service.
+
+#### 5.5.2 Invitation Routes
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/supplier-invitations` | Create and send a supplier invitation. |
+| GET | `/supplier-invitations/:invitationId` | Retrieve invitation details for authorized users. |
+| POST | `/supplier-invitations/:invitationId/resend` | Resend an eligible invitation or issue a replacement according to the invitation policy. |
+| GET | `/supplier-invitations/validate/:token` | Validate an invitation token and return the permitted next step. |
+| POST | `/supplier-invitations/:invitationId/accept` | Accept an invitation after identity and token validation. |
+
+**Notes:**
+
+- Invitation creation shall record which purchasing company initiated the invitation.
+- Public token validation shall disclose only the information needed to continue onboarding.
+- Acceptance must verify the invitation token and the invitee's identity or company context as required by the onboarding flow.
+- Invitation identifiers and tokens shall not be treated as substitutes for authorization.
+- If invitation acceptance requires signup, the flow shall coordinate with existing authentication and company registration endpoints rather than duplicate them.
+
+#### 5.5.3 Supplier Portal Routes
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/supplier-portal/rfqs` | Retrieve RFQs available to the authenticated supplier company. |
+| GET | `/supplier-portal/rfqs/:rfqId` | Retrieve details of an RFQ the supplier is authorized to access. |
+| POST | `/supplier-portal/rfqs/:rfqId/quotations` | Submit a quotation for an eligible RFQ. |
+| GET | `/supplier-portal/quotations` | Retrieve quotations associated with the authenticated supplier company. |
+| GET | `/supplier-portal/quotations/:quotationId` | Retrieve a quotation belonging to the authenticated supplier company. |
+
+**Notes:**
+
+- Supplier identity shall be derived from trusted authentication and company context.
+- Every endpoint must enforce supplier eligibility, company-level data isolation, and user-level permissions.
+- RFQ visibility and submission eligibility must be validated by the backend.
+- Quotation selection, RFQ publication, and purchase order creation remain POM responsibilities.
+
+---
+
+### 5.6 Validation
+
+#### 5.6.1 Supplier Governance
+
+- `supplierId`: Must be a valid identifier and reference an existing supplier.
+- `company_id`: Must come from trusted request context or be verified against the authenticated user's authorized company.
+- `supplier_status`: Must be one of the supported supplier lifecycle states.
+- `relationship_status`: Must be one of the supported company-supplier relationship states.
+- Supplier details returned to the client must respect company-level access restrictions.
+- Relationship removal must target the relationship associated with the active company.
+
+#### 5.6.2 Supplier Invitations
+
+- `email`: Must be a valid email address.
+- `company_id`: Must identify the purchasing company initiating the invitation and must be authorized for the requesting user.
+- `invitation_token`: Must match a stored token hash and satisfy the invitation's lifecycle and expiration rules.
+- `expires_at`: Must be valid and future-dated when an invitation is created.
+- `invitation_status`: Must be a supported invitation lifecycle state.
+- Invitation acceptance must reject invalid, expired, cancelled, or already-consumed invitations.
+- Invitation acceptance must verify that the invitee is permitted to establish the intended company-supplier relationship.
+- Invitation creation and acceptance must not create duplicate supplier identities or company-supplier relationships.
+- Resending an invitation must not inadvertently reactivate an inactive relationship.
+- Public invitation endpoints must not expose sensitive supplier, company, or user information.
+
+#### 5.6.3 Supplier Portal and Quotations
+
+- `rfqId`: Must reference an existing RFQ.
+- `quotationId`: Must reference an existing quotation within the authenticated supplier's authorized scope.
+- `rfq_item_id`: Must reference an item belonging to the RFQ associated with the quotation.
+- `quoted_quantity`: Must be a valid positive quantity that satisfies the RFQ's applicable requirements.
+- `unit_price`: Must be a valid non-negative monetary amount, subject to the procurement rules.
+- `total_price`: Must be consistent with the applicable quantity and unit-price calculation.
+- `currency_code`: Must be valid and consistent with the quotation and RFQ rules.
+- `valid_until`: Must be a valid date when provided.
+- Quotation submission must be rejected if the RFQ is closed or otherwise ineligible.
+- Quotation retrieval must enforce supplier ownership and company-level data isolation.
+- Client-supplied supplier identifiers must be verified against the authenticated supplier company.
+- Quotation submission must reject incomplete or inconsistent quotation data.
+
+---
+
+### 5.7 Database Tables
+
+#### 5.7.1 `Supplier`
+
+Stores the supplier identity and its supplier-specific information.
+
+Relevant fields include:
+
+- `id`
+- `tenant_id`
+- `company_id`
+- `supplier_code`
+- `legal_name`
+- `display_name`
+- `tax_id`
+- `contact_email`
+- `contact_phone`
+- `address`
+- `status`
+- `created_at`
+- `updated_at`
+
+The `company_id` field associates the supplier identity with its represented company.
+
+The supplier record is distinct from any individual purchasing company's relationship with that supplier.
+
+#### 5.7.2 `SupplierCompanyRelationship`
+
+Stores the relationship between a purchasing company and a supplier.
+
+Relevant fields include:
+
+- `id`
+- `tenant_id`
+- `company_id`
+- `supplier_id`
+- `relationship_status`
+- `created_at`
+- `updated_at`
+
+The `company_id` identifies the purchasing company maintaining the relationship, while `supplier_id` identifies the supplier.
+
+The unique constraint on `[tenant_id, company_id, supplier_id]` prevents duplicate relationship records within the same tenant.
+
+Relationship deactivation preserves the record for historical reference and potential reactivation.
+
+#### 5.7.3 `SupplierInvitation`
+
+Stores supplier invitation records and their lifecycle.
+
+Relevant fields include:
+
+- `id`
+- `tenant_id`
+- `supplier_id`
+- `invited_by_user_id`
+- `email`
+- `token_hash`
+- `status`
+- `expires_at`
+- `accepted_at`
+- `created_at`
+- `updated_at`
+
+The invitation must also retain an unambiguous reference to the purchasing company that initiated it. If this is not already represented in the schema, a `company_id` field should be added.
+
+The token hash is used for secure validation. The raw token is used only to construct the invitation link and must not be persisted.
+
+#### 5.7.4 `SupplierQuotation`
+
+Stores supplier quotations submitted against RFQs.
+
+Relevant fields include:
+
+- `id`
+- `tenant_id`
+- `company_id`
+- `rfq_id`
+- `supplier_id`
+- `quotation_number`
+- `currency_code`
+- `total_amount`
+- `status`
+- `submitted_at`
+- `valid_until`
+- `created_at`
+- `updated_at`
+
+The quotation must reference the supplier submitting it and the RFQ to which it responds.
+
+The existing company context must be validated against the authenticated supplier and the relevant procurement context.
+
+#### 5.7.5 `SupplierQuotationItem`
+
+Stores the individual items included in a supplier quotation.
+
+Relevant fields include:
+
+- `id`
+- `tenant_id`
+- `company_id`
+- `supplier_quotation_id`
+- `rfq_item_id`
+- `line_no`
+- `quoted_quantity`
+- `unit_price`
+- `total_price`
+- `lead_time_days`
+- `remarks`
+- `created_at`
+- `updated_at`
+
+Each quotation item must reference a valid item belonging to the associated RFQ.
+
+#### 5.7.6 Referenced Existing Tables
+
+- **`Company`:** Stores company identity and organization information.
+- **`CompanyMembership`:** Associates users with companies and supports company-context authorization.
+- **`User`:** Stores user identities, including users who initiate invitations.
+- **`RFQ`:** Stores requests for quotation managed by POM.
+- **`RFQItem`:** Stores the items included in an RFQ.
+- **`PurchaseOrder`:** Stores purchase orders managed by POM and may reference the selected quotation.
+- **`Tenant`:** Provides the existing tenant-level data boundary.
+
+---
+
+### 5.8 Class Design
+
+The Supplier Management module shall use three dedicated service groups. Each service group contains its own controller, service, repository, and validator where needed.
+
+#### 5.8.1 `supplierManagementRoutes`
+
+Defines the module's routes and maps each route to its appropriate controller.
+
+Routes shall be grouped by Governance, Invitation, and Portal responsibilities.
+
+#### 5.8.2 Governance Service Group
+
+**`supplierManagementGovernanceController`**
+
+- Receives governance-related HTTP requests.
+- Extracts and validates route parameters and query values.
+- Passes the authenticated user and authorized company context to the service.
+- Returns appropriate responses without implementing business rules.
+
+**`supplierManagementGovernanceService`**
+
+- Retrieves supplier records and supplier details.
+- Enforces supplier governance rules.
+- Deactivates the relationship between the active company and a supplier when authorized.
+- Ensures supplier history and other companies' relationships remain intact.
+
+**`supplierManagementGovernanceRepository`**
+
+- Retrieves supplier records and their company relationships.
+- Retrieves supplier details within the permitted scope.
+- Updates the status of the appropriate company-supplier relationship.
+- Performs database operations without duplicating service-level business rules.
+
+**`supplierManagementGovernanceValidator`**
+
+- Validates governance query parameters, route identifiers, and supported status values.
+
+#### 5.8.3 Invitation Service Group
+
+**`supplierManagementInvitationController`**
+
+- Receives invitation creation, validation, resend, and acceptance requests.
+- Validates request inputs and passes the required context to the service.
+- Returns onboarding results and invitation lifecycle information.
+
+**`supplierManagementInvitationService`**
+
+- Generates invitation tokens and their expiration times.
+- Coordinates invitation persistence and email delivery.
+- Validates invitation lifecycle rules.
+- Determines whether the invited company already exists.
+- Coordinates existing-company acceptance or new-company onboarding.
+- Establishes or reactivates the company-supplier relationship after successful acceptance.
+- Prevents duplicate acceptance and inappropriate relationship reactivation.
+
+**`supplierManagementInvitationRepository`**
+
+- Creates and retrieves invitation records.
+- Looks up invitation records using token hashes.
+- Updates invitation lifecycle state.
+- Retrieves or verifies the relevant supplier and company-supplier relationship.
+- Supports atomic or transactional acceptance operations as required by the schema.
+
+**`supplierManagementInvitationValidator`**
+
+- Validates invitation request data, email addresses, supported statuses, and token-related inputs.
+- Does not replace service-level verification of token validity, expiration, or acceptance eligibility.
+
+#### 5.8.4 Portal Service Group
+
+**`supplierManagementPortalController`**
+
+- Receives supplier portal RFQ and quotation requests.
+- Validates request parameters and quotation payloads.
+- Passes trusted authentication and company context to the service.
+- Returns authorized RFQ and quotation information.
+
+**`supplierManagementPortalService`**
+
+- Enforces supplier portal eligibility and user authorization.
+- Retrieves RFQs the supplier is authorized to access.
+- Validates RFQ eligibility before quotation submission.
+- Coordinates quotation creation and retrieval.
+- Ensures quotation operations remain within the authenticated supplier's scope.
+- Does not implement procurement-side RFQ publication, quotation selection, or purchase order creation.
+
+**`supplierManagementPortalRepository`**
+
+- Retrieves eligible RFQ and RFQ item data through the established database-access pattern.
+- Creates and retrieves supplier quotations and quotation items.
+- Queries quotations within the correct tenant, company, supplier, and RFQ context.
+- Uses transactional database operations when creating a quotation and its items together.
+
+**`supplierManagementPortalValidator`**
+
+- Validates RFQ identifiers, quotation payloads, quantities, prices, currency, and other applicable request fields.
+
+#### 5.8.5 Cross-Cutting Rules
+
+- Services contain business logic; controllers handle HTTP concerns; repositories handle database access; validators handle request-shape validation.
+- Repository methods shall accept a single structured input object when multiple values are required.
+- Company, tenant, and user context shall be passed explicitly through the appropriate service and repository operations.
+- Services shall use the existing authentication and authorization context rather than introducing a separate identity system.
+- Email delivery shall use the existing email-service abstraction where available.
+- Database changes involving invitation acceptance and relationship activation shall preserve consistency under failure or concurrent requests.
+
+---
+
+### 5.9 Sequence Diagrams
+
+#### 5.9.1 Supplier Governance — View and Remove Supplier
 
 ```mermaid
 sequenceDiagram
     actor User
-    actor Supplier
-    participant UI as Supplier Management Page
+    participant UI as Supplier Management UI
     participant API as Backend API
-    participant SUP as Supplier Management Module
+    participant GOV as Governance Controller
+    participant SVC as Governance Service
+    participant REP as Governance Repository
     participant DB as Database
 
-    User->>UI: Create or update supplier record
-    UI->>API: Submit supplier details
-    API->>SUP: Validate and process supplier request
-    SUP->>DB: Save supplier record
-    DB-->>SUP: Supplier record saved
-    SUP-->>API: Return supplier result
-    API-->>UI: Display supplier record
+    User->>UI: View supplier list
+    UI->>API: GET /api/suppliers
+    API->>GOV: Forward authenticated request
+    GOV->>SVC: Request suppliers using authorized company context
+    SVC->>REP: Retrieve associated suppliers
+    REP->>DB: Query supplier relationships and supplier records
+    DB-->>REP: Return matching records
+    REP-->>SVC: Return supplier data
+    SVC-->>GOV: Return authorized supplier list
+    GOV-->>UI: Return supplier list
 
-    User->>UI: Generate supplier invitation
-    UI->>API: Submit invite request
-    API->>SUP: Create invitation token and link
-    SUP->>DB: Save supplier invitation
-    DB-->>SUP: Invitation saved
-    SUP-->>API: Return invitation result
-    API-->>UI: Display invitation status
+    User->>UI: Remove supplier from company
+    UI->>API: DELETE /api/suppliers/:supplierId/relationship
+    API->>GOV: Forward authenticated request
+    GOV->>SVC: Remove authorized company-supplier relationship
+    SVC->>REP: Deactivate relationship
+    REP->>DB: Update relationship status
+    DB-->>REP: Confirm update
+    REP-->>SVC: Return updated relationship
+    SVC-->>GOV: Return removal result
+    GOV-->>UI: Display confirmation
+```
 
-    Supplier->>UI: Open invitation link
-    UI->>API: Validate invitation token
-    API->>SUP: Check token status and expiration
-    SUP->>DB: Retrieve invitation and supplier data
-    DB-->>SUP: Return invitation record
-    SUP-->>API: Return validation result
-    API-->>UI: Display supplier registration form
+#### 5.9.2 Supplier Invitation and Acceptance
 
-    Supplier->>UI: Submit supplier registration
-    UI->>API: Send registration details
-    API->>SUP: Process onboarding submission
-    SUP->>DB: Update supplier and invitation status
-    DB-->>SUP: Registration saved
-    SUP-->>API: Return registration result
-    API-->>UI: Display completed registration status
+```mermaid
+sequenceDiagram
+    actor BuyerUser as Purchasing Company User
+    actor Invitee
+    participant UI as Supplier Management UI
+    participant API as Backend API
+    participant INV as Invitation Controller
+    participant SVC as Invitation Service
+    participant REP as Invitation Repository
+    participant EMAIL as Email Service
+    participant DB as Database
+    participant AUTH as Authentication and Company Management
 
-    User->>UI: Add or update supplier quotation
-    UI->>API: Submit quotation data
-    API->>SUP: Process quotation request
-    SUP->>DB: Save quotation and quotation items
-    DB-->>SUP: Quotation saved
-    SUP-->>API: Return quotation result
-    API-->>UI: Display quotation details
+    BuyerUser->>UI: Invite company as supplier
+    UI->>API: POST /api/supplier-invitations
+    API->>INV: Forward authenticated request
+    INV->>SVC: Create invitation using authorized company context
+    SVC->>REP: Persist invitation and token hash
+    REP->>DB: Save invitation
+    DB-->>REP: Invitation saved
+    REP-->>SVC: Return invitation result
+    SVC->>EMAIL: Send invitation link
+    EMAIL-->>SVC: Return delivery result
+    SVC-->>INV: Return invitation status
+    INV-->>UI: Display result
 
-    User->>UI: Request quotation comparison
-    UI->>API: Send comparison request
-    API->>SUP: Retrieve related quotations
-    SUP->>DB: Query quotations by procurement reference
-    DB-->>SUP: Return quotation records
-    SUP-->>API: Return comparison dataset
-    API-->>UI: Display supplier quotation comparison
+    Invitee->>UI: Open invitation link
+    UI->>API: GET /api/supplier-invitations/validate/:token
+    API->>INV: Validate invitation request
+    INV->>SVC: Validate token and expiration
+    SVC->>REP: Retrieve invitation by token hash
+    REP->>DB: Query invitation
+    DB-->>REP: Return invitation data
+    REP-->>SVC: Return invitation data
+    SVC->>AUTH: Determine existing-company or signup path
+    AUTH-->>SVC: Return onboarding path
+    SVC-->>INV: Return permitted next step
+    INV-->>UI: Display appropriate onboarding flow
+
+    Invitee->>UI: Accept invitation
+    UI->>API: POST /api/supplier-invitations/:invitationId/accept
+    API->>INV: Forward acceptance request
+    INV->>SVC: Verify invitation and invitee context
+    SVC->>AUTH: Authenticate or coordinate company onboarding
+    AUTH-->>SVC: Return verified company context
+    SVC->>REP: Atomically accept invitation and establish relationship
+    REP->>DB: Update invitation and relationship
+    DB-->>REP: Confirm transaction
+    REP-->>SVC: Return acceptance result
+    SVC-->>INV: Return onboarding result
+    INV-->>UI: Display confirmation
+```
+
+#### 5.9.3 Supplier Portal — Submit Quotation
+
+```mermaid
+sequenceDiagram
+    actor SupplierUser as Supplier User
+    participant UI as Supplier Portal
+    participant API as Backend API
+    participant PORTAL as Portal Controller
+    participant SVC as Portal Service
+    participant REP as Portal Repository
+    participant DB as Database
+    participant POM as POM RFQ Data
+
+    SupplierUser->>UI: Open supplier portal
+    UI->>API: GET /api/supplier-portal/rfqs
+    API->>PORTAL: Forward authenticated request
+    PORTAL->>SVC: Retrieve eligible RFQs using authenticated company context
+    SVC->>REP: Verify supplier eligibility and retrieve RFQs
+    REP->>DB: Query company-supplier relationship and supplier records
+    DB-->>REP: Return eligibility data
+    REP->>POM: Retrieve RFQs available to this supplier
+    POM-->>REP: Return eligible RFQ data
+    REP-->>SVC: Return authorized RFQs
+    SVC-->>PORTAL: Return RFQ list
+    PORTAL-->>UI: Display RFQs
+
+    SupplierUser->>UI: Submit quotation
+    UI->>API: POST /api/supplier-portal/rfqs/:rfqId/quotations
+    API->>PORTAL: Forward authenticated request
+    PORTAL->>SVC: Validate quotation request and supplier context
+    SVC->>REP: Verify RFQ eligibility and persist quotation
+    REP->>DB: Validate references and save quotation with items
+    DB-->>REP: Return saved quotation
+    REP-->>SVC: Return quotation result
+    SVC-->>PORTAL: Return submission result
+    PORTAL-->>UI: Display quotation confirmation
 ```
 
 ---
 
-### Classes
+### 5.10 Error Handling
 
-#### supplierRouter
+| HTTP Status | Condition |
+|---|---|
+| `400 Bad Request` | Invalid route parameters, query values, or request payload. |
+| `401 Unauthorized` | Missing or invalid authentication where authentication is required. |
+| `403 Forbidden` | The user lacks the required permission, company access, supplier eligibility, or RFQ access. |
+| `404 Not Found` | The requested supplier, relationship, invitation, RFQ, or quotation does not exist within the caller's permitted scope. |
+| `409 Conflict` | Duplicate relationship, duplicate submission, invalid lifecycle transition, or conflicting invitation acceptance. |
+| `410 Gone` | An invitation token has expired or an invitation is no longer usable, where exposing this distinction is appropriate. |
+| `422 Unprocessable Entity` | The request is structurally valid but violates business rules, such as submitting a quotation for a closed RFQ. |
+| `500 Internal Server Error` | An unexpected server-side failure. |
+| `503 Service Unavailable` | A required dependency is temporarily unavailable, such as the email delivery provider. |
 
-Defines the API routes for supplier, supplier invitation, and quotation operations. It maps incoming HTTP requests to the appropriate controller functions.
+Error responses shall not expose raw invitation tokens, secrets, internal database details, or unauthorized supplier information.
 
-#### supplierController
-
-Handles supplier management API requests and responses. It receives requests for creating, updating, viewing, archiving suppliers, generating invitations, validating invitations, and managing quotations, then returns the appropriate response to the client.
-
-#### supplierService
-
-Contains the business logic for supplier management operations. It manages supplier records, generates invitation links, validates onboarding tokens, updates supplier registration status, retrieves quotation comparisons, and enforces supplier-related business rules.
-
-#### supplierRepository
-
-Handles data access and database queries related to supplier records, supplier invitations, supplier quotations, and quotation line items.
-
-#### supplierValidator
-
-Validates request data for supplier, invitation, and quotation operations. It ensures supplier details, invitation inputs, quotation references, totals, and related fields are complete and correctly formatted before processing.
 
 ---
 
-### Error Handling
-
-400  
-Invalid supplier, invitation, or quotation request data
-
-401  
-Unauthorized access
-
-403  
-Insufficient privileges to manage suppliers, invitations, or quotations
-
-404  
-Supplier, invitation, or quotation record not found
-
-409  
-Supplier record already exists or resource is in conflicting state
-
-410  
-Supplier invitation link expired
-
-422  
-Supplier onboarding or quotation validation failed
-
-500  
-Internal server error
-
-503  
-Supplier management service unavailable
-
----
-
-**## Module 6**
+## Module 6
 
 Purchase Order Management
 
-**---**
+---
 
-**### Responsibilities**
+### Responsibilities
 
 - Manage procurement activities after a Purchase Requisition has been approved.
 
@@ -1219,7 +1617,7 @@ Purchase Order Management
 
 - Provide procurement status visibility throughout the RFQ, quotation, and purchase order lifecycle.
 
-**### Module Dependencies**
+### Module Dependencies
 
 - Depends On: Authentication, Authorization/RBAC, `users`, `companies`, `purchase_requisitions`, Supplier Dashboard, Supplier Management, and Audit Trail.
 
@@ -1227,9 +1625,9 @@ Purchase Order Management
 
 - Consumes: `supplier_quotations` and `supplier_quotation_items` submitted through the Supplier Dashboard.
 
-**---**
+---
 
-**### Functional Requirements**
+### Functional Requirements
 
 - The system shall allow authorized Procurement Officers to view approved Purchase Requisitions available for procurement.
 
@@ -1257,9 +1655,9 @@ Purchase Order Management
 
 - The system shall record significant procurement actions for audit purposes.
 
-**---**
+---
 
-**### Business Rules**
+### Business Rules
 
 - Only authorized Procurement Officers or users with the required procurement permissions shall be allowed to create, publish, evaluate, select, or manage procurement records.
 
@@ -1289,9 +1687,9 @@ Purchase Order Management
 
 - All procurement records must be isolated by tenant and company according to the authenticated user's access.
 
-**---**
+---
 
-**### API Endpoints**
+### API Endpoints
 
 POST
 
@@ -1335,9 +1733,9 @@ POST
 
 `/api/purchase-orders/rfqs/:rfqId/quotations/:quotationId/select`
 
-**---**
+---
 
-**### Validation**
+### Validation
 
 - `rfq_number`
 
@@ -1399,47 +1797,47 @@ POST
 
 - Cross-tenant or unauthorized procurement references must be rejected.
 
-**---**
+---
 
-**### Database Tables**
+### Database Tables
 
-- **`rfqs`**
+- `rfqs`
 
 - Stores the main Request for Quotation records.
 
 - Includes RFQ number, company reference, originating Purchase Requisition reference, title, description, status, issue date, closing date, creator, and timestamps.
 
-- **`rfq_items`**
+- `rfq_items`
 
 - Stores the procurement items associated with each RFQ.
 
 - Includes RFQ reference, originating Purchase Requisition Item reference where applicable, line number, description, quantity, unit of measure, specification, and timestamps.
 
-- **`supplier_quotations`**
+- `supplier_quotations`
 
 - Stores supplier quotations submitted against an RFQ.
 
 - Includes RFQ reference, supplier reference, quotation number, currency, total amount, status, submission date, validity date, and timestamps.
 
-- **`supplier_quotation_items`**
+- `supplier_quotation_items`
 
 - Stores the individual supplier quotation line items.
 
 - Includes quotation reference, RFQ item reference, line number, quoted quantity, unit price, total price, lead time, remarks, and timestamps.
 
-- **`purchase_orders`**
+- `purchase_orders`
 
 - Stores the main Purchase Order records created from selected supplier quotations.
 
 - Includes Purchase Order number, supplier reference, RFQ reference, selected quotation reference, company reference, order date, total amount, status, creator, and relevant timestamps.
 
-- **`purchase_order_items`**
+- `purchase_order_items`
 
 - Stores the line items associated with each Purchase Order.
 
 - Includes Purchase Order reference, item description or source item reference, quantity, unit price, subtotal, and remarks.
 
-- **Referenced Existing Tables**
+- Referenced Existing Tables
 
 - `purchase_requisitions` — stores the approved procurement request that may serve as the origin of an RFQ.
 
@@ -1451,9 +1849,9 @@ POST
 
 - `companies` — stores the company context associated with procurement records.
 
-**---**
+---
 
-**### Sequence Diagram**
+### Sequence Diagram
 
 ```mermaid
 sequenceDiagram
@@ -1559,33 +1957,33 @@ sequenceDiagram
     API-->>UI: Display Purchase Order
 ```
 
-**---**
+---
 
-**### Classes**
+### Classes
 
-**#### purchaseOrderRouter**
+#### purchaseOrderRouter
 
 Defines the API routes for procurement queue access, RFQ creation, RFQ publication, quotation retrieval and selection, Purchase Order creation, retrieval, updating, and deletion. It maps incoming HTTP requests to the appropriate controller functions.
 
-**#### purchaseOrderController**
+#### purchaseOrderController
 
 Handles POM API requests and responses. It receives requests for creating and managing RFQs, publishing RFQs, retrieving quotations, selecting quotations, and creating or managing Purchase Orders.
 
-**#### purchaseOrderService**
+#### purchaseOrderService
 
 Contains the business logic for POM operations. It validates procurement state, manages RFQ lifecycle operations, retrieves and evaluates quotation data, processes quotation selection, creates Purchase Orders, maintains document relationships, and coordinates procurement status changes.
 
-**#### purchaseOrderRepository**
+#### purchaseOrderRepository
 
 Handles data access and database queries related to RFQs, RFQ items, supplier quotations, supplier quotation items, Purchase Orders, and Purchase Order items.
 
-**#### purchaseOrderValidator**
+#### purchaseOrderValidator
 
 Validates request data for POM operations. It ensures RFQ information, procurement items, quotation references, Purchase Order data, quantities, prices, totals, and status transitions are correctly formatted and complete before processing.
 
-**---**
+---
 
-**### Error Handling**
+### Error Handling
 
 400
 
@@ -1619,7 +2017,7 @@ Internal server error
 
 POM or dependent procurement service unavailable
 
-**---**
+---
 
 ---
 
@@ -1714,15 +2112,15 @@ PUT
 
 ### Database Tables
 
-- **delivery_verifications**
+- delivery_verifications
   - Stores the main delivery verification records.
   - Includes delivery reference, purchase order reference, supplier reference, delivery date, confirmation status, remarks, confirmed by, and confirmation timestamp.
 
-- **delivery_notifications**
+- delivery_notifications
   - Stores notification records related to verified deliveries.
   - Includes delivery verification reference, notification recipient, notification channel, notification status, sent timestamp, and related remarks.
 
-- **Referenced Existing Tables**
+- Referenced Existing Tables
   - `purchase_orders` — stores the purchase order records linked to the delivery being verified.
   - `suppliers` — stores the supplier information associated with the delivery.
   - `users` — stores the user who confirmed the delivery or received the notification.
@@ -1907,19 +2305,19 @@ GET
 
 ### Database Tables
 
-- **invoice_verifications**
+- invoice_verifications
   - Stores the main invoice verification records and verification results.
   - Includes invoice reference, purchase order reference, vendor reference, verification status, remarks, verified by, and verification timestamp.
 
-- **invoice_verification_items**
+- invoice_verification_items
   - Stores detailed line-level comparison results between invoice entries and related purchase order or transaction records.
   - Includes item description, expected quantity, invoiced quantity, expected price, invoiced price, and mismatch indicators.
 
-- **invoice_verification_attachments**
+- invoice_verification_attachments
   - Stores uploaded invoice files and related attachment metadata.
   - Includes invoice verification reference, file name, file path, file type, and upload timestamp.
 
-- **Referenced Existing Tables**
+- Referenced Existing Tables
   - `purchase_orders` — stores the purchase order records used as the primary reference for invoice matching.
   - `suppliers` — stores vendor or supplier information used for vendor validation.
   - `goods_receipts` or `receiving_reports` — stores supporting receipt or delivery data used to confirm delivered items where applicable.
@@ -2101,15 +2499,15 @@ GET
 
 ### Database Tables
 
-- **report_requests**
+- report_requests
   - Stores generated or requested report metadata when report generation is logged.
   - Includes requesting user, report type, applied filters, generation timestamp, and output format.
 
-- **report_exports**
+- report_exports
   - Stores exported report file references and related export details.
   - Includes report request reference, file name, format, generated path, and export timestamp.
 
-- **Referenced Existing Tables**
+- Referenced Existing Tables
   - `rfqs` — stores request for quotation records used in procurement reporting.
   - `quotations` — stores supplier quotation records used in comparative and summary reporting.
   - `purchase_orders` — stores purchase order records used in status and total amount reports.
@@ -2297,7 +2695,7 @@ Audit Trail
 
 ### Database Tables
 
-- **audit_trails**
+- audit_trails
   - Stores immutable audit records generated from completed procurement lifecycle events.
   - Represents the finalized state of a procurement transaction at the time of auditing.
   - Includes:
@@ -2312,7 +2710,7 @@ Audit Trail
     - audit creation timestamp
     - verification status
 
-- **audit_trail_hashes**
+- audit_trail_hashes
   - Stores cryptographic hashes generated from finalized procurement transaction snapshots.
   - Used to verify that stored transaction data has not been modified after blockchain anchoring.
   - Includes:
@@ -2321,7 +2719,7 @@ Audit Trail
     - generated hash value
     - hash generation timestamp
 
-- **audit_trail_blockchain_refs**
+- audit_trail_blockchain_refs
   - Stores blockchain anchoring information associated with audit trail hashes.
   - Contains references required to locate and verify the blockchain record.
   - Includes:
@@ -2332,7 +2730,7 @@ Audit Trail
     - anchoring timestamp
     - blockchain verification status
 
-- **Referenced Existing Tables**
+- Referenced Existing Tables
   - `users`
     - Stores the user associated with procurement actions such as approval, completion, or confirmation.
 
@@ -2546,7 +2944,7 @@ Organization Administration
 
 Handles organization member retrieval, invitation, manual addition, updates, deactivation, and removal.
 
-**API Endpoints**
+API Endpoints
 
 POST
 
@@ -2574,7 +2972,7 @@ DELETE
 
 Handles organization-scoped role creation, modification, deletion, role assignment, and role-permission mapping.
 
-**API Endpoints**
+API Endpoints
 
 POST
 
@@ -2612,7 +3010,7 @@ DELETE
 
 Handles organization/company information and administrative configuration.
 
-**API Endpoints**
+API Endpoints
 
 GET
 
@@ -2628,7 +3026,7 @@ PUT
 
 Provides access to organization administrative activity records.
 
-**API Endpoints**
+API Endpoints
 
 GET
 
@@ -2863,35 +3261,35 @@ Responsibilities include:
 
 ## Error Handling
 
-**400**
+400
 
 Invalid input data or malformed request.
 
-**401**
+401
 
 Unauthenticated access.
 
-**403**
+403
 
 Insufficient organization administrative privileges or attempted access outside the administrator's organization scope.
 
-**404**
+404
 
 Organization member, organization role, permission, setting, or audit record not found within the administrator's organization scope.
 
-**409**
+409
 
 Duplicate organization membership, duplicate role-permission mapping, or conflicting organization configuration.
 
-**422**
+422
 
 Validation failed.
 
-**500**
+500
 
 Internal server error.
 
-**503**
+503
 
 Organization Administration service unavailable.
 
@@ -2899,7 +3297,7 @@ Organization Administration service unavailable.
 
 Supplier Dashboard
 
-***
+*
 
 ### Responsibilities
 
@@ -2911,7 +3309,7 @@ Supplier Dashboard
 - Allow supplier company users to view purchase orders issued to their company.  
 - Restrict supplier dashboard access and actions to records associated only with the authenticated user and linked supplier company.   
 
-***
+*
 
 ### Functional Requirements
 
@@ -2926,7 +3324,7 @@ Supplier Dashboard
 - The system shall block quotation submission when required quotation fields are incomplete or when the RFQ is no longer eligible for response.  
 - The system shall record quotation submission details, timestamps, and related supplier company references for traceability.  
 
-***
+*
 
 ### Business Rules
 
@@ -2941,7 +3339,7 @@ Supplier Dashboard
 - A supplier company user may access and manage only the records associated with its own supplier company.  
 - Purchase orders displayed in the Supplier Dashboard shall be read-only unless a separate supplier-side action is explicitly supported by the system.  
 
-***
+*
 
 ### API Endpoints
 
@@ -2960,7 +3358,7 @@ GET
 PUT  
 /api/supplier-dashboard/profile  
 
-***
+*
 
 ### Validation
 
@@ -2987,41 +3385,41 @@ PUT
 - Attachment must be present if supporting documents are required.   
 - Submission shall be blocked if required fields are incomplete.  
 
-***
+*
 
 ### Database Tables
 
-- **supplier_profiles**  
+- supplier_profiles  
   - Stores the supplier company’s registered business information, including company name, address, contact details, tax identification number, and registration details.  
   - Linked to the invited supplier company and its authenticated user records.  
 
-- **supplierinvitations**  
+- supplierinvitations  
   - Stores supplier onboarding invitation records generated by the buyer organization.  
   - Includes invitation token, invitation status, expiration timestamp, and completion timestamp.  
 
-- **supplier_company_relationships**  
+- supplier_company_relationships  
   - Stores the relationship between the buyer company and the supplier company.  
   - Used to determine whether the supplier relationship is invited, in progress, approved, active, suspended, or otherwise restricted under a specific buyer organization.  
 
-- **rfq_supplier_assignments**  
+- rfq_supplier_assignments  
   - Stores the RFQs assigned or made available to a specific supplier company.  
   - Used to control which RFQs are visible in the Supplier Dashboard.  
 
-- **quotations**  
+- quotations  
   - Stores quotations submitted by the supplier company for selected RFQs.   
   - Includes quotation status, total amount, currency, delivery date, quote validity period, lead time, remarks, submitted by, and submission timestamp.  
 
-- **quotation_items**  
+- quotation_items  
   - Stores the individual line items associated with each quotation.  
   - Includes item description, quoted quantity, unit price, subtotal, and remarks where applicable.  
 
-- **Referenced Existing Tables**  
+- Referenced Existing Tables  
   - `users` stores authentication and account ownership data for supplier company users.  
   - `companies` stores buyer and supplier organization records.   
   - `rfqs` and `rfq_items` store procurement-side RFQ records and corresponding line items.  
   - `purchaseorders` stores awarded or active supplier orders.  
 
-***
+*
 
 ### Sequence Diagram
 
@@ -3078,7 +3476,7 @@ sequenceDiagram
     API-->>UI: Display submission confirmation
 ```
 
-***
+*
 
 ### Classes
 
@@ -3088,7 +3486,7 @@ sequenceDiagram
 - supplierDashboardRepository  
 - supplierDashboardValidator  
 
-***
+*
 
 ### Error Handling
 
@@ -3103,4 +3501,4 @@ sequenceDiagram
 503 Supplier dashboard service unavailable  
 
 
-
+## Module 12 

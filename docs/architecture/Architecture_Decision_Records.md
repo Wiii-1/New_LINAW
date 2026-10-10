@@ -363,7 +363,7 @@ Using these libraries also promotes consistency, maintainability, and reduces th
 
 ---
 
-# ADR-009: Integrate RFQ Creation and Posting into the Approval Workflow
+# ADR-009: Keep RFQ Lifecycle Management Within Purchase Order Management
 
 ## Status
 
@@ -371,97 +371,68 @@ Accepted
 
 ## Context
 
-The Procurement Approval System requires Procurement Officers to create and post Requests for Quotations (RFQs) after a procurement request has been approved.
+The Procurement Approval System follows a procurement process in which a Purchase Requisition (PR) is submitted for approval before procurement personnel proceed with supplier sourcing.
 
-Initially, RFQ creation and posting could be implemented as a separate module or as an independent function within the Supplier or Procurement dashboard. However, this would require Procurement Officers to navigate away from the approval workflow, locate the approved request again, and manually initiate the RFQ process.
+RFQ creation and publication were initially considered part of the Approval Workflow. However, RFQs, supplier quotations, supplier selection, and Purchase Orders belong to the broader procurement chain and share related business rules and data.
 
-This would introduce unnecessary navigation and may result in duplicate data entry, since much of the information required for an RFQ is already available in the approved procurement request.
+Placing these operations across the Approval Workflow and Supplier Management would introduce unnecessary responsibility overlap and make procurement lifecycle management more difficult to maintain.
 
-The procurement process naturally follows a sequence where an approved request proceeds to supplier sourcing through an RFQ before quotations are evaluated and a supplier is selected.
+The system also requires a clear separation between buyer-side procurement operations and supplier-side activities.
 
 ## Decision
 
-RFQ creation and posting will be integrated directly into the **Approval Workflow** as the next available action for the Procurement Officer after a procurement request has been approved.
+The system will keep RFQ lifecycle management and Purchase Order operations within the **Purchase Order Management (POM) module**.
 
-Once a request is approved, the Procurement Officer will be provided with an action to **Create RFQ**. The RFQ form will use relevant information from the approved procurement request to minimize duplicate data entry.
+The Approval Workflow will remain responsible for processing approval requests and determining whether a Purchase Requisition has been approved.
+
+After approval, an authorized procurement officer may use POM to create and manage an RFQ associated with the approved Purchase Requisition.
+
+POM will be responsible for:
+
+- Creating and managing RFQs.
+- Publishing RFQs for eligible suppliers.
+- Managing supplier quotation selection and evaluation-related operations.
+- Associating supplier quotations with their respective RFQs.
+- Creating and managing Purchase Orders.
+- Maintaining relationships between Purchase Requisitions, RFQs, quotations, selected suppliers, and Purchase Orders.
+
+Supplier Management will provide supplier governance, onboarding, and supplier-facing portal functionality. It will not own RFQ creation, publication, quotation selection, or Purchase Order creation.
+
+The Supplier Portal will retrieve eligible published RFQs and allow authorized supplier users to submit and view their quotations.
 
 The resulting workflow will be:
 
-**Procurement Request → Approval → Create RFQ → Post RFQ → Receive Quotations → Evaluate Quotations → Select Supplier → Create Purchase Order**
-
-RFQ functionality will remain logically separated as its own business entity in the system, while its creation and posting will be initiated through the approval workflow.
+**Purchase Requisition → Approval Workflow → Approved Purchase Requisition → POM Creates and Publishes RFQ → Supplier Submits Quotation → POM Evaluates and Selects Quotation → POM Creates Purchase Order**
 
 ## Rationale
 
-Integrating RFQ creation into the approval workflow provides a more direct representation of the procurement process.
+Keeping procurement operations within POM provides a clear boundary between approval processing and procurement execution.
 
 This approach:
 
-- Reduces unnecessary navigation between modules or interfaces.
-- Allows Procurement Officers to immediately proceed with sourcing after approval.
-- Reuses information from the approved procurement request.
-- Reduces duplicate data entry and potential data inconsistencies.
-- Provides a clear transition from procurement approval to supplier sourcing.
-- Keeps the system interface focused on the actual responsibilities of the Procurement Officer.
-- Avoids introducing an additional top-level module solely for RFQ creation and posting.
-- Maintains flexibility for RFQs to have their own lifecycle, status, suppliers, quotations, and audit records.
-
-The Supplier Dashboard will remain focused on supplier-side activities, such as viewing available RFQs, submitting quotations, receiving purchase orders, and tracking orders. RFQ creation and posting will remain a Procurement Officer responsibility.
+- Establishes a single module responsible for RFQ and Purchase Order lifecycle operations.
+- Prevents RFQ creation and publication logic from being duplicated across modules.
+- Keeps the Approval Workflow focused on approval-related responsibilities.
+- Keeps Supplier Management focused on supplier records, onboarding, and supplier-facing operations.
+- Allows the Supplier Portal to access procurement information without owning the buyer-side procurement process.
+- Makes the procurement chain easier to maintain and audit.
 
 ## Consequences
 
 ### Positive
 
-- More streamlined procurement workflow.
-- Reduced navigation for Procurement Officers.
-- Reduced duplicate data entry.
-- Better reuse of approved procurement request information.
-- Clear separation between buyer-side and supplier-side responsibilities.
-- Fewer top-level modules and simpler system navigation.
-- Easier tracking of the relationship between procurement requests and their resulting RFQs.
+- Clear separation of responsibilities between Approval Workflow, POM, and Supplier Management.
+- Centralized RFQ and Purchase Order lifecycle management.
+- Reduced duplication of procurement business logic.
+- Clearer API and service boundaries.
+- Better maintainability of the procurement chain.
+- Supplier-facing operations remain separate from buyer-side procurement decisions.
 
 ### Negative
 
-- The Approval Workflow interface will have additional functionality.
-- The workflow may become more complex as additional procurement actions are introduced.
-- The system must ensure that only eligible and approved requests can be used to create RFQs.
-- RFQ lifecycle management must still be implemented separately from the approval process.
-
-## Workflow
-
-```text
-Procurement Request
-        |
-        v
-Approval Workflow
-        |
-        v
-Procurement Officer Approves Request
-        |
-        v
-     Create RFQ
-        |
-        v
-   Review RFQ Details
-        |
-        v
-     Select Suppliers
-        |
-        v
-      Post RFQ
-        |
-        v
-Suppliers Submit Quotations
-        |
-        v
-Evaluate / Compare Quotations
-        |
-        v
-   Select Supplier
-        |
-        v
-   Create Purchase Order
-```
+- POM must coordinate with Supplier Management when retrieving supplier-related information or validating supplier eligibility.
+- The modules must enforce consistent authorization and company-supplier relationship rules.
+- POM must ensure that RFQs are created from eligible procurement requests and that quotation selection follows valid procurement rules.
 
 ---
 
@@ -745,5 +716,300 @@ The following may require additional architectural decisions later:
 - Whether the system should expose the complete revision history to employees
   and procurement officers.
 - Whether revision numbers and `pr_number` generation should be configurable.
+
+# ADR-011: Consolidate Supplier Governance, Invitations, and Portal Operations Within Supplier Management
+
+## Status
+
+Accepted
+
+## Context
+
+The system initially treated supplier management and the Supplier Dashboard as separate functional areas.
+
+However, both areas depend on the same supplier identities, company information, supplier-company relationships, invitations, and supplier quotations.
+
+Maintaining separate top-level modules for supplier governance and supplier-facing operations would introduce unnecessary module boundaries and could duplicate supplier-related business logic.
+
+At the same time, combining every supplier operation into a single service would create a large service responsible for unrelated workflows, including supplier administration, invitation processing, and supplier-facing procurement operations.
+
+The system therefore requires one Supplier Management module with clearly separated internal responsibilities.
+
+The existing data model includes the following relevant entities:
+
+- `Supplier`
+- `SupplierInvitation`
+- `SupplierCompanyRelationship`
+- `SupplierQuotation`
+- `SupplierQuotationItem`
+
+The `Supplier` record represents the supplier identity, while `SupplierCompanyRelationship` represents the relationship between a purchasing company and a supplier.
+
+A company may participate in LINAW as a buyer and as a supplier. These roles must not require duplicating the company's identity.
+
+## Decision
+
+The system will consolidate supplier governance, invitation processing, and Supplier Portal functionality into one **Supplier Management module**.
+
+The module will contain three dedicated services:
+
+1. `supplierManagementGovernanceService.ts`
+2. `supplierManagementInvitationService.ts`
+3. `supplierManagementPortalService.ts`
+
+Each service will have a distinct responsibility.
+
+### 1. Supplier Governance Service
+
+The Governance Service will manage supplier records and supplier-company relationships from the perspective of an authorized purchasing company.
+
+Its responsibilities will include:
+
+- Retrieving and viewing supplier records.
+- Retrieving supplier details and related information.
+- Searching and filtering suppliers available to the active company.
+- Removing a supplier from the active company's supplier list.
+- Preserving supplier identities and historical procurement records.
+
+Removing a supplier from a purchasing company's list will deactivate the relevant `SupplierCompanyRelationship` rather than physically deleting the `Supplier` record.
+
+This operation will not automatically deactivate the supplier's relationships with other companies.
+
+The Governance Service will not own invitation delivery, invitation acceptance, supplier registration, or supplier quotation submission.
+
+### 2. Supplier Invitation Service
+
+The Invitation Service will manage supplier onboarding invitations and their lifecycle.
+
+Its responsibilities will include:
+
+- Creating supplier invitations.
+- Generating time-limited invitation links.
+- Sending initial invitation emails and resending invitations.
+- Validating invitation tokens.
+- Rejecting invalid, expired, cancelled, or previously accepted invitations.
+- Coordinating invitation acceptance with existing authentication and organization management functionality.
+- Establishing or reactivating the appropriate supplier-company relationship after successful acceptance.
+
+When an invitation is accepted, the service will determine whether the invited company already exists in LINAW.
+
+If the company already exists, the system will associate the existing company with the appropriate supplier identity and establish the relevant supplier-company relationship without creating a duplicate company or user account.
+
+If the company does not exist, the invitation flow will coordinate with the existing authentication and organization registration processes to complete onboarding.
+
+Supplier Management will not independently duplicate the system's authentication, user registration, or company creation workflows.
+
+Creating or resending an invitation will not automatically reactivate a previously deactivated supplier-company relationship. Reactivation will occur only after successful invitation acceptance and the required eligibility checks.
+
+An invitation must be associated with the purchasing company that initiated it so that the system can establish the correct relationship when the invitation is accepted.
+
+Invitation tokens will be unpredictable, time-limited, and validated on the backend. The system will store a cryptographic hash of the token rather than the raw token and will prevent successful acceptance from being replayed.
+
+### 3. Supplier Portal Service
+
+The Portal Service will support supplier-facing procurement operations.
+
+Its responsibilities will include:
+
+- Retrieving the authenticated supplier company's profile.
+- Retrieving published RFQs available to that supplier.
+- Retrieving RFQ details and associated line items.
+- Submitting supplier quotations for eligible RFQs.
+- Retrieving quotations submitted by the supplier.
+- Retrieving individual quotation details.
+
+The service will derive supplier identity and company context from authenticated and authorized server-side information rather than trusting a supplier identifier supplied by the client.
+
+The service must verify that the supplier is eligible to access the portal, the authenticated user has the required permissions, and the requested RFQ is available to that supplier.
+
+The Portal Service will not own RFQ creation, RFQ publication, quotation selection, or Purchase Order creation. These responsibilities remain within POM.
+
+### Module Structure
+
+The module will follow the existing backend architecture:
+
+**Router → Controller → Service → Repository → Prisma**
+
+Each service will have its own controller, repository, and validation layer where appropriate.
+
+The implementation will follow these responsibilities:
+
+- **Router:** Defines the module's API endpoints.
+- **Controller:** Handles HTTP requests, extracts request information, invokes the appropriate service, and formats responses.
+- **Service:** Implements business rules and coordinates operations.
+- **Repository:** Performs database queries and persistence.
+- **Validator:** Validates request parameters, query parameters, and request bodies.
+
+Repository methods should accept structured input objects rather than unnecessarily long lists of positional parameters.
+
+The three services will remain within the existing modular monolith. They will not be deployed as separate services.
+
+## Supplier Identity and Relationship Lifecycle
+
+The system will distinguish between supplier identity, supplier-company relationships, and invitation lifecycle.
+
+### Supplier
+
+The `Supplier` record represents the supplier identity and its overall status within LINAW.
+
+It will be retained when a purchasing company removes the supplier from its supplier list.
+
+### SupplierCompanyRelationship
+
+The `SupplierCompanyRelationship` record represents the relationship between a purchasing company and a supplier.
+
+Deactivating this relationship removes the supplier from that purchasing company's active supplier list and prevents new procurement activity through that relationship, subject to the applicable business rules.
+
+Other companies' relationships with the same supplier remain unaffected.
+
+### SupplierInvitation
+
+The `SupplierInvitation` record represents a specific onboarding invitation and its lifecycle.
+
+Invitation status will not be used as a substitute for supplier status or supplier-company relationship status.
+
+### Reactivation
+
+If a previously deactivated relationship is re-established through an invitation, the system will reactivate the existing relationship when appropriate rather than creating a duplicate relationship.
+
+A globally suspended supplier must not become active merely because an invitation has been accepted.
+
+## Rationale
+
+Consolidating supplier functionality into one module maintains a consistent supplier domain while allowing individual services to remain focused.
+
+This approach:
+
+- Avoids creating separate top-level modules for Supplier Management and the Supplier Portal.
+- Reduces duplication of supplier identity and relationship logic.
+- Keeps governance, invitations, and portal operations independently maintainable.
+- Preserves existing company identities when a company participates in multiple procurement relationships.
+- Preserves historical procurement records.
+- Prevents one company's supplier removal from affecting unrelated companies.
+- Establishes clear ownership of invitation acceptance and relationship reactivation.
+- Maintains the existing modular monolithic architecture.
+
+## Consequences
+
+### Positive
+
+- One clear ownership boundary for supplier-related functionality.
+- Three focused services with smaller, more maintainable responsibilities.
+- Reduced duplication of supplier-related business rules.
+- Supplier identities and historical procurement records remain intact.
+- Supplier relationships can be managed independently for different companies.
+- Existing companies can be onboarded without creating duplicate company records.
+- Supplier Portal access can be enforced using authentication, RBAC, supplier eligibility, and relationship status.
+- POM retains ownership of procurement execution.
+
+### Negative
+
+- The module requires coordination between governance, invitation, and portal services.
+- Invitation acceptance must correctly handle existing and new companies.
+- Supplier-company relationship status must be enforced consistently across the application.
+- The backend must distinguish supplier eligibility from individual user permissions.
+- Additional transactional safeguards are required to prevent duplicate relationships and invitation replay.
+
+## Implementation Notes
+
+- Retain `Supplier.company_id` as the association between a supplier identity and its represented company.
+- Retain `SupplierCompanyRelationship.company_id` as the purchasing company in a particular supplier relationship.
+- Ensure the invitation model can identify the purchasing company that initiated each invitation.
+- Preserve historical quotations, Purchase Orders, goods receipts, invoices, and related procurement records when a relationship is deactivated.
+- Use the existing email abstraction for invitation delivery.
+- Keep invitation creation, email delivery, token validation, and acceptance within the Invitation Service's responsibilities.
+- Validate RFQ eligibility and supplier access on the backend.
+- Do not trust client-supplied supplier identifiers as proof of supplier authorization.
+- Ensure database operations involving invitation acceptance and relationship creation or reactivation are protected against duplicate or concurrent processing.
+- Preserve the established authentication, company membership, RBAC, and repository conventions.
+
+---
+
+# ADR-012: Use Mailgun for Transactional Email Delivery
+
+## Status
+
+Accepted
+
+## Context
+
+LINAW requires transactional email delivery for system-generated messages, including supplier onboarding invitations.
+
+Resend was initially evaluated as the email delivery provider. However, the configured subdomain's DNS record was not successfully detected or verified by Resend, preventing the required email-sending setup from working as intended.
+
+Mailgun was subsequently tested using direct HTTP API requests from the LINAW backend environment. The integration successfully accepted an email for processing and returned a queued response.
+
+Mailgun is therefore a working option for the current email delivery requirements.
+
+The backend also needs to avoid coupling business services directly to a particular email provider so that email delivery can be maintained without rewriting invitation business logic.
+
+## Decision
+
+**Mailgun will be used as LINAW's transactional email delivery provider.**
+
+The backend will send transactional emails through Mailgun's HTTP API.
+
+The existing email service/provider abstraction will be retained so that business services can request email delivery without directly implementing provider-specific HTTP requests.
+
+The Supplier Invitation Service will use the email abstraction to:
+
+- Send newly created supplier invitations.
+- Resend eligible supplier invitations.
+- Deliver invitation links to their intended recipients.
+
+Email delivery will remain separate from invitation lifecycle management.
+
+The Invitation Service will manage invitation creation, token generation, expiry, validation, and acceptance. The email provider integration will handle communication with Mailgun.
+
+Mailgun API credentials, sending-domain configuration, and other provider-specific settings will be supplied through environment configuration or the appropriate runtime secrets mechanism. Credentials must not be committed to source control or exposed to frontend clients.
+
+A successful provider response indicating that a message has been queued will be treated as successful submission to Mailgun, not as proof that the recipient received or opened the email.
+
+## Rationale
+
+Mailgun has been tested successfully in the current backend environment, while the configured subdomain's DNS record could not be successfully detected or verified by Resend.
+
+Selecting Mailgun provides a working path for implementing supplier invitations without delaying the remaining Supplier Management functionality.
+
+Retaining an email abstraction also avoids coupling invitation business rules to the provider.
+
+This approach:
+
+- Uses a provider that has already been tested successfully.
+- Allows supplier invitations to be sent through an HTTP API.
+- Keeps provider-specific integration details outside the core invitation lifecycle logic.
+- Supports future changes to email delivery without redesigning Supplier Management.
+- Keeps provider credentials in server-side configuration.
+
+## Consequences
+
+### Positive
+
+- A working transactional email delivery integration is available for supplier invitations.
+- Supplier onboarding can proceed without relying on the unresolved Resend DNS verification.
+- Email delivery remains separated from invitation business logic.
+- Provider credentials can be managed through runtime secrets.
+- Other modules can reuse the existing email abstraction for transactional messages.
+
+### Negative
+
+- LINAW becomes dependent on Mailgun's availability and delivery policies.
+- Email delivery requires valid Mailgun configuration and an authorized sending domain.
+- Provider errors and delivery failures must be handled by the backend.
+- A successful API response does not guarantee delivery to the recipient's inbox.
+- Future provider changes may require updates to the email adapter or provider-specific configuration.
+
+## Implementation Notes
+
+- Use Mailgun's HTTP API for transactional email delivery.
+- Keep the provider integration behind the existing email service/provider abstraction.
+- Use the configured sender identity and domain supported by Mailgun.
+- Store Mailgun credentials securely in environment configuration or runtime secrets.
+- Do not log API credentials, invitation tokens, or other sensitive information.
+- Handle unsuccessful provider responses and network failures explicitly.
+- Avoid marking an invitation as successfully delivered merely because the invitation record was created.
+- Distinguish invitation creation, email submission, and invitation acceptance in the system's records and business logic.
+- Keep invitation expiry and token validation independent of the email provider.
+- Treat delivery tracking and retry policies as implementation concerns that can be refined without changing the module architecture.
 
 ---
