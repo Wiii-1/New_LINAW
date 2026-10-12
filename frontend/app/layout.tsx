@@ -25,8 +25,8 @@ export default function RootLayout({
       <body>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem={true}
+          defaultTheme="dark"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <Tooltip>{children}</Tooltip>

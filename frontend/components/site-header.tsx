@@ -18,7 +18,7 @@ export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
 
   return (
-    <header className="sticky top-0 z-50 flex w-full items-center border-b border-slate-200/80 bg-[#f8fafc]/95 dark:bg-slate-900/95 backdrop-blur">
+    <header className="sticky top-0 z-50 flex w-full items-center border-b border-slate-200/80 bg-[#f8fafc]/95 backdrop-blur">
       <div className="flex h-(--header-height) w-full items-center gap-2 px-4 lg:px-6">
         <Button
           className="h-8 w-8"
@@ -39,7 +39,7 @@ export function SiteHeader() {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage className="font-medium text-slate-900 dark:text-white">Overview</BreadcrumbPage>
+              <BreadcrumbPage className="font-medium text-slate-900">Overview</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
