@@ -70,7 +70,7 @@ export class UserManagementRepository {
                 user_id: data.userId,
                 company_id: data.companyId,
                 tenant_id: data.tenantId,
-                employment_status: "active"
+                employment_status: "ACTIVE"
             }
         });
     }

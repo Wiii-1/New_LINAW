@@ -38,11 +38,15 @@ export async function authenticate(
 
     if (
         typeof payload["user_id"] !== "string" ||
+        payload["user_id"].length === 0 ||
         typeof payload["session_id"] !== "string" ||
+        payload["session_id"].length === 0 ||
         typeof payload["tenant_id"] !== "string" ||
-        typeof payload["company_id"] !== "string"
+        payload["tenant_id"].length === 0 ||
+        typeof payload["company_id"] !== "string" ||
+        payload["company_id"].length === 0
     ) {
-        throw new UnauthorizedAccessError("Invalid Token")
+        throw new UnauthorizedAccessError("Invalid Token");
     }
 
     const user: AccessTokenPayload = {

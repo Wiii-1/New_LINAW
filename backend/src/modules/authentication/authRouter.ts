@@ -15,12 +15,12 @@ export function createAuthRouter(env: AppEnv){
     router.post("/signup", criticalRateLimit, controller.createUser);
     router.post("/login",criticalRateLimit, controller.loginUser);
     router.post("/forgot-password",criticalRateLimit, controller.forgotPassword);
-    router.post("/reset-password",criticalRateLimit, authenticate,controller.resetPassword);
+    router.post("/reset-password",criticalRateLimit,controller.resetPassword);
     router.get("/:id", authenticate,controller.getUserById);
-    router.post("/logout", authenticate,   controller.logoutUser);
-    router.post("/refresh",  controller.refreshToken);
-    router.post("/validate_token",  controller.validate_token);
+    router.post("/logout",controller.logoutUser);
+    router.post("/refresh",controller.refreshToken);
+    router.post("/validate_token", authenticate,  controller.validate_token);
 
     return router;
 }
- 
+

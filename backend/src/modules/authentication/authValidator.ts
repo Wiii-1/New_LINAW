@@ -17,11 +17,11 @@ export const findByIdSchema = z.object ({
 export const forgotPasswordSchema = z.object({
     email: z
         .string()
-        .min(3, "email is required")
-        .max(255, "email is too long")
+        .email("Invalid email")
+        .max(255, "Email is too long")
         .trim()
-        .toLowerCase()
-})
+        .toLowerCase(),
+});
 
 // ==========
 // Reset password validation schema
@@ -67,11 +67,6 @@ export const signupSchema = z.object ({
         .min(3, "Last must be 3 characters minimum ")
         .max(40, " Last name is too long"),
 
-    job_title: z
-        .string()
-        .min(3)
-        .max(20), 
-
     email: z
         .string()
         .email("Invalid email")
@@ -89,7 +84,6 @@ export const signupSchema = z.object ({
     (data: {
         first_name: string;
         last_name: string;
-        job_title: string;
         email: string;
         password: string;
         confirmPassword: string;
@@ -147,6 +141,4 @@ export type forgotPasswordInput =
     z.infer<typeof forgotPasswordSchema>
 
 export type resetPasswordInput =
-    z.infer<typeof resetPasswordSchema> & {
-        user_id: string
-    }
+    z.infer<typeof resetPasswordSchema>;

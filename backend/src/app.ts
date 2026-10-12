@@ -9,7 +9,6 @@ import type { AppEnv } from "./config/env.js";
 
 import { errorHandler } from "./shared/middleware/errorHandler.js";
 
-import { initializeJWT } from "./modules/authentication/authJWT.js";
 import { createAuthRouter } from "./modules/authentication/authRouter.js";
 import { createAuditRouter } from "./modules/audit_trail/auditTrailRouter.js";
 import { createApprovalWorkflow } from "./modules/approval_workflow/approvalWorkflowRouter.js";
@@ -48,8 +47,6 @@ app.get("/health", (c: Context<AppContext>) => {
 
 app.all("*", async (c: Context<AppContext>) => {
     const env = c.env as AppEnv;
-
-    initializeJWT(env);
 
     const blockchainAdapter = new BlockchainAdapter(env);
     const repository = new AuditTrailRepository();

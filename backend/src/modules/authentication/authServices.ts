@@ -3,116 +3,140 @@ import { hashPassword, verifyPassword } from "./authPassword.js"
 import type { forgotPasswordInput, loginInput, resetPasswordInput, signupInput, findById } from "./authValidator.js";
 import { ConflictError, NotFoundError, UnauthorizedAccessError } from "../../shared/errors/appError.js";
 import { randomBytes, randomUUID } from "node:crypto";
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "./authJWT.js";
+import {
+    generateAccessToken,
+    generateRefreshToken,
+    verifyRefreshToken,
+} from "./authJWT.js";
+import type { RefreshTokenPayload } from "./authJWT.js";
 import type { AppEnv } from "../../config/env.js";
 import type { AuthNotifier } from "./authNotifications.js";
-import { NoopAuthNotifier } from "./authNotifications.js" 
+import { NoopAuthNotifier } from "./authNotifications.js"
 
 export class AuthService {
 
-    constructor (
+    constructor(
         private repository: AuthRepository,
         private env: AppEnv,
-        private notifier: AuthNotifier = new NoopAuthNotifier()
+        private notifier: AuthNotifier = new NoopAuthNotifier(),
     ) {}
-    
-    async register (data: signupInput){
 
-        console.log("SIGNUP: calling service");
+    private async resolveCompanyMembership(
+        user_id: string,
+        tenant_id: string
+    ): Promise<string> {
+        const memberships =
+            await this.repository.findActiveCompanyMemberships({
+                user_id,
+                tenant_id
+            })
 
-
-        const existingEmail = await this.repository.findUserWithCredentialsByEmail(data.email)
-
-        if(existingEmail) {
-            throw new ConflictError("This email address is already registered.") 
+        if (memberships.length === 0) {
+            throw new UnauthorizedAccessError(
+                "No active company membership found for this user"
+            )
         }
 
-        const password_hash = await hashPassword(data.password)
-        
-        const tenantId = randomUUID()
+        if (memberships.length > 1) {
+            throw new UnauthorizedAccessError(
+                "Multiple active company memberships found; company selection is required"
+            )
+        }
 
-        const tenant = await this.repository.createTenant({
-            tenant_id:tenantId,
-            status: "ACTIVE",
-            plan: "FREE"
-        })
-
-        const user = await this.repository.createUser({
-            tenant_id: tenant.id,
-            first_name: data.first_name,
-            last_name: data.last_name,
-            job_title: data.job_title,
-            email: data.email,
-            status: "ACTIVE"
-        })
-        
-        await this.repository.createUserCredentials({
-            user_id: user.id,
-            password_hash
-        })
-
-        console.log("SIGNUP: service returned");
-        
-        return user;
+        return memberships[0]!.company_id
     }
 
-    async login (data: loginInput) {
+    async register(data: signupInput) {
+        const existingEmail =
+            await this.repository.findUserWithCredentialsByEmail(data.email);
 
-        console.log("LOGIN: calling service");
+        if (existingEmail) {
+            throw new ConflictError(
+                "This email address is already registered."
+            );
+        }
 
-        const expiresAt = new Date()
+        const password_hash = await hashPassword(data.password);
+        const tenant_id = randomUUID();
 
-        expiresAt.setDate(
-            expiresAt.getDate() + 30
-        )
+        return this.repository.registerUser({
+            tenant_id,
+            first_name: data.first_name,
+            last_name: data.last_name,
+            email: data.email,
+            password_hash,
+        });
+    }
 
-        const user = await this.repository.findUserWithCredentialsByEmail(data.email)
+    async login(data: loginInput) {
+        const user = await this.repository.findUserWithCredentialsByEmail(
+            data.email,
+        );
 
-        if(!user) {
-            throw new NotFoundError ("Invalid email or password")
+        // Use the same error for an unknown account and invalid credentials.
+        if (!user || !user.credentials) {
+            throw new UnauthorizedAccessError("Invalid email or password");
+        }
+
+        // Do not authenticate inactive accounts.
+        if (user.status !== "ACTIVE") {
+            throw new UnauthorizedAccessError("Invalid email or password");
         }
 
         const isValid = await verifyPassword(
-            user.credentials!.password_hash,
-            data.password
-        )
+            user.credentials.password_hash,
+            data.password,
+        );
 
-        if (!isValid){
-            throw new UnauthorizedAccessError("Wrong Password")
+        if (!isValid) {
+            throw new UnauthorizedAccessError("Invalid email or password");
         }
 
-        const session = 
-            await this.repository.createSession({
-                tenant_id: user.tenant_id,
+        const company_id = await this.resolveCompanyMembership(
+            user.id,
+            user.tenant_id,
+        );
+
+        const sessionId = randomUUID();
+
+        // Preserve the existing 30-day session lifetime for now.
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+
+        // Generate the final tokens before persisting the session.
+        const refreshToken = await generateRefreshToken(
+            {
                 user_id: user.id,
-                refresh_token_hash: " ",
-                expires_at: expiresAt
-            })
+                session_id: sessionId,
+            },
+            this.env,
+        );
 
-        const refreshToken = await generateRefreshToken({
+        const refreshTokenHash = await hashPassword(refreshToken);
+
+        const accessToken = await generateAccessToken(
+            {
+                user_id: user.id,
+                session_id: sessionId,
+                tenant_id: user.tenant_id,
+                company_id,
+            },
+            this.env,
+        );
+
+        // Create the session once, with the final refresh-token hash.
+        await this.repository.createSession({
+            id: sessionId,
+            tenant_id: user.tenant_id,
             user_id: user.id,
-            session_id: session.id
-        })
-
-        const refreshTokenHash = await hashPassword(refreshToken)
-
-        await this.repository.updateSessionToken(
-            session.id,
-            refreshTokenHash
-        )
-
-        const accessToken = await generateAccessToken({
-            user_id: user.id,
-            session_id: session.id,
-            tenant_id: user.tenant_id
-        })
-
-        console.log(": service returned");
+            refresh_token_hash: refreshTokenHash,
+            expires_at: expiresAt,
+        });
 
         return {
             accessToken,
-            refreshToken
-        }
+            refreshToken,
+        };
     }
 
     async findId(user: findById) {
@@ -133,25 +157,64 @@ export class AuthService {
     }
 
     async logout(refreshToken: string) {
+        let payload: RefreshTokenPayload;
 
-        const payload = await verifyRefreshToken(refreshToken)
-
-        const session = await this.repository.findSessionById(payload.session_id)
-
-        if (!session) {
-            throw new NotFoundError("Session not found")
+        try {
+            payload = await verifyRefreshToken(refreshToken, this.env);
+        } catch {
+            throw new UnauthorizedAccessError("Invalid refresh token");
         }
 
-        await this.repository.revokedSession(session.id)
+        const session = await this.repository.findSessionById(
+            payload.session_id,
+        );
+
+        if (
+            !session ||
+            session.user_id !== payload.user_id ||
+            session.revoked_at ||
+            session.expires_at <= new Date()
+        ) {
+            throw new UnauthorizedAccessError("Invalid refresh token");
+        }
+
+        const isValid = await verifyPassword(
+            session.refresh_token_hash,
+            refreshToken,
+        );
+
+        if (!isValid) {
+            throw new UnauthorizedAccessError("Invalid refresh token");
+        }
+
+        const now = new Date();
+
+        const result = await this.repository.revokeSessionIfCurrent({
+            session_id: session.id,
+            current_refresh_token_hash: session.refresh_token_hash,
+            now,
+        });
+
+        if (result.count !== 1) {
+            throw new UnauthorizedAccessError(
+                "Refresh token is no longer valid",
+            );
+        }
 
         return {
-            revoked: true
-        }
+            revoked: true,
+        };
     }
 
     async refresh(refreshToken: string) {
 
-        const payload = await verifyRefreshToken(refreshToken)
+        let payload: RefreshTokenPayload;
+
+        try {
+            payload = await verifyRefreshToken(refreshToken, this.env);
+        } catch {
+            throw new UnauthorizedAccessError("Invalid refresh token");
+        }
 
         const session = await this.repository.findSessionById(
             payload.session_id
@@ -161,6 +224,10 @@ export class AuthService {
             throw new UnauthorizedAccessError(
                 "Session does not exist"
             )
+        }
+
+        if (session.user_id !== payload.user_id) {
+            throw new UnauthorizedAccessError("Invalid refresh token");
         }
 
         const user = await this.repository.findUserById(
@@ -179,7 +246,7 @@ export class AuthService {
             )
         }
 
-        if (session.expires_at < new Date()) {
+        if (session.expires_at <= new Date()) {
             throw new UnauthorizedAccessError(
                 "Session expired"
             )
@@ -193,25 +260,40 @@ export class AuthService {
             )
         }
 
-        const newAccessToken = generateAccessToken({
+        const company_id = await this.resolveCompanyMembership(
+            user.id,
+            user.tenant_id
+        )
+
+        const newAccessToken = await generateAccessToken({
             user_id: user.id,
             session_id: session.id,
-            tenant_id: user.tenant_id
-        })
+            tenant_id: user.tenant_id,
+            company_id
+        }, this.env)
 
         const newRefreshToken = await generateRefreshToken({
             user_id: user.id,
             session_id: session.id
-        })
+        }, this.env)
 
         const newRefreshTokenHash = await hashPassword(
             newRefreshToken
         )
 
-        await this.repository.updateSessionToken(
-            session.id,
-            newRefreshTokenHash
-        )
+        const rotationResult =
+            await this.repository.rotateSessionToken({
+                session_id: session.id,
+                current_refresh_token_hash: session.refresh_token_hash,
+                new_refresh_token_hash: newRefreshTokenHash,
+                now: new Date(),
+            })
+
+        if (rotationResult.count !== 1) {
+            throw new UnauthorizedAccessError(
+                "Refresh token is no longer valid"
+            )
+        }
 
         return {
             accessToken: newAccessToken,
@@ -276,8 +358,8 @@ export class AuthService {
             throw new UnauthorizedAccessError("Reset token already used")
         }
 
-        if (tokenRecord.expires_at < new Date()) {
-            throw new UnauthorizedAccessError("Reset token expired")
+        if (tokenRecord.expires_at <= new Date()) {
+            throw new UnauthorizedAccessError("Reset token expired");
         }
 
         const isValid = await verifyPassword(tokenRecord.token_hash, tokenSecret)
@@ -293,15 +375,22 @@ export class AuthService {
         }
 
         const passwordHash = await hashPassword(data.password)
-        const consumedAt = new Date()
 
-        await this.repository.updateUserPassword(user.id, passwordHash)
-        await this.repository.markPasswordResetTokenUsed(tokenRecord.id, consumedAt)
-        await this.repository.markPasswordResetTokensForUserUsed(user.id, consumedAt)
-        await this.repository.revokeAllSessionsForUser(user.id, consumedAt)
+        const now = new Date();
+
+        const completed = await this.repository.completePasswordReset({
+            token_id: tokenRecord.id,
+            user_id: user.id,
+            password_hash: passwordHash,
+            now,
+        });
+
+        if (!completed) {
+            throw new UnauthorizedAccessError("Invalid or expired reset token");
+        }
 
         return {
-            success: true
-        }
+            success: true,
+        };
     }
 }
