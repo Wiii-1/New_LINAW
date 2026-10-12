@@ -128,6 +128,8 @@ model Company {
   rfqsupplierAssignments         RFQSupplierAssignment[]
   supplierQuotations             SupplierQuotation[]
   supplierQuotationItems         SupplierQuotationItem[]
+  suppliers                      Supplier[]
+  supplierInvitations            SupplierInvitation[]
 
   @@index([tenant_id])
 }
@@ -486,6 +488,7 @@ model ApprovalAction {
 model Supplier {
   id                     String                        @id @default(uuid()) @db.Uuid
   tenant_id              String                        @db.Uuid
+  company_id             String                        @db.Uuid
   supplier_code          String
   legal_name             String
   display_name           String
@@ -496,12 +499,14 @@ model Supplier {
   status                 String
   created_at             DateTime                      @default(now()) @db.Timestamptz(6)
   updated_at             DateTime                      @updatedAt @db.Timestamptz(6)
+  
   delivery_notifications DeliveryNotification[]
   goods_receipts         GoodsReceipt[]
   invoice_verifications  InvoiceVerification[]
   purchase_orders        PurchaseOrder[]
   rfq_assignments        RFQSupplierAssignment[]
   tenant                 Tenant                        @relation(fields: [tenant_id], references: [id])
+  company                Company                       @relation(fields: [company_id], references: [id])
   company_relationships  SupplierCompanyRelationship[]
   invitations            SupplierInvitation[]
   quotations             SupplierQuotation[]
@@ -514,20 +519,24 @@ model Supplier {
 model SupplierInvitation {
   id                 String    @id @default(uuid()) @db.Uuid
   tenant_id          String    @db.Uuid
+  company_id         String    @db.Uuid
   supplier_id        String?   @db.Uuid
   invited_by_user_id String    @db.Uuid
   email              String
-  token_hash         String    @unique
+  token_hash         String?   @unique
   status             String
-  expires_at         DateTime  @db.Timestamptz(6)
+  expires_at         DateTime? @db.Timestamptz(6)
   accepted_at        DateTime? @db.Timestamptz(6)
   created_at         DateTime  @default(now()) @db.Timestamptz(6)
   updated_at         DateTime  @updatedAt @db.Timestamptz(6)
-  invited_by_user    User      @relation("UserSupplierInvitations", fields: [invited_by_user_id], references: [id])
-  supplier           Supplier? @relation(fields: [supplier_id], references: [id])
-  tenant             Tenant    @relation(fields: [tenant_id], references: [id])
+
+  invited_by_user User      @relation("UserSupplierInvitations", fields: [invited_by_user_id], references: [id])
+  supplier        Supplier? @relation(fields: [supplier_id], references: [id])
+  tenant          Tenant    @relation(fields: [tenant_id], references: [id])
+  company         Company   @relation(fields: [company_id], references: [id])
 
   @@index([tenant_id])
+  @@index([company_id])
   @@index([status])
 }
 
@@ -564,6 +573,7 @@ model RFQ {
   closing_date            DateTime?               @db.Date
   created_at              DateTime                @default(now()) @db.Timestamptz(6)
   updated_at              DateTime                @updatedAt @db.Timestamptz(6)
+  
   purchase_orders         PurchaseOrder[]
   company                 Company                 @relation(fields: [company_id], references: [id])
   created_by_user         User                    @relation("UserCreatedRFQs", fields: [created_by_user_id], references: [id])
@@ -602,18 +612,18 @@ model RFQItem {
 }
 
 model RFQSupplierAssignment {
-  id          String    @id @default(uuid()) @db.Uuid
-  tenant_id   String    @db.Uuid
-  company_id  String    @db.Uuid
-  rfq_id      String    @db.Uuid
-  supplier_id String    @db.Uuid
+  id          String   @id @default(uuid()) @db.Uuid
+  tenant_id   String   @db.Uuid
+  company_id  String   @db.Uuid
+  rfq_id      String   @db.Uuid
+  supplier_id String   @db.Uuid
   created_at  DateTime @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime  @updatedAt @db.Timestamptz(6)
+  updated_at  DateTime @updatedAt @db.Timestamptz(6)
 
-  rfq       RFQ      @relation(fields: [rfq_id], references: [id])
-  supplier  Supplier @relation(fields: [supplier_id], references: [id])
-  tenant    Tenant   @relation(fields: [tenant_id], references: [id])
-  company   Company  @relation(fields: [company_id], references: [id])
+  rfq      RFQ      @relation(fields: [rfq_id], references: [id])
+  supplier Supplier @relation(fields: [supplier_id], references: [id])
+  tenant   Tenant   @relation(fields: [tenant_id], references: [id])
+  company  Company  @relation(fields: [company_id], references: [id])
 
   @@unique([rfq_id, supplier_id])
   @@index([tenant_id])

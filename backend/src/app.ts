@@ -16,6 +16,7 @@ import { createApprovalWorkflow } from "./modules/approval_workflow/approvalWork
 import { createPurchaseRequistionRouter } from "./modules/purchase_requisition/purchaseRequisitionRouter.js";
 import { createOrganizationAdministration } from "./modules/organization_administration/organizationAdministrationRouter.js";
 import { createPurchaseOrderManagement } from "./modules/purchase_order_management/purchaseOrderManagementRouter.js";
+import { createUserManagementRouter } from "./modules/user_management/userManagementRouter.js";
 
 import { AuditTrailRepository } from "./modules/audit_trail/auditTrailRepository.js";
 import { AuditTrailService } from "./modules/audit_trail/auditTrailService.js";
@@ -60,18 +61,17 @@ app.all("*", async (c: Context<AppContext>) => {
     const purchaseRequisitionRouter = createPurchaseRequistionRouter();
     const organizationAdministrationRouter = createOrganizationAdministration();
     const purchaseOrderManagementRouter = createPurchaseOrderManagement();
+    const userManagementRouter = createUserManagementRouter();
 
     const router = new Hono<AppContext>();
 
     router.route("/auth", authRouter);
     router.route("/auditTrail", auditRouter);
     router.route("/approvalWorkflow", approvalWorkflowRouter);
-    router.route(
-        "/createPurchaseRequisition",
-        purchaseRequisitionRouter,
-    );
+    router.route("/createPurchaseRequisition", purchaseRequisitionRouter );
     router.route("/organizationManagement", organizationAdministrationRouter)
     router.route("/purcahseOrderManagementRouter", purchaseOrderManagementRouter)
+    router.route("/userManagementRouter", userManagementRouter)
 
     return router.fetch(c.req.raw, c.env);
 });

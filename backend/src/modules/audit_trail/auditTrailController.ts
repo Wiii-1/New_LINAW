@@ -12,23 +12,22 @@ export class auditTrailController {
         c: Context<AppContext>
     ): Promise <void> => {
 
+        const { user_id, tenant_id } = c.get("user")
 
-    const { user_id, tenant_id } = c.get("user")
+        const { audit_id } = searchAuditSchema.parse(c.req.param())
 
-    const { audit_id } = searchAuditSchema.parse(c.req.param())
+        const search = {
+            user_id,
+            tenant_id,
+            audit_id
+        }
+        const id = await this.service.searchAudit(search)
 
-    const search = {
-        user_id,
-        tenant_id,
-        audit_id
-    }
-const id = await this.service.searchAudit(search)
-
-    c.json({
-        success: true,
-        message: "Purchase Order Found",
-        data:id
-    }, 200 )
+        c.json({
+            success: true,
+            message: "Purchase Order Found",
+            data:id
+        }, 200 )
 
     }   
 

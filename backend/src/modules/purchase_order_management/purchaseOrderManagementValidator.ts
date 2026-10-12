@@ -159,5 +159,5 @@ export type CreatePurchaseOrder =
 export type UpdatePurchaseOrder = 
     z.infer<typeof UpdatePurchaseOrderSchema>
 
-export type RFQStatus = 
+export type RFQStatusType = 
     z.infer<typeof RFQStatusSchema>

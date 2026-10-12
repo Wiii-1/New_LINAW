@@ -1013,3 +1013,125 @@ This approach:
 - Treat delivery tracking and retry policies as implementation concerns that can be refined without changing the module architecture.
 
 ---
+
+# ADR-013: Separate Supplier Invitation Validation from Acceptance
+
+## Status
+
+Accepted
+
+## Context
+
+LINAW requires a secure and straightforward supplier onboarding process that allows purchasing companies to invite suppliers to participate in procurement activities.
+
+The Supplier Management module must support invitation creation, email delivery, token validation, and acceptance while maintaining the integrity of supplier-company relationships.
+
+The invitation recipient receives an email containing a link to the LINAW web application. When the recipient opens the link, the application must determine whether the invitation is valid before allowing the recipient to proceed.
+
+Automatically accepting an invitation when its link is opened would introduce unintended acceptance risks. Email security scanners, link-preview services, and other automated systems may visit links without the recipient explicitly intending to accept the invitation.
+
+Conversely, requiring multiple confirmation screens after validation would introduce unnecessary friction into the supplier onboarding experience.
+
+LINAW therefore needs an invitation flow that validates the invitation automatically when the invitation screen loads while requiring an explicit user action to complete acceptance.
+
+The invitation process must also integrate with the existing Supplier Management module and Supplier Portal without duplicating authentication, company registration, or procurement functionality.
+
+## Decision
+
+**LINAW will separate supplier invitation validation from invitation acceptance while providing a streamlined frontend onboarding experience.**
+
+The invitation process will follow these steps:
+
+1. An authorized purchasing-company user creates a supplier invitation.
+2. The backend generates an invitation token, stores its hash, establishes an expiration time, and initiates email delivery through the existing email service abstraction.
+3. The recipient receives the invitation email and opens its link.
+4. The link redirects the recipient to an invitation screen in the LINAW web application.
+5. When the invitation screen loads, the frontend automatically calls the invitation validation endpoint.
+6. While validation is in progress, the **Accept & Continue** button remains disabled.
+7. If validation succeeds, the frontend enables the button and displays the invitation details permitted by the backend.
+8. If validation fails, the frontend keeps the button disabled and displays an appropriate error message.
+9. When the recipient clicks **Accept & Continue**, the frontend calls the invitation acceptance endpoint.
+10. The backend revalidates the invitation, verifies the recipient's identity and authorization as required, establishes or reactivates the appropriate supplier-company relationship, and records the acceptance.
+11. After successful acceptance, the frontend redirects the recipient to the Supplier Portal within the Supplier Management section of LINAW.
+
+The invitation validation endpoint will verify the invitation without accepting it or establishing a supplier-company relationship.
+
+The acceptance endpoint will be responsible for completing the invitation lifecycle transition and performing the necessary relationship updates.
+
+The backend must not rely exclusively on frontend validation. It must independently verify that the invitation remains eligible for acceptance when the acceptance request is processed.
+
+Invitation acceptance and the associated database changes must be performed transactionally where supported by the existing database operations. Concurrent acceptance attempts must not create duplicate relationships or inconsistent invitation states.
+
+The frontend will use the existing LINAW application and navigation structure. The Supplier Portal will be presented as a section or tab within Supplier Management rather than requiring a separate application.
+
+Access to the Supplier Portal will continue to depend on authenticated identity, supplier-company relationships, and the applicable authorization rules. Successful invitation validation alone does not grant access to protected supplier resources.
+
+## Rationale
+
+Separating validation from acceptance distinguishes verifying an invitation's legitimacy from the recipient's decision to accept it.
+
+Automatically validating the invitation when the invitation screen loads provides immediate feedback and avoids requiring the recipient to initiate a separate validation action.
+
+Requiring the recipient to click **Accept & Continue** provides an explicit acceptance action without adding an unnecessary confirmation screen.
+
+Redirecting the recipient to the Supplier Portal after successful acceptance creates a direct onboarding experience and connects invitation acceptance to the supplier's next intended activity.
+
+This approach:
+
+- Prevents opening an invitation link from automatically accepting the invitation.
+- Reduces the risk of unintended acceptance caused by automated link scanners.
+- Provides clear feedback when an invitation is invalid or expired.
+- Requires explicit recipient action before establishing the supplier relationship.
+- Keeps invitation validation separate from invitation acceptance.
+- Supports the existing Supplier Management architecture.
+- Provides a direct transition into the Supplier Portal after successful acceptance.
+- Preserves backend authorization and company-isolation requirements.
+
+## Consequences
+
+### Positive
+
+- Supplier onboarding follows a clear and predictable process.
+- Invitation validation occurs automatically when the invitation screen loads.
+- Recipients explicitly accept invitations before the backend establishes the supplier relationship.
+- Invalid or expired invitations can be rejected before the recipient proceeds.
+- The frontend can provide immediate feedback through the invitation screen.
+- The Supplier Portal becomes the natural destination after successful acceptance.
+- Invitation lifecycle management remains within the Supplier Management module.
+- The design avoids unnecessary confirmation screens and separate onboarding applications.
+- Backend authorization remains responsible for controlling access to supplier resources.
+
+### Negative
+
+- The frontend must manage invitation-validation states, including loading, success, and failure.
+- The acceptance endpoint must repeat the necessary invitation checks to prevent stale validation results from being trusted.
+- The backend must handle expired, revoked, already accepted, and concurrently accepted invitations consistently.
+- Supplier identity resolution and company authorization must be coordinated with the existing authentication and company-registration workflows.
+- The frontend must handle acceptance failures without incorrectly redirecting the recipient to the Supplier Portal.
+- The invitation token must be protected against accidental exposure through browser history, application logs, analytics, or other client-side mechanisms.
+
+## Implementation Notes
+
+- Provide `GET /api/supplier-invitations/validate/:token` to validate an invitation token.
+- Provide `POST /api/supplier-invitations/:invitationId/accept` to complete invitation acceptance.
+- Keep validation read-only with respect to invitation acceptance and supplier-company relationship creation.
+- Generate cryptographically secure invitation tokens and store only their hashes in the database.
+- Validate invitation status and expiration during both validation and acceptance.
+- Ensure that an invitation cannot be accepted more than once as a new state transition.
+- Verify the recipient's authenticated identity and authority to accept on behalf of the supplier company.
+- Coordinate new supplier registration with the existing authentication and company-registration workflows.
+- Establish or reactivate the supplier-company relationship only after successful acceptance.
+- Use appropriate transactional and concurrency controls to prevent duplicate relationships and inconsistent invitation states.
+- Keep the **Accept & Continue** button disabled while validation is pending or unsuccessful.
+- Enable the button only after the backend confirms that the invitation is eligible to proceed.
+- Redirect the recipient to the Supplier Portal only after the backend confirms successful acceptance.
+- Ensure the Supplier Portal independently enforces authentication, supplier identity, company relationships, and authorization.
+- Avoid treating invitation-token possession alone as authorization to access protected supplier resources.
+- Avoid exposing invitation tokens in application logs or analytics, and remove them from the visible URL after securely processing them where practical.
+- Keep the existing email service abstraction responsible for email delivery, separate from invitation validation and acceptance.
+- Do not introduce a separate frontend application solely for invitation acceptance.
+- Keep the Supplier Portal integrated into the existing Supplier Management navigation and permission structure.
+- Ensure that invitation acceptance failures return appropriate responses that the frontend can handle without incorrectly treating the invitation as accepted.
+- Record invitation acceptance using the existing invitation status and `accepted_at` fields.
+
+---
