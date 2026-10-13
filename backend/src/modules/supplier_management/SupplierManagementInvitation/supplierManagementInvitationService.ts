@@ -24,6 +24,12 @@ interface InvitationContext {
     invitation_id: string;
 }
 
+interface AcceptInvitationContext {
+    user_id: string;
+    tenant_id: string;
+    company_id?: string;
+    token: string;
+}
 
 export class SupplierManagementInvitationService {
     constructor(
@@ -40,7 +46,7 @@ export class SupplierManagementInvitationService {
         ).join("")
     }
 
-    private async invitationUrl (
+    private invitationUrl (
         env: AppEnv,
         token: string
     ) {
@@ -127,17 +133,29 @@ export class SupplierManagementInvitationService {
         }
 
         const token = this.generateInvitationToken();
-
+        const tokenHash = await this.hashInvitationToken(token);
+        const expiresAt = this.createInvitationExpiration();
         const url = this.invitationUrl(env, token);
 
-        const token_hash = await this.hashInvitationToken(token);
+        // Repository operation to prepare the invitation for sending.
+        const prepared = await this.repository.prepareInvitationForSending({
+            invitation_id: input.invitation_id,
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+            token_hash: tokenHash,
+            expires_at: expiresAt,
+        });
 
-        const expiration = this.createInvitationExpiration();
+        if (!prepared) {
+            throw new Error(
+                "The invitation could not be prepared for sending."
+            );
+        }
 
         const provider = new MailgunEmailProvider(env);
         const emailService = new EmailService(provider);
 
-        await emailService.send ({
+        await emailService.send({
             to: invitation.email,
             subject: "You're Invited to Join LINAW as a Supplier",
             text: [
@@ -175,9 +193,7 @@ export class SupplierManagementInvitationService {
                         </a>
                     </p>
 
-                    <p>
-                        This invitation expires in 72 hours.
-                    </p>
+                    <p>This invitation expires in 72 hours.</p>
 
                     <p>
                         If you weren't expecting this invitation, you can safely ignore this email.
@@ -188,15 +204,170 @@ export class SupplierManagementInvitationService {
             `,
         });
 
-        
+        // Repository operation to transition SENDING -> PENDING.
+        const sent = await this.repository.markInvitationPending({
+            invitation_id: input.invitation_id,
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+        });
 
+        if (!sent) {
+            throw new Error(
+                "The email was submitted, but the invitation status could not be updated."
+            );
+        }
 
+        return {
+            invitation_id: input.invitation_id,
+            status: "PENDING",
+            expires_at: expiresAt,
+        };
     }
 
+    async validateInvitation(input: {
+        token: string;
+    }) {
+        const tokenHash = await this.hashInvitationToken(input.token);
 
-    async validateInvitation () {}
+        const invitation =
+            await this.repository.findInvitationByTokenHash({
+                token_hash: tokenHash,
+            });
 
-    async acceptInvitation () {}
+        if (!invitation) {
+            throw new Error("Invalid invitation.");
+        }
 
-    
+        if (invitation.status !== "PENDING") {
+            throw new Error("This invitation is no longer valid.");
+        }
+
+        if (
+            !invitation.expires_at ||
+            invitation.expires_at.getTime() <= Date.now()
+        ) {
+            throw new Error("This invitation has expired.");
+        }
+
+        return {
+            valid: true,
+            invitation: {
+                id: invitation.id,
+                email: invitation.email,
+                expires_at: invitation.expires_at,
+            },
+        };
+    }
+
+    async acceptInvitation(input: AcceptInvitationContext) {
+        const tokenHash = await this.hashInvitationToken(input.token);
+
+        // Revalidate the invitation on the server.
+        // The frontend's earlier validation is not sufficient.
+        const invitation = await this.repository.findInvitationByTokenHash({
+            token_hash: tokenHash,
+        });
+
+        if (!invitation) {
+            throw new Error("Invalid invitation.");
+        }
+
+        if (invitation.status !== "PENDING") {
+            throw new Error("This invitation is no longer valid.");
+        }
+
+        if (
+            !invitation.expires_at ||
+            invitation.expires_at.getTime() <= Date.now()
+        ) {
+            throw new Error("This invitation has expired.");
+        }
+
+        // Resolve the authenticated user and verify the invited email.
+        const user = await this.repository.findAcceptingUser({
+            user_id: input.user_id,
+            tenant_id: input.tenant_id,
+        });
+
+        if (!user) {
+            throw new Error("Authenticated user not found.");
+        }
+
+        const normalizedUserEmail = user.email.trim().toLowerCase();
+        const normalizedInvitationEmail = invitation.email
+            .trim()
+            .toLowerCase();
+
+        if (normalizedUserEmail !== normalizedInvitationEmail) {
+            throw new Error(
+                "The invitation email does not match your account email.",
+            );
+        }
+
+        // Resolve the company the user is accepting on behalf of.
+        const memberships =
+            await this.repository.findActiveCompanyMemberships({
+                user_id: input.user_id,
+                tenant_id: input.tenant_id,
+            });
+
+        let acceptingCompanyId = input.company_id;
+
+        if (!acceptingCompanyId && memberships.length === 1) {
+            const membership = memberships[0];
+
+            if (membership) {
+                acceptingCompanyId = membership.company_id;
+            }
+        }
+
+        if (memberships.length === 0) {
+            throw new Error(
+                "Register or join a company before accepting this invitation.",
+            );
+        }
+
+        if (!acceptingCompanyId) {
+            throw new Error(
+                "Select the company that will accept this invitation.",
+            );
+        }
+
+        const belongsToCompany = memberships.some(
+            (membership) =>
+                membership.company_id === acceptingCompanyId,
+        );
+
+        if (!belongsToCompany) {
+            throw new Error(
+                "You do not have an active membership in the selected company.",
+            );
+        }
+
+        // The repository must perform the relationship changes and invitation
+        // acceptance atomically, including a final status/expiry check.
+        const acceptedAt = new Date();
+
+        const result = await this.repository.acceptInvitation({
+            invitation_id: invitation.id,
+            token_hash: tokenHash,
+            user_id: input.user_id,
+            tenant_id: input.tenant_id,
+            company_id: acceptingCompanyId,
+            accepted_at: acceptedAt,
+        });
+
+        if (!result) {
+            throw new Error(
+                "The invitation could not be accepted. It may have expired or already been accepted.",
+            );
+        }
+
+        return {
+            invitation_id: invitation.id,
+            relationship_id: result.relationship_id,
+            status: "ACCEPTED" as const,
+            accepted_at: result.accepted_at,
+        };
+    }
 }

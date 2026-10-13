@@ -486,20 +486,14 @@ model ApprovalAction {
 // Supplier Sourcing
 
 model Supplier {
-  id                     String                        @id @default(uuid()) @db.Uuid
-  tenant_id              String                        @db.Uuid
-  company_id             String                        @db.Uuid
-  supplier_code          String
-  legal_name             String
-  display_name           String
-  tax_id                 String?
-  contact_email          String?
-  contact_phone          String?
-  address                String?
-  status                 String
-  created_at             DateTime                      @default(now()) @db.Timestamptz(6)
-  updated_at             DateTime                      @updatedAt @db.Timestamptz(6)
-  
+  id            String   @id @default(uuid()) @db.Uuid
+  tenant_id     String   @db.Uuid
+  company_id    String   @db.Uuid
+  supplier_code String
+  status        String
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @updatedAt @db.Timestamptz(6)
+
   delivery_notifications DeliveryNotification[]
   goods_receipts         GoodsReceipt[]
   invoice_verifications  InvoiceVerification[]
@@ -508,7 +502,6 @@ model Supplier {
   tenant                 Tenant                        @relation(fields: [tenant_id], references: [id])
   company                Company                       @relation(fields: [company_id], references: [id])
   company_relationships  SupplierCompanyRelationship[]
-  invitations            SupplierInvitation[]
   quotations             SupplierQuotation[]
 
   @@unique([tenant_id, supplier_code])
@@ -520,7 +513,6 @@ model SupplierInvitation {
   id                 String    @id @default(uuid()) @db.Uuid
   tenant_id          String    @db.Uuid
   company_id         String    @db.Uuid
-  supplier_id        String?   @db.Uuid
   invited_by_user_id String    @db.Uuid
   email              String
   token_hash         String?   @unique
@@ -530,10 +522,9 @@ model SupplierInvitation {
   created_at         DateTime  @default(now()) @db.Timestamptz(6)
   updated_at         DateTime  @updatedAt @db.Timestamptz(6)
 
-  invited_by_user User      @relation("UserSupplierInvitations", fields: [invited_by_user_id], references: [id])
-  supplier        Supplier? @relation(fields: [supplier_id], references: [id])
-  tenant          Tenant    @relation(fields: [tenant_id], references: [id])
-  company         Company   @relation(fields: [company_id], references: [id])
+  invited_by_user User    @relation("UserSupplierInvitations", fields: [invited_by_user_id], references: [id])
+  tenant          Tenant  @relation(fields: [tenant_id], references: [id])
+  company         Company @relation(fields: [company_id], references: [id])
 
   @@index([tenant_id])
   @@index([company_id])
@@ -560,28 +551,28 @@ model SupplierCompanyRelationship {
 }
 
 model RFQ {
-  id                      String                  @id @default(uuid()) @db.Uuid
-  tenant_id               String                  @db.Uuid
-  company_id              String                  @db.Uuid
+  id                      String    @id @default(uuid()) @db.Uuid
+  tenant_id               String    @db.Uuid
+  company_id              String    @db.Uuid
   rfq_number              String
-  purchase_requisition_id String?                 @db.Uuid
-  created_by_user_id      String                  @db.Uuid
+  purchase_requisition_id String?   @db.Uuid
+  created_by_user_id      String    @db.Uuid
   title                   String
   description             String?
   status                  String
-  issue_date              DateTime?               @db.Date
-  closing_date            DateTime?               @db.Date
-  created_at              DateTime                @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime                @updatedAt @db.Timestamptz(6)
-  
-  purchase_orders         PurchaseOrder[]
-  company                 Company                 @relation(fields: [company_id], references: [id])
-  created_by_user         User                    @relation("UserCreatedRFQs", fields: [created_by_user_id], references: [id])
-  purchase_requisition    PurchaseRequisition?    @relation(fields: [purchase_requisition_id], references: [id])
-  tenant                  Tenant                  @relation(fields: [tenant_id], references: [id])
-  items                   RFQItem[]
-  supplier_assignments    RFQSupplierAssignment[]
-  quotations              SupplierQuotation[]
+  issue_date              DateTime? @db.Date
+  closing_date            DateTime? @db.Date
+  created_at              DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime  @updatedAt @db.Timestamptz(6)
+
+  purchase_orders      PurchaseOrder[]
+  company              Company                 @relation(fields: [company_id], references: [id])
+  created_by_user      User                    @relation("UserCreatedRFQs", fields: [created_by_user_id], references: [id])
+  purchase_requisition PurchaseRequisition?    @relation(fields: [purchase_requisition_id], references: [id])
+  tenant               Tenant                  @relation(fields: [tenant_id], references: [id])
+  items                RFQItem[]
+  supplier_assignments RFQSupplierAssignment[]
+  quotations           SupplierQuotation[]
 
   @@unique([id, tenant_id, rfq_number])
   @@index([tenant_id])
