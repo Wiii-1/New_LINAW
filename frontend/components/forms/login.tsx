@@ -17,8 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 
 const formSchema = z.object({
-  email: z.email().min(1),
-  password: z.string().min(8),
+  email: z.email().min(1, "Please enter a valid email address."),
+  password: z.string().min(12, "Password must be at least 12 characters."),
 });
 
 export function LoginForm({
@@ -26,6 +26,7 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -36,35 +37,57 @@ export function LoginForm({
     },
   });
 
-  /*
-    async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
+    setLoginError(null);
 
-    const { success, message } = await signIn(
-      values.email,
-      values.password,
-    );
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        credentials: "same-origin",
+        body: JSON.stringify(values),
+      });
 
-    if (success) {
-      toast.success(
-        `${message as string} Related to login success.`,
-      );
+      const data: {
+        success: boolean;
+        message?: string;
+      } = await response.json();
+
+      if (!response.ok || !data.success) {
+        setLoginError(data.message ?? "Unable to log in. Please try again.");
+        return;
+      }
+
       router.push("/dashboard");
-    } else {
-      toast.error(message as string);
+      router.refresh();
+    } catch {
+      setLoginError(
+        "Unable to connect to the server. Please try again.",
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   }
-  */
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form
         id="login-form"
-        //onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(onSubmit)}
       >
         <FieldGroup>
+          {loginError && (
+            <div
+              role="alert"
+              className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {loginError}
+            </div>
+          )}
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-xl font-bold">Welcome to LINAW</h1>
             <FieldDescription>

@@ -16,10 +16,10 @@
         "JWT_ACCESS_EXPIRES": "60m",
         "JWT_REFRESH_EXPIRES": "7d",
 
-        "APP_URL": "http://localhost:8787",
+        "APP_URL": "http://localhost:5173",
         "ALLOWED_ORIGIN": "http://localhost:3000",
 
-        "REDIS_URL": "rediss://default:0rGgSvwKmoQK52Wc2tjEcaGO@linaw-buff-inlet.cloud.layerbase.dev:6379",
+        "REDIS_URL": "https://linaw-buff-inlet-rest.cloud.layerbase.dev",
 
         "BLOCKCHAIN_RPC_URL": "http://localhost:8545",
         "AUDIT_CONTRACT_ADDRESS": "0x5Ec26C9928AbAcec5f5a48bE76E73B27d912Dd77",

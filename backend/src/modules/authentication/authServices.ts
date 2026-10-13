@@ -24,7 +24,7 @@ export class AuthService {
     private async resolveCompanyMembership(
         user_id: string,
         tenant_id: string
-    ): Promise<string> {
+    ): Promise<string | undefined> {
         const memberships =
             await this.repository.findActiveCompanyMemberships({
                 user_id,
@@ -32,9 +32,7 @@ export class AuthService {
             })
 
         if (memberships.length === 0) {
-            throw new UnauthorizedAccessError(
-                "No active company membership found for this user"
-            )
+            return undefined
         }
 
         if (memberships.length > 1) {
@@ -119,7 +117,7 @@ export class AuthService {
                 user_id: user.id,
                 session_id: sessionId,
                 tenant_id: user.tenant_id,
-                company_id,
+                ...(company_id ? { company_id } : {}),
             },
             this.env,
         );
@@ -269,7 +267,7 @@ export class AuthService {
             user_id: user.id,
             session_id: session.id,
             tenant_id: user.tenant_id,
-            company_id
+            ...(company_id ? { company_id } : {}),
         }, this.env)
 
         const newRefreshToken = await generateRefreshToken({

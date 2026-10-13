@@ -6,6 +6,7 @@ import { secureHeaders } from "hono/secure-headers";
 
 import type { AppContext } from "./shared/types/hono.js";
 import type { AppEnv } from "./config/env.js";
+import { initializePrisma } from "./config/database.js";
 
 import { errorHandler } from "./shared/middleware/errorHandler.js";
 
@@ -48,6 +49,8 @@ app.get("/health", (c: Context<AppContext>) => {
 app.all("*", async (c: Context<AppContext>) => {
     const env = c.env as AppEnv;
 
+    initializePrisma(env);
+
     const blockchainAdapter = new BlockchainAdapter(env);
     const repository = new AuditTrailRepository();
     const service = new AuditTrailService(repository, blockchainAdapter);
@@ -70,7 +73,12 @@ app.all("*", async (c: Context<AppContext>) => {
     router.route("/purcahseOrderManagementRouter", purchaseOrderManagementRouter)
     router.route("/userManagementRouter", userManagementRouter)
 
-    return router.fetch(c.req.raw, c.env);
+    const forwardedUrl = new URL(c.req.url);
+    forwardedUrl.pathname = forwardedUrl.pathname.replace(/^\/api(?=\/|$)/, "") || "/";
+
+    const forwardedRequest = new Request(forwardedUrl, c.req.raw);
+
+    return router.fetch(forwardedRequest, c.env);
 });
 
 export default app;

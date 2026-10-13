@@ -5,7 +5,7 @@ export interface AccessTokenPayload {
     user_id: string;
     session_id: string;
     tenant_id: string;
-    company_id: string;
+    company_id?: string;
 }
 
 export interface RefreshTokenPayload {

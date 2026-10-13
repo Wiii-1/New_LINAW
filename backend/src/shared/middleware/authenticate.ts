@@ -1,3 +1,4 @@
+
 import type { Context, Next } from "hono"
 
 import { verify } from "hono/jwt"
@@ -43,8 +44,13 @@ export async function authenticate(
         payload["session_id"].length === 0 ||
         typeof payload["tenant_id"] !== "string" ||
         payload["tenant_id"].length === 0 ||
-        typeof payload["company_id"] !== "string" ||
-        payload["company_id"].length === 0
+        (
+            payload["company_id"] !== undefined &&
+            (
+                typeof payload["company_id"] !== "string" ||
+                payload["company_id"].length === 0
+            )
+        )
     ) {
         throw new UnauthorizedAccessError("Invalid Token");
     }
@@ -53,7 +59,9 @@ export async function authenticate(
         user_id: payload["user_id"],
         session_id: payload["session_id"],
         tenant_id: payload["tenant_id"],
-        company_id: payload["company_id"]
+        ...(typeof payload["company_id"] === "string"
+            ? { company_id: payload["company_id"] }
+            : {})
     }
 
     c.set("user", user)
