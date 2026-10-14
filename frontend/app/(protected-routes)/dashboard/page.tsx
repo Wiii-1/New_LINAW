@@ -424,7 +424,7 @@ export default function Page() {
             </div>
             <Link
               href="/approval-workflows"
-              className="flex items-center justify-center gap-1 border-t border-slate-100 px-5 py-4 text-xs font-semibold text-[#1c63f2] hover:bg-slate-50"
+              className="flex items-center justify-center gap-1 border-t border-slate-100 px-5 py-4 text-xs font-semibold text-[#1c63f2] hover:bg-slate-50 dark:hover:bg-slate-700"
             >
               Review all approvals <ChevronRightIcon className="size-3.5" />
             </Link>
@@ -473,7 +473,7 @@ export default function Page() {
             <div className="mt-6 grid grid-cols-2 gap-2">
               <Link
                 href="/purchase-requisitions"
-                className="group rounded-lg border border-slate-200 p-3 transition-colors hover:border-blue-200 hover:bg-blue-50"
+                className="group rounded-lg border border-slate-200 p-3 transition-colors hover:border-blue-200 hover:bg-blue-50 dark:hover:bg-slate-700 dark:hover:border-blue-700"
               >
                 <FilePlus2Icon className="size-4 text-[#1c63f2]" />
                 <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-700">
@@ -485,7 +485,7 @@ export default function Page() {
               </Link>
               <Link
                 href="/approval-workflows"
-                className="group rounded-lg border border-slate-200 p-3 transition-colors hover:border-blue-200 hover:bg-blue-50"
+                className="group rounded-lg border border-slate-200 p-3 transition-colors hover:border-blue-200 hover:bg-blue-50 dark:hover:bg-slate-700 dark:hover:border-blue-700"
               >
                 <PackageCheckIcon className="size-4 text-[#1c63f2]" />
                 <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-700">
