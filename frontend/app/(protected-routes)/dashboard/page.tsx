@@ -130,6 +130,8 @@ const toneClasses: Record<string, string> = {
     "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700/50",
 };
 
+const date = new Date();
+
 export default function Page() {
   const [filter, setFilter] = useState("All activity");
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(
@@ -146,7 +148,7 @@ export default function Page() {
         <section className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-500">
-              Monday, 21 October 2024
+              {date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
             </p>
             <h1 className="text-3xl font-semibold tracking-[-0.03em] text-slate-800 dark:text-slate-200 sm:text-4xl">
               Good morning, Amina
@@ -159,12 +161,12 @@ export default function Page() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              className="border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+              className="border-slate-200 bg-white text-slate-700 dark:text-white shadow-sm hover:bg-slate-50"
             >
-              <CalendarDaysIcon className="size-4" />
+              <CalendarDaysIcon className="size-4 dark:text-white" />
               This month
             </Button>
-            <Button className="bg-blue-500 text-white shadow-[0_6px_16px_rgba(28,99,242,0.2)] hover:bg-blue-600">
+            <Button className="bg-blue-500 text-slate-100 dark:text-white shadow-[0_6px_16px_rgba(28,99,242,0.2)] hover:bg-blue-600">
               <PlusIcon className="size-4" />
               New requisition
             </Button>
@@ -234,11 +236,11 @@ export default function Page() {
               >
                 <div className="flex items-center gap-2 md:mb-3">
                   <span className={`size-2 rounded-full ${color}`} />
-                  <span className="text-xs font-medium text-slate-600">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                     {label}
                   </span>
                 </div>
-                <p className="text-xl font-semibold text-[#132238] md:pl-4">
+                <p className="text-xl font-semibold text-black dark:text-white md:pl-4">
                   {value}
                 </p>
                 {index < 4 && (
@@ -250,29 +252,29 @@ export default function Page() {
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.45fr_0.8fr]">
-          <div className="min-w-0 rounded-xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="min-w-0 rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
             <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div>
-                <p className="text-sm font-semibold text-[#132238]">
+                <p className="text-sm font-semibold text-black dark:text-white">
                   Recent transactions
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   The latest changes across your workspace.
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative hidden sm:block">
-                  <SearchIcon className="absolute left-2.5 top-2 size-3.5 text-slate-400" />
+                  <SearchIcon className="absolute left-2.5 top-2 size-3.5 text-slate-400 dark:text-white" />
                   <input
                     aria-label="Search transactions"
                     placeholder="Search"
-                    className="h-8 w-32 rounded-md border border-slate-200 bg-slate-50 pl-8 pr-2 text-xs outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    className="h-8 w-32 rounded-md border border-slate-200 bg-slate-50 dark:bg-slate-800 pl-8 pr-2 text-xs outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 border-slate-200 text-xs text-slate-600"
+                  className="h-8 border-slate-200 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
                 >
                   <FilterIcon className="size-3.5" />
                   Filter
@@ -297,7 +299,7 @@ export default function Page() {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-170 text-left text-sm">
-                <thead className="bg-slate-50/70 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                <thead className="bg-slate-50/70 dark:bg-slate-900/70 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   <tr>
                     <th className="px-5 py-3 font-semibold sm:px-6">
                       Reference
@@ -323,17 +325,17 @@ export default function Page() {
                       className="cursor-pointer transition-colors hover:bg-blue-50/40"
                     >
                       <td className="px-5 py-4 sm:px-6">
-                        <div className="font-semibold text-[#132238]">
+                        <div className="font-semibold text-black dark:text-white">
                           {transaction.id}
                         </div>
-                        <div className="mt-1 max-w-47.5 truncate text-xs text-slate-500">
+                        <div className="mt-1 max-w-47.5 truncate text-xs text-slate-500 dark:text-slate-400">
                           {transaction.title}
                         </div>
                       </td>
-                      <td className="px-3 py-4 text-xs text-slate-600">
+                      <td className="px-3 py-4 text-xs text-slate-600 dark:text-slate-400">
                         {transaction.requester}
                       </td>
-                      <td className="px-3 py-4 text-xs font-semibold text-slate-700">
+                      <td className="px-3 py-4 text-xs font-semibold text-slate-700 dark:text-slate-300">
                         {transaction.amount}
                       </td>
                       <td className="px-3 py-4">
@@ -360,8 +362,8 @@ export default function Page() {
               )}
             </div>
             {selectedTransaction && (
-              <div className="flex items-center justify-between border-t border-blue-100 bg-blue-50/50 px-5 py-3 text-xs sm:px-6">
-                <span className="text-blue-800">
+              <div className="flex items-center justify-between border-t border-blue-100 bg-blue-50/50 dark:bg-slate-700/50 px-5 py-3 text-xs sm:px-6">
+                <span className="text-blue-800 dark:text-blue-300">
                   Selected <strong>{selectedTransaction}</strong>. Open the
                   module for full details.
                 </span>
@@ -376,17 +378,17 @@ export default function Page() {
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
             <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
               <div>
-                <p className="text-sm font-semibold text-[#132238]">
+                <p className="text-sm font-semibold text-black dark:text-white">
                   Needs your review
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Approvals waiting in your queue.
                 </p>
               </div>
-              <span className="flex size-7 items-center justify-center rounded-full bg-amber-50 text-xs font-semibold text-amber-700">
+              <span className="flex size-7 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-700 text-xs font-semibold text-amber-700 dark:text-amber-50 ring-1 ring-amber-50 dark:ring-amber-700/50">
                 3
               </span>
             </div>
@@ -395,7 +397,7 @@ export default function Page() {
                 <div key={approval.id} className="px-5 py-4 sm:px-6">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-[#132238]">
+                      <p className="truncate text-sm font-semibold text-black dark:text-white">
                         {approval.title}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
@@ -433,15 +435,15 @@ export default function Page() {
           <div className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 p-6 text-white shadow-[0_10px_28px_rgba(19,34,56,0.12)]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-semibold">Monthly spend overview</p>
-                <p className="mt-1 text-xs text-slate-300">
+                <p className="text-sm font-semibold text-black dark:text-white">Monthly spend overview</p>
+                <p className="mt-1 text-xs text-slate-500">
                   Committed spend against your quarterly budget.
                 </p>
               </div>
               <WalletCardsIcon className="size-5 text-blue-300" />
             </div>
             <div className="mt-7 flex items-end gap-3">
-              <span className="text-3xl font-semibold tracking-tight">
+              <span className="text-3xl font-semibold tracking-tight text-black dark:text-white">
                 $486,240
               </span>
               <span className="mb-1 rounded-full bg-emerald-400/15 px-2 py-1 text-[11px] font-semibold text-emerald-300">
@@ -456,10 +458,10 @@ export default function Page() {
               <span>$710k quarterly budget</span>
             </div>
           </div>
-          <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#132238]">
+                <p className="text-sm font-semibold text-black dark:text-white">
                   Quick actions
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -474,7 +476,7 @@ export default function Page() {
                 className="group rounded-lg border border-slate-200 p-3 transition-colors hover:border-blue-200 hover:bg-blue-50"
               >
                 <FilePlus2Icon className="size-4 text-[#1c63f2]" />
-                <p className="mt-3 text-xs font-semibold text-slate-700 group-hover:text-blue-700">
+                <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-700">
                   New requisition
                 </p>
                 <p className="mt-1 text-[11px] text-slate-400">
@@ -486,7 +488,7 @@ export default function Page() {
                 className="group rounded-lg border border-slate-200 p-3 transition-colors hover:border-blue-200 hover:bg-blue-50"
               >
                 <PackageCheckIcon className="size-4 text-[#1c63f2]" />
-                <p className="mt-3 text-xs font-semibold text-slate-700 group-hover:text-blue-700">
+                <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-700">
                   Review approvals
                 </p>
                 <p className="mt-1 text-[11px] text-slate-400">
