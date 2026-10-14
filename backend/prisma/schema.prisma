@@ -326,6 +326,7 @@ model PurchaseRequisition {
   items                PurchaseRequisitionItem[]
   status_logs          PurchaseRequisitionStatusLog[]
   rfqs                 RFQ[]
+  approvalRequests     ApprovalRequest[]
 
   @@unique([tenant_id, pr_number])
   @@index([tenant_id])
@@ -398,10 +399,11 @@ model ApprovalRequest {
   created_at        DateTime  @default(now()) @db.Timestamptz(6)
   updated_at        DateTime  @updatedAt @db.Timestamptz(6)
 
-  actions        ApprovalAction[]
-  company        Company          @relation(fields: [company_id], references: [id])
-  requester_user User             @relation("UserRequestedApprovalRequests", fields: [requester_user_id], references: [id])
-  tenant         Tenant           @relation(fields: [tenant_id], references: [id])
+  actions              ApprovalAction[]
+  company              Company             @relation(fields: [company_id], references: [id])
+  requester_user       User                @relation("UserRequestedApprovalRequests", fields: [requester_user_id], references: [id])
+  tenant               Tenant              @relation(fields: [tenant_id], references: [id])
+  purchase_requisition PurchaseRequisition @relation(fields: [entity_id], references: [id])
 
   @@index([tenant_id])
   @@index([company_id])

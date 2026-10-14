@@ -40,15 +40,15 @@ const SYSTEM_WORKFLOW_DEFINITION = [
 ] as const
 
 export type ApprovalActionType =
-    | "approved"
-    | "rejected"
-    | "cancelled";
+    | "APPROVED"
+    | "REJECTED"
+    | "CANCELLED";
 
 export type ApprovalRequestStatus =
-    | "pending"
-    | "approved"
-    | "rejected"
-    | "cancelled";
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "CANCELLED";
 
 export interface ApprovalRequestData {
     tenant_id: string
@@ -82,12 +82,15 @@ export interface ApprovalActionData {
     acted_at: Date
 }
 
+
 export interface UpdateRequestStatusData {
-    approval_Workflow_Id: string
-    tenant_id: string
-    status: string
-    remarks?: string
+    approvalWorkflow_id: string;
+    tenant_id: string;
+    company_id: string;
+    status: string;
+    remarks?: string;
 }
+
 
 export interface ApprovalWorkflowQuery {
     tenant_id: string;
@@ -108,17 +111,19 @@ export interface ApprovalWorkflowDefinitionData {
 
 export interface GetData {
     tenant_id: string,
-    compnay_id: string
+    company_id: string
 }
 
 export interface ApprovalRequest {
-    approval_workflow_id: string
+    approvalWorkflow_id: string
     tenant_id: string
+    company_id: string
 }
 
 export interface roleCheck {
     user_id: string
     tenant_id: string
+    company_id: string
 }
 
 
@@ -143,7 +148,7 @@ export class ApprovalWorkflowRepository {
             take: 20,
             where: {
                 tenant_id: data.tenant_id,
-                company_id: data.compnay_id
+                company_id: data.company_id
             },
             select: {
                 id: true,
@@ -283,30 +288,39 @@ export class ApprovalWorkflowRepository {
     }  
 
 
-    async findRequisitionById (
-        purchaseRequisitionId: string
-    ) {
-        return prisma.purchaseRequisition.findUnique({
+    async findRequisitionById(data: {
+        purchaseRequisition_id: string;
+        tenant_id: string;
+        company_id: string;
+    }) {
+        return prisma.purchaseRequisition.findFirst({
             where: {
-                id: purchaseRequisitionId
+                id: data.purchaseRequisition_id,
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
             },
             select: {
+                id: true,
                 total_amount: true,
                 tenant_id: true,
-                company_id: true
-            }
-        })
+                company_id: true,
+            },
+        });
     }
 
-    async updateRequestStatus (
-        data: UpdateRequestStatusData
-    ) {
+    async updateRequestStatus(data: UpdateRequestStatusData) {
+        const { approvalWorkflow_id, tenant_id, company_id, status } = data;
+
         return prisma.approvalRequest.update({
             where: {
-                id: data.approval_Workflow_Id
+                id: approvalWorkflow_id,
+                tenant_id,
+                company_id,
             },
-            data
-        })
+            data: {
+                status,
+            },
+        });
     }
 
     async createSystemWorkflowDefinitions() {
@@ -376,9 +390,11 @@ export class ApprovalWorkflowRepository {
     async getApprovalRequestById(data: ApprovalRequest) {
         return prisma.approvalRequest.findFirst({
             where: {
-                id: data.approval_workflow_id,
-                tenant_id: data.tenant_id
-            }, select: {
+                id: data.approvalWorkflow_id,
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+            },
+            select: {
                 id: true,
                 tenant_id: true,
                 company_id: true,
@@ -390,12 +406,10 @@ export class ApprovalWorkflowRepository {
                 submitted_at: true,
                 resolved_at: true,
                 created_at: true,
-                updated_at: true,                
-            }
-        })
-    }
-
-    
+                updated_at: true,
+            },
+        });
+    }    
 
     async createLevelOfApproval (
         data: ApprovalLevelData
@@ -439,7 +453,7 @@ export class ApprovalWorkflowRepository {
             take: 15,
             where: {
                     tenant_id: data.tenant_id,
-                    company_id: data.compnay_id
+                    company_id: data.company_id
             }, select: {
                 workflow_code: true,
                 name: true,
@@ -466,16 +480,29 @@ export class ApprovalWorkflowRepository {
         });
     }
 
-    async getApprovalActionById (
-        data: ApprovalRequest
-    ) {
-        return prisma.approvalAction.findUnique({
+    async getApprovalActionById(data: ApprovalRequest) {
+        return prisma.approvalAction.findFirst({
             where: {
-                id: data.approval_workflow_id
-            }, select: {
-                level_id: true
-            }
-        })
+                approval_request_id: data.approvalWorkflow_id,
+                tenant_id: data.tenant_id,
+                approval_request: {
+                    company_id: data.company_id,
+                },
+            },
+            select: {
+                id: true,
+                level_id: true,
+                approval_request_id: true,
+                action: true,
+                approval_request: {
+                    select: {
+                        entity_id: true,
+                        tenant_id: true,
+                        company_id: true,
+                    },
+                },
+            },
+        });
     }
 
 }

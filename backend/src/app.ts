@@ -17,6 +17,7 @@ import { createPurchaseRequistionRouter } from "./modules/purchase_requisition/p
 import { createOrganizationAdministration } from "./modules/organization_administration/organizationAdministrationRouter.js";
 import { createPurchaseOrderManagement } from "./modules/purchase_order_management/purchaseOrderManagementRouter.js";
 import { createUserManagementRouter } from "./modules/user_management/userManagementRouter.js";
+import { createSupplierManagement } from "./modules/supplier_management/supplierManagementRouter.js";
 
 import { AuditTrailRepository } from "./modules/audit_trail/auditTrailRepository.js";
 import { AuditTrailService } from "./modules/audit_trail/auditTrailService.js";
@@ -61,6 +62,7 @@ app.all("*", async (c: Context<AppContext>) => {
     const purchaseRequisitionRouter = createPurchaseRequistionRouter();
     const organizationAdministrationRouter = createOrganizationAdministration();
     const purchaseOrderManagementRouter = createPurchaseOrderManagement();
+    const supplierManagementRouter = createSupplierManagement();
     const userManagementRouter = createUserManagementRouter();
 
     const router = new Hono<AppContext>();
@@ -71,6 +73,7 @@ app.all("*", async (c: Context<AppContext>) => {
     router.route("/createPurchaseRequisition", purchaseRequisitionRouter );
     router.route("/organizationManagement", organizationAdministrationRouter)
     router.route("/purcahseOrderManagementRouter", purchaseOrderManagementRouter)
+    router.route("/supplierManagement", supplierManagementRouter);
     router.route("/userManagementRouter", userManagementRouter)
 
     const forwardedUrl = new URL(c.req.url);

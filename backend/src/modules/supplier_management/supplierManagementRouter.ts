@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import type { AppContext } from "../../shared/types/hono";
 import { authenticate } from "../../shared/middleware/authenticate";
-import { SupplierManagementGovernanceController } from "./supplierManagementGovernanceController";
-import { SupplierManagementGovernanceService } from "./supplierManagementGovernanceService";
-import { SupplierManagementGovernanceRepository } from "./supplierManagementGovernanceRepository";
+import { SupplierManagementGovernanceController } from "./SupplierManagementGovernance/supplierManagementGovernanceController.js";
+import { SupplierManagementGovernanceService } from "./SupplierManagementGovernance/supplierManagementGovernanceService.js";
+import { SupplierManagementGovernanceRepository } from "./SupplierManagementGovernance/supplierManagementGovernanceRepository.js";
 import { SupplierManagementInvitationController } from "./SupplierManagementInvitation/supplierManagementInvitationController";
 import { SupplierManagementInvitationService } from "./SupplierManagementInvitation/supplierManagementInvitationService";
 import { SupplierManagementInvitationRepository } from "./SupplierManagementInvitation/supplierManagementInvitationRepository";

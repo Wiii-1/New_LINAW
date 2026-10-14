@@ -14,7 +14,7 @@ export const GET_SCHEMA = z.object ({
 // ===========================
 
 export const APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA = z.object({
-    ApprovalWorkflowId: z 
+    approvalWorkflow_id: z 
         .string()
 })
 
@@ -108,9 +108,7 @@ export const APPROVAL_WORKFLOW_CREATION = z.object({
 // ===========================
 
 export type ApprovalWorkflowIdParams =
-    z.infer<typeof APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA> & {
-        userId: string
-    };
+    z.infer<typeof APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA>
 
 export type ApprovalWorkflowQuery = 
     z.infer<typeof APPROVAL_WORKFLOW_QUERY_SCHEMA> & {
@@ -118,10 +116,7 @@ export type ApprovalWorkflowQuery =
     };
 
 export type RejectApprovalWorkflowBody = 
-    z.infer<typeof REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA> & {
-        userId: string
-        approvalWorkflowId: string
-    };
+    z.infer<typeof REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA>
 
 export type CreateLevels = 
     z.infer<typeof APPROVAL_WORKFLOW_LEVEL_CREATION> & {

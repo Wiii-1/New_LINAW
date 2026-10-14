@@ -1,18 +1,6 @@
 import { prisma } from "../../config/database.js";
 import { Prisma } from "../../generated/prisma/client.js";
 
-type PurchaseOrderWithRelations = Prisma.PurchaseOrderGetPayload<{
-    include: {
-        company: true;
-        supplier: true;
-        items: true;
-        goods_receipts: {
-            include: {
-                received_by_user: true;
-            };
-        };
-    };
-}>;
 
 export type PurchaseOrderSnapshot = {
     purchase_order_id: string;
@@ -106,14 +94,17 @@ export class AuditTrailRepository {
         purchaseOrderId: string
     ): Promise<PurchaseOrderSnapshot | null> {
 
-        const po: PurchaseOrderWithRelations | null =
-            await prisma.purchaseOrder.findUnique({
+        const po = await prisma.purchaseOrder.findUnique({
                 where: {
                     id: purchaseOrderId,
                 },
                 include: {
                     company: true,
-                    supplier: true,
+                    supplier: {
+                        include: {
+                            company: true,
+                        },
+                    },
                     items: true,
                     goods_receipts: {
                         include: {
@@ -123,10 +114,10 @@ export class AuditTrailRepository {
                 },
             });
 
-        if (!po) {
+        if (po === null) {
             return null;
         }
-
+        
         const approvalRequest = await prisma.approvalRequest.findFirst({
             where: {
                 entity_id: po.id,
@@ -168,7 +159,7 @@ export class AuditTrailRepository {
 
             supplier: {
                 id: po.supplier.id,
-                name: po.supplier.display_name
+                name: po.supplier.company.display_name
             },
 
             currency_code: po.currency_code,
