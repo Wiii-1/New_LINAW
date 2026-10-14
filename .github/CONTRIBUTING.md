@@ -1,77 +1,110 @@
 # Contributing
 
-This file will enlighten other developers how to contribute to the repository. After reading this, please go to the [Pull Reqest](PULL_REQUEST_TEMPLATE.md) files to learn how to properly add and merge changes into the **main** branch. Additionally, check out the [Issue Template](ISSUE_TEMPLATE.md) file to report any bugs or errors in the code. Lastly, if your case doesn't fit the templates, feel free to create your own.
+A full guide on how to contribute to LINAW.
 
-## 0. Learn Shortcuts and Keybinds
+## Issues
 
-Everyone should practice the keybinds and shortcuts of all the software that you will use within your respective operating systems. This will ensure that everyone will be faster in delivering code as we enter the development stage.
+1. Verify if your [issue](https://github.com/JedEatSnax/LINAW/issues) is already mentioned to avoid duplication.
+2. Open an issue using GitHub's [bug report](ISSUE_TEMPLATE/bug_report.md) or [feature request](ISSUE_TEMPLATE/feature_request.md) template.
+3. Please note if the issue is identified by a human or an LLM.
 
-## 1. Git and GitHub Security and Verification
+## Local Testing
 
-For security purposes, go to **GitHub Profile Picture** --> **Settings** --> **Emails** --> and turn on **Keep my email address private** ![GitHub Email](<01 GitHub Email.png>)!
+Copy and paste the [client](../client/.env.example) and [server](../server/.env.example) example environemt variables into your own `client/.env.local` and `server/.env.local` files.
 
-Additionally, follow this setup guide to always verify your commits to the repository.
+### Client Development
 
-- **YouTube Link:** https://youtu.be/zPENYmyx6ug
-- **Article Link:** https://daily-dev-tips.com/posts/how-to-verify-your-commits-on-github/
-
-## 2. Configure Git
-
-Copy and paste your private GitHub email that ends with `noreply.github.com` and configure it to your machine
-
-```
-git config --global user.name "Your Username"
-git config --global user.email username@github.com
+```shell
+cd client
+pnpm install
+pnpm run dev
 ```
 
-## 3. Learn Git Branching
+---
 
-Go to https://learngitbranching.js.org/ to maintain proper versioning. Additionally, some rules must be followed to maintain order:
+### Server Development
 
-- Everyone must follow good git branch naming conventions. Learn more from this article: https://medium.com/@abhay.pixolo/naming-conventions-for-git-branches-a-cheatsheet-8549feca2534
-- Don't be afraid to make multiple branches and commits. It will be easier to roll back if any of us makes a mistake.
-- After merging your branch or your fork, notify me so I can approve the pull request as soon as possible.
-- Furthermore, if you are branching, I recommend this format `branch-name/username/title`. For example, `feature/Jed/triple-entry`
+#### Installation
 
-### Git Cheatsheet
-
-#### Workflow Commands
-
-```
-git add .
-git commit -am "A message describing what you have done to make this snapshot different"
+```shell
+cd server
+pnpm install
+pnpm run dev
 ```
 
-#### Status and Log Checking
+#### Testing
 
+There are no unit tests for the server directory yet.
+
+```shell
+pnpm run typecheck
+pnpm run lint
+pnpm run trace
 ```
-git status
-git log
+
+#### Solidity Development with Hardhat 3 + Ethers + Mocha + Solhint
+
+The server directory uses the Mocha and Ethers boilerplate. Learn more at the [official Hardhat 3 documentation](https://hardhat.org/docs/getting-started). This boilerplate provides agent skills for [hardhat](skills/hardhat/SKILL.md) and [hardhat-toolbox-mocha-ethers](skills/hardhat-toolbox-mocha-ethers/SKILL.md).
+
+To run all the tests in the project, execute the following command:
+
+```shell
+pnpm hardhat test
 ```
 
-#### Basic Git Syntax
+You can also selectively run the Solidity or `mocha` tests:
 
-The basic Git syntax is `program | action | destination`
+```shell
+pnpm hardhat test solidity
+pnpm hardhat test mocha
+```
 
-For example,
+This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Ethereum Sepolia.
 
-- `git add .` is read as `git | add | .`, where the period represents everything in the current directory;
-- `git commit -m "message"` is read as `git | commit -m | "message"` and
-- `git status` is read as `git | status | (no destination)`. I recommend that you use `git status` everytime you perform a git command to see if there are no conflicts.
+To run the deployment to a local chain:
 
-#### Branching Commands
+```shell
+pnpm hardhat ignition deploy ignition/modules/Counter.ts
+```
 
-Read these articles for more information:
+To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
 
-1. https://stackoverflow.com/questions/6591213/how-can-i-rename-a-local-git-branch
-2. https://stackoverflow.com/questions/449541/how-can-i-selectively-merge-or-pick-changes-from-another-branch-in-git
+You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
 
-Commands with brief information:
+To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
 
-- `git branch -vv` to see all the branches present.
-- `git push --set-upstream origin [branch-name]` to set one of your branches upstream. I only recommend this for your development branch that you use for testing.
-- `git branch -m [new-name]` to rename the current LOCAL branch.
-- `git branch -m [old-name] [new-name]` to LOCALLY rename a branch while pointed in any branch.
-- `git push origin -u [branch-name]` to set your LOCAL branch upstream. This would create a new branch if you renamed a branch.
-- `git push origin -D [branch-name]` to delete a remote branch.
-- If you want to push a specific file from a branch into main, assuming there are no changes into main yet, do `git checkout main` to go into main, then `git checkout [specific-branch] [path/to/file]`, and lastly `git commit -am "..."`.
+```shell
+pnpm hardhat keystore set SEPOLIA_PRIVATE_KEY
+```
+
+After setting the variable, you can run the deployment with the Sepolia network:
+
+```shell
+pnpm hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
+```
+
+Additionally, production Solidity contracts must use the [NatSpec Format](https://docs.soliditylang.org/en/stable/natspec-format.html). Also known as Ethereum Natural Language Specification Format, it is a special form of comments that provides rich documentation for functions, return variables, and more. Read more at the [official Protofire Solhint](https://protofire.github.io/solhint/) documentation.
+
+To lint all the files within the `server/contracts` directory
+
+```shell
+cd server
+pnpm solhint 'contracts/*.sol'
+```
+
+To lint a specific file within the `server/contracts` directory
+
+```shell
+cd server
+pnpm solhint contracts/File.sol
+```
+
+#### Prisma ORM Development
+
+To get started with Prisma ORM development while using the existing schema:
+
+```shell
+pnpm run generate
+```
+
+**_Unfinished_**
