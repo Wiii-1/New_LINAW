@@ -9,7 +9,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <SiteHeader />
         <div className="flex flex-1">
           <AppSidebar />
-          <SidebarInset>{children}</SidebarInset>
+          <SidebarInset className="min-w-0">{children}</SidebarInset>
         </div>
       </SidebarProvider>
     </div>
