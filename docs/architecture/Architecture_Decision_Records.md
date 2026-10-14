@@ -1135,3 +1135,281 @@ This approach:
 - Record invitation acceptance using the existing invitation status and `accepted_at` fields.
 
 ---
+
+# ADR-014: Use Shared Event Contracts for Inter-Module Communication
+
+## Status
+
+Accepted
+
+## Context
+
+LINAW uses a modular monolithic architecture in which business capabilities are separated into modules such as Purchase Order Management (POM), Supplier Management, Approval Workflow, and Audit Trail.
+
+Although these modules run within the same application, some operations require other modules to react to business events.
+
+For example, POM publishes an RFQ when a Procurement Officer makes it available to eligible suppliers. Supplier Management may need to react to this event. Similarly, when a supplier submits a quotation through the Supplier Portal, other modules may need to react to the submission.
+
+Directly coupling the internal services of these modules would weaken their separation of responsibilities and make the system more difficult to maintain.
+
+LINAW already provides a shared in-process `EventBus` implementation. The system also maintains event definitions under `src/shared/events/` to describe the payloads received by event subscribers.
+
+The architecture must establish a consistent convention for publishing events, defining event contracts, and registering subscribers without introducing unnecessary event processing or circular dependencies.
+
+## Decision
+
+LINAW will use the existing shared `EventBus` singleton for in-process communication between modules.
+
+Event publishers will publish business events using an event name and an inline payload. Shared event contracts will be defined under `src/shared/events/` and imported by subscribers to provide TypeScript type safety when handling incoming events.
+
+The system will follow these conventions:
+
+1. The module responsible for a business operation publishes the corresponding event.
+2. Event publishers construct and publish their payloads directly without requiring a separate event variable or an explicit event-contract import.
+3. Shared event contracts are maintained under `src/shared/events/`.
+4. Event subscribers import the corresponding shared contract to type the incoming event.
+5. Event handlers belong to the modules that consume the events.
+6. Subscribers will only be registered when a module has a genuine responsibility to react to an event.
+7. Event handling must preserve module boundaries and must not duplicate business logic owned by another module.
+8. The existing singleton EventBus will be reused consistently by publishers and subscribers.
+
+The event bus will remain an in-process mechanism within the modular monolith. This decision does not introduce a message broker, distributed event infrastructure, or a separate event-processing service.
+
+## Event Ownership and Direction
+
+Each event must have a clear publisher and an intended consumer.
+
+### 1. RFQ Publication
+
+POM owns RFQ creation, management, and publication.
+
+When an RFQ is published, POM may emit the `rfq.published` event containing the information required by its intended consumers.
+
+The Supplier Management Portal event handler is the consumer-side location for handling this event when Supplier Management needs to react to RFQ publication.
+
+The event contract will be defined in `src/shared/events/` and imported by the subscriber.
+
+The Supplier Management module will not take ownership of RFQ creation or publication as a consequence of receiving the event.
+
+POM remains responsible for the RFQ lifecycle, while Supplier Management remains responsible for supplier-facing operations.
+
+### 2. Supplier Quotation Submission
+
+Supplier Management owns supplier quotation submission through the Supplier Portal.
+
+After a quotation has been successfully submitted, the Portal Service may emit the `supplier.quotation.submitted` event.
+
+POM may subscribe to this event when it needs to react to a submitted quotation as part of its procurement workflow.
+
+The event contract will be defined in `src/shared/events/` and imported by the relevant subscriber.
+
+POM will remain responsible for quotation evaluation, supplier selection, and Purchase Order creation. Publishing a quotation-submission event does not automatically select the supplier or create a Purchase Order.
+
+Other modules, such as Audit Trail, may subscribe when they have a specific responsibility to fulfill in response to the event.
+
+### Event Flow
+
+The intended direction of communication is:
+
+```text
+Purchase Order Management (POM)
+        |
+        | Publishes: rfq.published
+        v
+Supplier Management Portal
+        |
+        | Supplier accesses an eligible RFQ
+        | and submits a quotation
+        |
+        | Publishes: supplier.quotation.submitted
+        v
+Purchase Order Management (POM)
+        |
+        | Handles quotation-related procurement operations
+        v
+Quotation Evaluation and Selection
+        |
+        v
+Purchase Order Creation
+```
+
+Audit Trail or another relevant consumer may independently subscribe to applicable events when required.
+
+This flow represents event ownership and intended communication. It does not require every event to trigger an additional database write or another event publication.
+
+## Shared Event Contracts
+
+Event contracts will be maintained in the existing `src/shared/events/` directory.
+
+A contract defines the payload shape expected by a subscriber.
+
+For example:
+
+```typescript
+export type OrganizationCreationEvent = {
+    companyId: string;
+    tenantId: string;
+    userId: string;
+};
+```
+
+A subscriber will import the corresponding contract and use it to type the incoming event.
+
+The publisher does not need to import the contract merely to publish an event. It may continue constructing the payload inline, consistent with the existing POM implementation.
+
+For example:
+
+```typescript
+await this.eventBus.publish("rfq.published", {
+    rfq_number: publishedRfq.rfq_number,
+    tenant_id: input.tenant_id,
+    company_id: input.company_id,
+    title: publishedRfq.title,
+    description: publishedRfq.description,
+    quotation_deadline: publishedRfq.closing_date,
+    items: publishedRfq.items.map((item) => ({
+        id: item.id,
+        description: item.description,
+        quantity: item.quantity,
+        unit: item.unit_of_measure,
+    })),
+});
+```
+
+The corresponding subscriber imports the shared event contract:
+
+```typescript
+eventBus.subscribe<RFQPublishedEvent>(
+    "rfq.published",
+    async (event) => {
+        // Handle the published RFQ event.
+    },
+);
+```
+
+The event type name and fields in this example are illustrative. Implementations must use the actual contract defined for the event.
+
+The shared contract serves as the common type definition for consumers. It must not become a duplicate representation of an unrelated database model or transfer ownership of another module's business logic.
+
+The current generic EventBus provides compile-time typing when subscribers specify their event types. However, because event names and payload types are not currently linked through a centralized event map, this convention does not automatically guarantee that every publisher's payload matches every subscriber's contract.
+
+A future event-map implementation may strengthen this relationship if necessary, but it is not required by this decision.
+
+## Event Handler Responsibilities
+
+An event handler belongs to the module that consumes an event.
+
+For example:
+
+- Supplier Management's Portal event handler may subscribe to `rfq.published`.
+- POM's event handler may subscribe to `supplier.quotation.submitted`.
+- Audit Trail may subscribe to business events that require audit records.
+
+An event handler will delegate the required operation to the appropriate service rather than duplicating that service's business logic.
+
+Event handlers must not be introduced merely to forward events without a meaningful business or technical purpose.
+
+The application must also register the required event handlers during initialization so that subscriptions exist before the relevant events are published.
+
+All publishers and subscribers must use the same shared EventBus singleton. Creating independent EventBus instances would prevent events published to one instance from reaching subscribers registered on another instance.
+
+## Relationship to Database Access
+
+Events will not replace database access when a consuming module already has an appropriate way to retrieve the required information.
+
+For example, the Supplier Portal can query published RFQs through its repository using the existing RFQ and supplier-company relationship data.
+
+Receiving an `rfq.published` event must not automatically result in creating a duplicate RFQ record in Supplier Management.
+
+An event subscriber should only perform additional processing when a concrete requirement exists, such as notifying users or maintaining a deliberately designed projection.
+
+The system must preserve the distinction between:
+
+- **Business data ownership:** Which module owns the underlying business operation and its data.
+- **Event publication:** Which module announces that an operation has occurred.
+- **Event consumption:** Which modules need to react to that occurrence.
+- **Database access:** How a module retrieves the information required for its own responsibilities.
+
+## Rationale
+
+Using the existing shared EventBus and shared event contracts provides a consistent mechanism for communication between modules without requiring direct service-to-service coupling.
+
+Keeping event contracts in a shared directory gives subscribers a common definition of incoming payloads. Allowing publishers to construct payloads inline also preserves the established implementation convention used by POM.
+
+Assigning event handlers to consuming modules makes the direction of communication explicit and prevents the publisher from becoming responsible for unrelated processing.
+
+This approach:
+
+- Preserves the modular monolithic architecture.
+- Reduces direct coupling between module services.
+- Establishes consistent event payload definitions.
+- Keeps event contracts accessible to all relevant modules.
+- Avoids unnecessary event variables and imports in publishers.
+- Preserves clear ownership of RFQ and quotation operations.
+- Allows multiple modules to react to an event when necessary.
+- Avoids duplicating database records solely to support event handling.
+- Prevents unnecessary event subscribers and circular processing.
+- Reuses the existing EventBus rather than introducing another messaging abstraction.
+
+## Consequences
+
+### Positive
+
+- Consistent event publication and subscription conventions.
+- Shared TypeScript contracts for subscriber payloads.
+- Clear separation between event publishers and consumers.
+- Reduced direct dependencies between business modules.
+- Centralized event definitions under `src/shared/events/`.
+- Existing EventBus infrastructure can be reused.
+- POM retains ownership of procurement execution.
+- Supplier Management retains ownership of supplier-facing operations.
+- Event handlers can delegate processing to their module's existing services.
+- Unnecessary event-driven processing can be avoided.
+
+### Negative
+
+- Event names and subscriber contracts must remain consistent.
+- The current EventBus does not automatically enforce the relationship between an event name and its payload type across all publishers and subscribers.
+- Incorrectly registered or unregistered event handlers can result in events not being processed as intended.
+- Subscribers may introduce additional processing latency when handlers perform database operations.
+- Failures in a subscriber can affect the publisher's operation because the current EventBus awaits handlers sequentially.
+- Event delivery is in-process and does not provide durable delivery across application restarts.
+- Careful event ownership is necessary to avoid duplicate processing or circular event flows.
+
+## Implementation Notes
+
+- Reuse the existing singleton exported from `src/shared/events/eventBus.ts`.
+- Define each required event contract in an appropriately named file under `src/shared/events/`.
+- Keep event contracts focused on the payload required by consumers.
+- Publish events using the existing inline-payload convention.
+- Import the shared event contract in each subscriber.
+- Use consistent event names between publishers and subscribers.
+- Keep RFQ lifecycle management within POM.
+- Keep supplier quotation submission within Supplier Management.
+- Let POM consume quotation-submission events when procurement operations require it.
+- Let Supplier Management consume RFQ-publication events when supplier-facing processing requires it.
+- Register event handlers during application initialization.
+- Ensure that all event handlers use the same EventBus singleton.
+- Delegate business operations from event handlers to the appropriate services.
+- Do not create duplicate RFQ records in Supplier Management merely because an RFQ-publication event was received.
+- Do not create subscribers without a defined responsibility.
+- Do not introduce event chains that repeatedly publish the same event or create circular processing.
+- Preserve tenant and company context when event payloads contain data associated with a particular organization.
+- Avoid placing credentials, raw invitation tokens, or other unnecessary sensitive information in event payloads.
+- Keep event payloads limited to the information required by their consumers.
+- Consider a centralized event map in the future if stronger compile-time enforcement of event names and payload types becomes necessary.
+- Consider durable messaging or retry mechanisms only if future requirements justify them; the current decision does not introduce those mechanisms.
+
+## Future Considerations
+
+The following may require separate architectural decisions later:
+
+- Whether to introduce a centralized event map to enforce event-name and payload-type relationships.
+- Whether critical events require durable delivery, retries, or an outbox pattern.
+- How subscriber failures should be isolated from the original business operation.
+- Whether event handlers need idempotency controls for future asynchronous or retried processing.
+- Whether additional events are required for quotation selection, Purchase Order issuance, or other procurement lifecycle transitions.
+- Whether event payloads should be versioned when consumers evolve independently.
+- Whether certain event-driven operations require transactional coordination with database writes.
+
+--- 

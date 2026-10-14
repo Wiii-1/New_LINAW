@@ -7,9 +7,9 @@ import { SupplierManagementGovernanceRepository } from "./supplierManagementGove
 import { SupplierManagementInvitationController } from "./SupplierManagementInvitation/supplierManagementInvitationController";
 import { SupplierManagementInvitationService } from "./SupplierManagementInvitation/supplierManagementInvitationService";
 import { SupplierManagementInvitationRepository } from "./SupplierManagementInvitation/supplierManagementInvitationRepository";
-import { SupplierManagementPortalController } from "./supplierManagementPortalController";
-import { SupplierManagementPortalService } from "./supplierManagementPortalService";
-import { SupplierManagementPortalRepository } from "./supplierManagementPortalRepository";
+import { SupplierManagementPortalController } from "./supplierManagementPortal/supplierManagementPortalController";
+import { SupplierManagementPortalService } from "./supplierManagementPortal/supplierManagementPortalService";
+import { SupplierManagementPortalRepository } from "./supplierManagementPortal/supplierManagementPortalRepository";
 import { EventBus } from "../../shared/events/eventBus";
 
 export function createSupplierManagement() {
