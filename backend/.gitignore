@@ -16,3 +16,6 @@ dist
 # =====================
 
 /src/generated/prisma
+
+# Cloudflare Wrangler / Miniflare local runtime state
+.wrangler/state/
