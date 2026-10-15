@@ -2,7 +2,7 @@
 
 ---
 
-## POST /api/purchase-requisitions
+## POST /api/purchase_requisitions/create
 
 ### Description
 
@@ -106,7 +106,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## GET /api/purchase-requisitions
+## GET /api/purchase_requisitions
 
 ### Description
 
@@ -171,7 +171,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## GET /api/purchase-requisitions/:requisitionId
+## GET /api/purchase_requisitions/:requisitionId
 
 ### Description
 
@@ -239,7 +239,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## PUT /api/purchase-requisitions/:requisitionId
+## PATCH /api/purchase_requisitions/:requisitionId
 
 ### Description
 
@@ -265,14 +265,10 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "requisition_number": "",
-    "requester_id": "",
-    "company_id": "",
-    "request_date": "",
-    "requisition_status": "",
     "justification": "",
-    "total_estimated_amount": 0,
-    "line_items": []
+    "request_date": "",
+    "line_items": [],
+    "total_estimated_amount": 0
 }
 ```
 
@@ -355,7 +351,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## PUT /api/purchase-requisitions/:requisitionId/status
+## PATCH /api/purchase_requisitions/:requisitionId/status
 
 ### Description
 
@@ -463,7 +459,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## POST /api/purchase-requisitions/:requisitionId/submit
+## POST /api/purchase_requisitions/:requisitionId/submit
 
 ### Description
 
@@ -555,7 +551,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## POST /api/purchase-requisitions/:requisitionId/cancel
+## POST /api/purchase_requisitions/:requisitionId/cancel
 
 ### Description
 
@@ -637,7 +633,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## POST /api/purchase-requisitions/:requisitionId/resubmit
+## POST /api/purchase_requisitions/:requisitionId/resubmit
 
 ### Description
 
@@ -720,7 +716,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## DELETE /api/purchase-requisitions/:requisitionId
+## DELETE /api/purchase_requisitions/:requisitionId
 
 ### Description
 

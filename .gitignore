@@ -1,31 +1,33 @@
-# Node modules
-/node_modules
 
-# Compilation output
-/dist
+# =====================
+# Blockchain
+# =====================
 
-# pnpm deploy output
-/bundle
+# Besu runtime data
+procurement_blockchain/data/
 
-# Hardhat Build Artifacts
-/artifacts
+# Besu private keys
+procurement_blockchain/**/key
+procurement_blockchain/**/keys/
+procurement_blockchain/**/private*
 
-# Hardhat compilation (v2) support directory
-/cache
+# Blockchain logs
+procurement_blockchain/**/*.log
+procurement_blockchain/logs/
 
-# Typechain output
-/types
+# Secrets
+secrets/
 
-# Environment files
-.env
-.env.*
-!.env.example
+# =====================
+# smart contract
+# =====================
+smart_contract/node_modules
+smart_contract/.env
+smart_contract/SC_Deployment.json
+smart_contract/adapter-wallet.json
 
-# Hardhat coverage reports
-/coverage
+# =====================
+# Test Email
+# =====================
 
-# Gas snapshot files
-/.gas-snapshot
-
-# Snapshot cheatcodes output
-/snapshots
+/mail_gun_test

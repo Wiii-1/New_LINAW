@@ -627,6 +627,13 @@ erDiagram
 
 ## Tables
 
+### Tenant Model
+
+A tenant represents an isolated workspace. Each user 
+belongs to a tenant, while companies represent business 
+entities managed within that workspace. A tenant may 
+contain multiple companies.
+
 ### tenants
 - `id` | `uuid` | PK
 - `status` | `text` | indexed
@@ -645,6 +652,14 @@ erDiagram
 - `created_at` | `timestamptz` | not null
 - `updated_at` | `timestamptz` | not null
 
+### user_credentials
+- `id` | `uuid` | PK
+- `user_id` | `uuid` | FK -> user.id
+- `password_hash` | `text` | not null
+- `created_at` | `timestamptz` | not null
+- `updated_at` | `timestamptz` | not null
+
+
 ### companies
 - `id` | `uuid` | PK
 - `tenant_id` | `uuid` | FK -> tenants.id, indexed
@@ -659,9 +674,7 @@ erDiagram
 
 ### company_memberships
 - `id` | `uuid` | PK
-- `tenant_id` | `uuid` | FK -> tenants.id, indexed
-- `company_id` | `uuid` | FK -> companies.id, indexed
-- `user_id` | `uuid` | FK -> users.id, indexed
+- `tenant_id` | `uuid` |  -> tenant.id, indexed
 - `employment_status` | `text` | indexed
 - `department` | `text` | nullable
 - `created_at` | `timestamptz` | not null
@@ -940,7 +953,7 @@ erDiagram
 - `po_number` | `text` | unique per tenant
 - `issued_by_user_id` | `uuid` | FK -> users.id
 - `status` | `text` | indexed
-- `currency_code` | `text` | not null
+- `currency_code` | `text` | not nullz
 - `total_amount` | `numeric(18,2)` | not null
 - `order_date` | `date` | not null
 - `expected_delivery_date` | `date` | nullable
@@ -1093,7 +1106,7 @@ erDiagram
 - `action` | `text` | indexed
 - `result` | `text` | indexed
 - `request_id` | `text` | nullable
-- `details_json` | `jsonb` | nullable
+- `snapshot_json` | `jsonb` | nullable
 - `created_at` | `timestamptz` | not null
 
 ### audit_trail_hashes
@@ -1109,7 +1122,7 @@ erDiagram
 - `tenant_id` | `uuid` | FK -> tenants.id, indexed
 - `audit_trail_id` | `uuid` | FK -> audit_trails.id, indexed
 - `network_ref` | `text` | nullable
-- `transaction_id` | `text` | indexed
+- `blockchain_transaction_hash` | `text` | indexed
 - `block_number` | `bigint` | nullable
 - `anchored_at` | `timestamptz` | nullable
 

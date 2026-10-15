@@ -1,0 +1,21 @@
+
+
+# =====================
+# Backend
+# =====================
+
+node_modules/
+generated/
+dist
+
+# Environment
+.env
+
+# =====================
+# Prisma
+# =====================
+
+/src/generated/prisma
+
+# Cloudflare Wrangler / Miniflare local runtime state
+.wrangler/state/

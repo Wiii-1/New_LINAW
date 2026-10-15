@@ -1,0 +1,62 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+
+  "name": "linaw-server-worker",
+  "main": "src/app.ts",
+
+  "compatibility_date": "2026-08-28",  
+
+  "workers_dev": true,
+
+  "env": {
+    "local":{
+      "vars": {
+        "NODE_ENV": "development",
+
+        "JWT_ACCESS_EXPIRES": "60m",
+        "JWT_REFRESH_EXPIRES": "7d",
+
+        "APP_URL": "http://localhost:5173",
+        "ALLOWED_ORIGIN": "http://localhost:3000",
+
+        "REDIS_URL": "https://linaw-buff-inlet-rest.cloud.layerbase.dev",
+
+        "BLOCKCHAIN_RPC_URL": "http://localhost:8545",
+        "AUDIT_CONTRACT_ADDRESS": "0x5Ec26C9928AbAcec5f5a48bE76E73B27d912Dd77",
+        "MAILGUN_DOMAIN": "wii.qd.je",
+        "MAILGUN_FROM": "LINAW<noreply@wii.qd.je>"
+      },
+
+      "secrets": {
+        "required": [
+          "JWT_ACCESS_SECRET",
+          "JWT_REFRESH_SECRET",
+          "REDIS_TOKEN",
+          "BLOCKCHAIN_PRIVATE_KEY",
+          "DATABASE_URL",
+          "MAILGUN_API_KEY",
+        ]
+      },
+    },
+
+    "staging":{
+      "vars": {
+        "NODE_ENV": "staging",
+        "ALLOWED_ORIGIN": "https://your-frontend-domain.com",
+        "MAILGUN_DOMAIN": "wii.qd.je",
+        "MAILGUN_FROM": "LINAW<noreply@wii.qd.je>"
+      },
+
+      "secrets": {
+        "required": [
+          "JWT_ACCESS_SECRET",
+          "JWT_REFRESH_SECRET",
+          "REDIS_TOKEN",
+          "BLOCKCHAIN_PRIVATE_KEY",
+          "DATABASE_URL",          
+          "MAILGUN_API_KEY"
+        ]
+      }
+    }
+  }
+}
