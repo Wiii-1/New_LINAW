@@ -1,0 +1,27 @@
+{
+  "config" : {
+    "chainId" : 20260729,
+    "berlinBlock" : 0,
+    "londonBlock" : 0,
+    "zeroBaseFee" : true,
+    "qbft" : {
+      "blockperiodseconds" : 10,
+      "epochlength" : 30000,
+      "requesttimeoutseconds" : 20
+    }
+  },
+
+  "nonce": "0x0",
+  "timestamp": "0x0",
+  "gasLimit" : "0x5f5e100",
+  "difficulty" : "0x1",
+  "extraData" : "0xf87aa00000000000000000000000000000000000000000000000000000000000000000f85494583614138b5e0e558567de39b1c82edf32035197943ec9b59270c1d5919edccd5ac13718a9295c793e94d3db3e94b943a1a018524944fa2f6cc14553a96794dbbb5306d22a30756a7eae4e11993c241f310135c080c0",
+  "alloc": {
+    "0x44C8e63304fd7dCB1F8DcB81B4e16828161E87e5": {
+      "balance": "1000000000000000000000"
+    },
+    "0x3B2877fAD0faF2370e0c73A850DB5E72e6DF8a1B": {
+      "balance": "1000000000000000000000"
+    }
+  }
+}
