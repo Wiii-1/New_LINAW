@@ -1,19 +1,28 @@
-import { Request, Response, NextFunction } from "express";
-import { AnyZodObject, ZodError } from "zod/v3";
+import type { MiddlewareHandler } from "hono";
+import type { ZodType } from "zod";
 import { InvalidDataError } from "./appError.js";
 
-export const validate = (schema:AnyZodObject) => {
-    return async (req: Request, res: Response, next: NextFunction) => {
-        const result = await schema.safeParseAsync(req.body);
+export const validate = <T extends ZodType>(
+    schema: T
+): MiddlewareHandler => {
+    return async (c, next) => {
+        const body = await c.req.json();
+
+        const result = await schema.safeParseAsync(body);
 
         if (!result.success) {
-            const errorDetails = result.error.flatten((issue) => issue.message).fieldErrors;
-            
-            // This instantiates your existing class from File 1
-            return next(new InvalidDataError("Validation failed", errorDetails));
+            const errorDetails = result.error
+                .flatten((issue) => issue.message)
+                .fieldErrors;
+
+            throw new InvalidDataError(
+                "Validation failed",
+                errorDetails
+            );
         }
 
-        req.body = result.data;
-        next();
+        c.set("validatedBody", result.data);
+
+        await next();
     };
-}
+};

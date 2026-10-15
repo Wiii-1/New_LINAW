@@ -1,24 +1,6 @@
 import { prisma } from "../../config/database.js";
 import { Prisma } from "../../generated/prisma/client.js";
 
-type PurchaseOrderWithRelations = Prisma.PurchaseOrderGetPayload<{
-    include: {
-        company: true;
-        supplier: true;
-        items: true;
-        approvals: {
-            include: {
-                approved_by_user: true;
-            };
-        };
-        goods_receipts: {
-            include: {
-                received_by_user: true;
-            };
-        };
-    };
-}>;
-
 
 export type PurchaseOrderSnapshot = {
     purchase_order_id: string;
@@ -87,16 +69,106 @@ export type audit_trail_blockchain_refs_input = {
     anchored_at: Date;
 }
 
+export type ListAuditsInput = {
+    tenantId: string;
+    companyId: string;
+    entityType?: string;
+    action?: string;
+    result?: string;
+    skip: number;
+    take: number;
+}
+
 export class AuditTrailRepository {
 
+    async listAudits(input: ListAuditsInput) {
+        const purchaseOrders = await prisma.purchaseOrder.findMany({
+            where: {
+                tenant_id: input.tenantId,
+                company_id: input.companyId,
+            },
+            select: { id: true },
+        })
+
+        const entityIds = purchaseOrders.map((purchaseOrder) => purchaseOrder.id)
+
+        if (entityIds.length === 0) {
+            return {
+                records: [],
+                total: 0,
+            }
+        }
+
+        const where = {
+            tenant_id: input.tenantId,
+            entity_id: { in: entityIds },
+            ...(input.entityType ? { entity_type: input.entityType } : {}),
+            ...(input.action ? { action: input.action } : {}),
+            ...(input.result ? { result: input.result } : {}),
+        }
+
+        const [records, total] = await Promise.all([
+            prisma.auditTrail.findMany({
+                where,
+                select: {
+                    id: true,
+                    entity_type: true,
+                    entity_id: true,
+                    action: true,
+                    result: true,
+                    created_at: true,
+                    actor_user_id: true,
+                    hash: {
+                        select: {
+                            hash_algorithm: true,
+                            hash_value: true,
+                        },
+                    },
+                    blockchain_ref: {
+                        select: {
+                            blockchain_transaction_hash: true,
+                            block_number: true,
+                            anchored_at: true,
+                        },
+                    },
+                },
+                orderBy: { created_at: "desc" },
+                skip: input.skip,
+                take: input.take,
+            }),
+            prisma.auditTrail.count({ where }),
+        ])
+
+        return { records, total }
+    }
+
     async findAuditByid (
-        auditId: string
+        auditId: string,
+        tenantId: string,
+        companyId: string,
     ) {
-        return prisma.auditTrail.findUnique({
+        const audit = await prisma.auditTrail.findFirst({
             where:{
-                id: auditId
+                id: auditId,
+                tenant_id: tenantId,
+                entity_type: "PURCHASE_ORDER",
             }
         })
+
+        if (!audit) {
+            return null
+        }
+
+        const purchaseOrder = await prisma.purchaseOrder.findFirst({
+            where: {
+                id: audit.entity_id,
+                tenant_id: tenantId,
+                company_id: companyId,
+            },
+            select: { id: true },
+        })
+
+        return purchaseOrder ? audit : null
     }
     async findById (
         userId: string
@@ -112,31 +184,43 @@ export class AuditTrailRepository {
         purchaseOrderId: string
     ): Promise<PurchaseOrderSnapshot | null> {
 
-        const po: PurchaseOrderWithRelations | null =
-            await prisma.purchaseOrder.findUnique({
+        const po = await prisma.purchaseOrder.findUnique({
                 where: {
-                    id: purchaseOrderId
+                    id: purchaseOrderId,
                 },
                 include: {
                     company: true,
-                    supplier: true,
-                    items: true,
-                    approvals: {
+                    supplier: {
                         include: {
-                            approved_by_user: true
-                        }
+                            company: true,
+                        },
                     },
+                    items: true,
                     goods_receipts: {
                         include: {
-                            received_by_user: true
-                        }
-                    }
-                }
+                            received_by_user: true,
+                        },
+                    },
+                },
             });
 
-        if (!po) {
+        if (po === null) {
             return null;
         }
+        
+        const approvalRequest = await prisma.approvalRequest.findFirst({
+            where: {
+                entity_id: po.id,
+                entity_type: "PURCHASE_ORDER",
+            },
+            include: {
+                actions: {
+                    include: {
+                        acted_by_user: true,
+                    },
+                },
+            },
+        });        
 
         const items = po.items.map((item) => ({
             description: item.description,
@@ -145,14 +229,14 @@ export class AuditTrailRepository {
             total_price: Number(item.total_price)
         }));
 
-        const approvals = po.approvals.map((action) => ({
+        const approvals = approvalRequest?.actions.map((action) => ({
             approved_by: {
-                id: action.approved_by_user.id,
-                name: action.approved_by_user.last_name
+                id: action.acted_by_user.id,
+                name: action.acted_by_user.last_name,
             },
             action: action.action,
-            timestamp: action.acted_at
-        }));
+            timestamp: action.acted_at,
+        })) ?? [];
 
         return {
             purchase_order_id: po.id,
@@ -165,7 +249,7 @@ export class AuditTrailRepository {
 
             supplier: {
                 id: po.supplier.id,
-                name: po.supplier.display_name
+                name: po.supplier.company.display_name
             },
 
             currency_code: po.currency_code,
@@ -186,17 +270,36 @@ export class AuditTrailRepository {
     }
 
     async findAuditForVerification (
-        audit_id: string
+        audit_id: string,
+        tenantId: string,
+        companyId: string,
     ){
-        return prisma.auditTrail.findUnique({
+        const audit = await prisma.auditTrail.findFirst({
             where: {
                 id: audit_id,
+                tenant_id: tenantId,
+                entity_type: "PURCHASE_ORDER",
             },
             include: {
                 hash: true,
                 blockchain_ref: true,
             },
         });
+
+        if (!audit) {
+            return null
+        }
+
+        const purchaseOrder = await prisma.purchaseOrder.findFirst({
+            where: {
+                id: audit.entity_id,
+                tenant_id: tenantId,
+                company_id: companyId,
+            },
+            select: { id: true },
+        })
+
+        return purchaseOrder ? audit : null
     };
 
     async createAuditTrail (

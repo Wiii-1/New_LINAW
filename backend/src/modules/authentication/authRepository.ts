@@ -1,7 +1,7 @@
 import { prisma } from "../../config/database.js"
 
 export class AuthRepository {
-    
+
     async findUserWithCredentialsByEmail (
         email: string
     ) {
@@ -12,8 +12,24 @@ export class AuthRepository {
             include:{
                 credentials:true,
                 tenant:true
-            }   
+            }
         })
+    }
+
+    async findActiveCompanyMemberships(input: {
+        user_id: string;
+        tenant_id: string;
+    }) {
+        return prisma.companyMembership.findMany({
+            where: {
+                user_id: input.user_id,
+                tenant_id: input.tenant_id,
+                employment_status: "ACTIVE",
+            },
+            select: {
+                company_id: true,
+            },
+        });
     }
 
     async findUserWithCredentialsById (
@@ -40,55 +56,46 @@ export class AuthRepository {
         })
     }
 
-    async createUser ( data: {
-        tenant_id: string,
-        first_name: string,
-        last_name: string,
-        job_title: string,
-        email: string,
-        status: string
-    }){
-        return prisma.user.create ({
-            data: {
-                tenant_id: data.tenant_id,
-                first_name: data.first_name,
-                last_name: data.last_name,
-                job_title: data.job_title,
-                email: data.email,
-                status: data.status
-            }
-        })
-    }
-
-    async createTenant (data:{
-        tenant_id: string,
-        status: string,
-        plan: string,
+    async registerUser(data: {
+        tenant_id: string;
+        first_name: string;
+        last_name: string;
+        email: string;
+        password_hash: string;
     }) {
-        return prisma.tenant.create({
-            data: {
-                id: data.tenant_id,
-                status: data.status,
-                plan: data.plan
-            }
-        })
-    }
+        return prisma.$transaction(async (tx) => {
+            const tenant = await tx.tenant.create({
+                data: {
+                    id: data.tenant_id,
+                    status: "ACTIVE",
+                    plan: "FREE",
+                },
+            });
 
-    async createUserCredentials (data: {
-        user_id: string,
-        password_hash: string
-    }) {
-        return prisma.userCredential.create({
-            data: {
-                user_id: data.user_id,
-                password_hash: data.password_hash
-            }
-        })
+            const user = await tx.user.create({
+                data: {
+                    tenant_id: tenant.id,
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                    email: data.email,
+                    status: "ACTIVE",
+                },
+            });
+
+            await tx.userCredential.create({
+                data: {
+                    user_id: user.id,
+                    password_hash: data.password_hash,
+                },
+            });
+
+            return user;
+        });
     }
 
     async findSessionById (
         session_id: string
-    ) { 
+    ) {
         return prisma.userSession.findUnique ({
             where: {
                 id: session_id
@@ -96,19 +103,41 @@ export class AuthRepository {
         })
     }
 
-    async createSession (data: {
-        tenant_id: string,
-        user_id: string,
-        refresh_token_hash: string,
-        expires_at: Date,
+    async findSessionForAccessToken(session_id: string) {
+        return prisma.userSession.findUnique({
+            where: {
+                id: session_id,
+            },
+            select: {
+                user_id: true,
+                tenant_id: true,
+                revoked_at: true,
+                expires_at: true,
+                user: {
+                    select: {
+                        status: true,
+                        tenant_id: true,
+                    },
+                },
+            },
+        });
+    }
+
+    async createSession(data: {
+        id: string;
+        tenant_id: string;
+        user_id: string;
+        refresh_token_hash: string;
+        expires_at: Date;
     }) {
         return prisma.userSession.create({
             data: {
+                id: data.id,
                 tenant_id: data.tenant_id,
                 user_id: data.user_id,
                 refresh_token_hash: data.refresh_token_hash,
-                expires_at: data.expires_at
-            }
+                expires_at: data.expires_at,
+            },
         });
     }
 
@@ -121,7 +150,7 @@ export class AuthRepository {
             }
         })
     }
-    
+
     async updateSessionToken(
         session_Id: string,
         refreshTokenHash: string
@@ -133,6 +162,47 @@ export class AuthRepository {
             data: {
                 refresh_token_hash: refreshTokenHash
             }
+        });
+    }
+
+    async rotateSessionToken(input: {
+        session_id: string;
+        current_refresh_token_hash: string;
+        new_refresh_token_hash: string;
+        now: Date;
+    }) {
+        return prisma.userSession.updateMany({
+            where: {
+                id: input.session_id,
+                refresh_token_hash: input.current_refresh_token_hash,
+                revoked_at: null,
+                expires_at: {
+                    gt: input.now,
+                },
+            },
+            data: {
+                refresh_token_hash: input.new_refresh_token_hash,
+            },
+        });
+    }
+
+    async revokeSessionIfCurrent(input: {
+        session_id: string;
+        current_refresh_token_hash: string;
+        now: Date;
+    }) {
+        return prisma.userSession.updateMany({
+            where: {
+                id: input.session_id,
+                refresh_token_hash: input.current_refresh_token_hash,
+                revoked_at: null,
+                expires_at: {
+                    gt: input.now,
+                },
+            },
+            data: {
+                revoked_at: input.now,
+            },
         });
     }
 
@@ -227,6 +297,71 @@ export class AuthRepository {
             }
         })
     }
+
+    async completePasswordReset(input: {
+        token_id: string;
+        user_id: string;
+        password_hash: string;
+        now: Date;
+    }) {
+        return prisma.$transaction(async (tx) => {
+            // Atomically claim the reset token.
+            // Only one concurrent request can consume an unused,
+            // unexpired token successfully.
+            const tokenResult = await tx.passwordResetToken.updateMany({
+                where: {
+                    id: input.token_id,
+                    user_id: input.user_id,
+                    used_at: null,
+                    expires_at: {
+                        gt: input.now,
+                    },
+                },
+                data: {
+                    used_at: input.now,
+                },
+            });
+
+            if (tokenResult.count !== 1) {
+                return false;
+            }
+
+            // Update the password within the same transaction.
+            await tx.userCredential.update({
+                where: {
+                    user_id: input.user_id,
+                },
+                data: {
+                    password_hash: input.password_hash,
+                },
+            });
+
+            // Invalidate any other outstanding reset tokens.
+            await tx.passwordResetToken.updateMany({
+                where: {
+                    user_id: input.user_id,
+                    used_at: null,
+                },
+                data: {
+                    used_at: input.now,
+                },
+            });
+
+            // Revoke all active sessions for this user.
+            await tx.userSession.updateMany({
+                where: {
+                    user_id: input.user_id,
+                    revoked_at: null,
+                },
+                data: {
+                    revoked_at: input.now,
+                },
+            });
+
+            return true;
+        });
+    }
+
 }
 
 export async function getUserRole(
@@ -236,8 +371,12 @@ export async function getUserRole(
     const userRole = await prisma.userRole.findFirst({
         where: {
             user_id: userId,
+            tenant_id: tenantId,
             role: {
-                tenant_id: tenantId,
+                OR: [
+                    { tenant_id: tenantId },
+                    { tenant_id: null },
+                ],
             },
         },
         include: {

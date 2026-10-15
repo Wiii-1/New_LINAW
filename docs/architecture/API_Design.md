@@ -13,6 +13,6 @@ The original monolithic API design document has been split into module-specific 
 - [Reporting](APIs/Reporting.md)
 - [Audit Trail](APIs/Audit_Trail.md)
 - [Organization Administration](APIs/Organization_Administration.md)
-- [Supplier Dashboard](APIs/Supplier_Dashboard.md)
+- [Supplier Management](APIs/Supplier_Management.md)
 
 Each file preserves the original section content for that module.

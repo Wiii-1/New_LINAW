@@ -1,2 +1,18 @@
-# Ledger for Integrity, Neutrality, and Accountability on the Web
-Blockchain Initiative LINAW is the thesis of computer science student-researchers from STI College Pasay-EDSA. Learn more about us in the [AUTHORS](.github/AUTHORS.md) file. If you want to contribute to LINAW, check out the [CONTRIBUTING](.github/CONTRIBUTING.md) first before making a pull request.
+<div align="center">
+<h1>LINAW</h1>
+
+**Ledger for Integrity, Neutrality, and Accountability on the Web**
+
+</div>
+
+### Introduction
+
+LINAW is an undergraduate thesis of computer science students from Systems Technology Institute College Pasay-EDSA. It is a procurement management system featuring Ethereum-enabled asset verification and tokenization.
+
+### Contributing
+
+Read [CONTRIBUTING](CONTRIBUTING.md) for the full guidelines.
+
+### License
+
+This project is licensed under AGPL-3.0. See [LICENSE](../LICENSE) for more information.

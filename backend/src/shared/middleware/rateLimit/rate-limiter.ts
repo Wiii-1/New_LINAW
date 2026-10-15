@@ -117,11 +117,11 @@ export async function checkRateLimit(
 
   type RateLimitReason = "session" | "user" | "ip";
 
-  const reasons = [
-    "session",
-    "user",
-    "ip",
-  ] as const;
+  const reasons: readonly RateLimitReason[] = [
+      "session",
+      "user",
+      "ip",
+  ];
 
   const reason = reasons[reasonCode];
 

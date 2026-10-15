@@ -29,3 +29,12 @@
 
 # Snapshot cheatcodes output
 /snapshots
+
+
+# =====================
+# smart contract
+# =====================
+smart_contract/node_modules
+smart_contract/.env
+smart_contract/SC_Deployment.json
+smart_contract/adapter-wallet.json

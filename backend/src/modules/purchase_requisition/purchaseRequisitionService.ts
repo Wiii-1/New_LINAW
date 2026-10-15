@@ -21,17 +21,18 @@ import { ConflictError,
          NotFoundError, 
          RestrictedAccessError} from "../../shared/errors/appError.js"
 import { purchaseRequisitionRepository } from "./purchaseRequisitionRepository.js"
-import { PurchaseRequisitionInput, 
+import type { PurchaseRequisitionInput, 
          PurchaseRequisitionIdParams, 
          CancelPurchaseRequisitionInput, 
          ResubmitPurchaseRequisitionInput, 
-         PurchaseRequisitionUpdate, 
          PurchaseRequisitionUpdateData, 
          PurchaseRequisitionQuery} from "./purchaseRequisitionValidation.js"
 import { Prisma, 
          PurchaseRequisitionStatus, 
          PurchaseRequisitionPriority, 
-         PurchaseRequisition} from "../../generated/prisma/client.js"
+         } from "../../generated/prisma/client.js"
+
+import type { PurchaseRequisition } from "../../generated/prisma/client.js"
 import { EventBus } from "../../shared/events/eventBus.js"
 
 export interface purchaseRequisitionData {
@@ -105,7 +106,8 @@ export class purchaseRequisitionService {
             needed_by_date,
             items,
             tenantId,
-            userId
+            userId,
+            companyId
         } = input
 
 
@@ -124,20 +126,15 @@ export class purchaseRequisitionService {
         const requested_by_user_id =  userId
 
         const membership =
-            await this.repository.findActiveByUserId(userId);
+            await this.repository.findActiveByUserId(userId, tenantId, companyId);
 
         if (!membership) {
             throw new Error("User has no active company membership");
         }
 
-        const companyId = membership.company_id;
-
-        if (!companyId) {
-            throw new Error("User has no active company membership");
-        }
-
         const total_amount = items.reduce(
-            (total, item) => total + item.quantity * item.estimated_unit_cost,
+            (total: number, item: { quantity: number; estimated_unit_cost: number }) =>
+                total + item.quantity * item.estimated_unit_cost,
             0
         );
 
@@ -175,7 +172,7 @@ export class purchaseRequisitionService {
                 quantity: item.quantity,
                 unit_of_measure: item.unit_of_measure,
                 estimated_unit_cost: item.estimated_unit_cost,
-                estimated_total_cost: total_amount,
+                estimated_total_cost: item.quantity * item.estimated_unit_cost,
                 category_id: item.category_id ?? null,
                 needed_by_date: item.needed_by_date ?? null,
                 status: PurchaseRequisitionStatus.DRAFT                
@@ -185,16 +182,6 @@ export class purchaseRequisitionService {
             line_no++;
         }
 
-        const metadata = await this.repository.findDetailsById(id)
-
-        if (!metadata) {
-            throw new NotFoundError(
-                "Purchase requisition not found"
-            );
-        }
-
-        const acted_at = new Date()
-
         const statusLogs: purchaseRequisitionStatusLogData = {
             tenant_id: tenantId,
             purchase_requisition_id: id,
@@ -203,16 +190,15 @@ export class purchaseRequisitionService {
             action: "CREATED",
             acted_by_user_id: userId,
             remarks: null,
-            acted_at,
-            metadata_json: metadata           
-            
+            acted_at: new Date(),
+            metadata_json: Prisma.JsonNull
         }
 
-        const requisition = await this.repository.createRequisition(dataCreate);
-
-        await this.repository.createItems(dataItems)
-
-        await this.repository.createStatusLog(statusLogs)
+        const requisition = await this.repository.createRequisitionWithItemsAndStatusLog(
+            dataCreate,
+            dataItems,
+            statusLogs
+        )
 
         return requisition
 
@@ -237,12 +223,29 @@ export class purchaseRequisitionService {
         const {
             userId,
             requisitionId,
+            tenantId,
+            companyId,
         } = data
 
         const requisition = await this.repository.findByRequisitionId(requisitionId)
 
         if(!requisition) {
             throw new NotFoundError ( "Purchase requisition not found" )
+        }
+
+        if (requisition.tenant_id !== tenantId) {
+            throw new RestrictedAccessError("You are not authorized to access this requisition")
+        }
+
+        if (requisition.company_id !== companyId) {
+            throw new RestrictedAccessError("You are not authorized to access this requisition")
+        }
+
+        const membership =
+            await this.repository.findActiveByUserId(userId, tenantId, companyId);
+
+        if (!membership) {
+            throw new RestrictedAccessError("User does not have an active company membership")
         }
 
         this.assetAuthor (requisition, userId)
@@ -253,48 +256,31 @@ export class purchaseRequisitionService {
 
         const submitted_at = new Date()
 
-        const submission = await this.repository.updateStatus(
-            requisitionId,
-            {
-                status: "SUBMITTED",
-                submitted_at
-            }
-        )
-
-        const metadata = await this.repository.findDetailsById(requisitionId)
-
-        if (!metadata) {
-            throw new NotFoundError(
-                "Purchase requisition not found"
-            );
-        }
-
         const acted_at = new Date()
 
-        const tenant = await this.repository.findByUserId(userId)
-
-        if(!tenant){
-            throw new NotFoundError("tenant id not found")
-        }
-
-        const tenant_id = tenant.tenant_id
-
         const statusLogs: purchaseRequisitionStatusLogData = {
-            tenant_id,
+            tenant_id: requisition.tenant_id,
             purchase_requisition_id: requisitionId,
-            from_status: null,
+            from_status: requisition.status,
             to_status: PurchaseRequisitionStatus.SUBMITTED,
-            action: "CREATED",
+            action: "SUBMITTED",
             acted_by_user_id: userId,
             remarks: null,
             acted_at,
-            metadata_json: metadata           
+            metadata_json: Prisma.JsonNull
             
         }
 
-        await this.repository.createStatusLog(statusLogs)
+        const submission = await this.repository.updateStatusWithStatusLog(
+            requisitionId,
+            {
+                status: PurchaseRequisitionStatus.SUBMITTED,
+                submitted_at
+            },
+            statusLogs
+        )
 
-        this.eventBus.publish (
+        await this.eventBus.publish (
             "purchaseRequisition.submitted", 
             {
                 purchaseRequisitionId: submission.id,
@@ -350,6 +336,8 @@ export class purchaseRequisitionService {
             remarks,
             requisitionId,
             userId,
+            tenantId,
+            companyId,
  
         } = input
 
@@ -359,8 +347,16 @@ export class purchaseRequisitionService {
             throw new NotFoundError ("Purchase requisition not found")
         }
 
+        if (requisition.tenant_id !== tenantId) {
+            throw new RestrictedAccessError("You are not authorized to access this requisition")
+        }
+
+        if (requisition.company_id !== companyId) {
+            throw new RestrictedAccessError("You are not authorized to access this requisition")
+        }
+
         const membership =
-            await this.repository.findActiveByUserId(userId);
+            await this.repository.findActiveByUserId(userId, tenantId, companyId);
 
         if (!membership) {
             throw new Error("User has no active company membership");
@@ -379,46 +375,29 @@ export class purchaseRequisitionService {
 
         const cancelled_at = new Date()
         
-        await this.repository.updateStatus(
-            requisitionId,
-            {
-                status: "CANCELLED",
-                cancelled_at
-            }
-        )
-
-        const tenant = await this.repository.findByUserId(userId)
-
-        if(!tenant){
-            throw new NotFoundError("tenant id not found")
-        }
-
-        const tenant_id = tenant.tenant_id         
-
-        const metadata = await this.repository.findDetailsById(requisitionId)
-
-        if (!metadata) {
-            throw new NotFoundError(
-                "Purchase requisition not found"
-            );
-        }
-
         const acted_at = new Date()       
 
         const statusLogs: purchaseRequisitionStatusLogData = {
-            tenant_id,
+            tenant_id: requisition.tenant_id,
             purchase_requisition_id: requisitionId,
-            from_status: null,
+            from_status: requisition.status,
             to_status: PurchaseRequisitionStatus.CANCELLED,
-            action: "CREATED",
+            action: "CANCELLED",
             acted_by_user_id: userId,
-            remarks,
+            remarks: remarks ?? null,
             acted_at,
-            metadata_json: metadata           
+            metadata_json: Prisma.JsonNull
             
         }
 
-        await this.repository.createStatusLog(statusLogs)
+        await this.repository.updateStatusWithStatusLog(
+            requisitionId,
+            {
+                status: PurchaseRequisitionStatus.CANCELLED,
+                cancelled_at
+            },
+            statusLogs
+        )
 
         this.eventBus.publish(
             "purchaseRequisition.cancelled",
@@ -427,12 +406,13 @@ export class purchaseRequisitionService {
                 tenantId: requisition.tenant_id,
                 companyId: requisition.company_id,
                 userId: requisition.requested_by_user_id,
-                cancelled_at: requisition.cancelled_at,
+                cancelled_at,
             }
         )
 
         return {
-            status: requisition.status
+            requisition_id: requisition.id,
+            requisition_status: PurchaseRequisitionStatus.CANCELLED
         }
     }
 
@@ -467,7 +447,7 @@ export class purchaseRequisitionService {
             10. Return the necessary information for the newly created revision.
         */
 
-        const { 
+        const {
             purpose,
             justification,
             priority,
@@ -476,6 +456,8 @@ export class purchaseRequisitionService {
             items,
             requisitionId,
             userId,
+            tenantId,
+            companyId,
             remarks
         } = input
 
@@ -492,8 +474,16 @@ export class purchaseRequisitionService {
             throw new NotFoundError ("Purchase requisition not found")
         }
 
+        if (requisition.tenant_id !== tenantId) {
+            throw new RestrictedAccessError("You are not authorized to access this requisition")
+        }
+
+        if (requisition.company_id !== companyId) {
+            throw new RestrictedAccessError("You are not authorized to access this requisition")
+        }
+
         const membership =
-            await this.repository.findActiveByUserId(userId);
+            await this.repository.findActiveByUserId(userId, tenantId, companyId);
 
         if (!membership) {
             throw new Error("User has no active company membership");
@@ -523,16 +513,11 @@ export class purchaseRequisitionService {
         const created_at = new Date()
         const generation = nextGeneration
 
-        const pr_number = this.prNumberGenerator(created_at, id, generation )
-
-        const companyId = membership.company_id;
-
-        if (!companyId) {
-            throw new Error("User has no active company membership");
-        }
+        const pr_number = this.prNumberGenerator(created_at, requisition.root_id, generation )
 
         const total_amount = items.reduce(
-            (total, item) => total + item.quantity * item.estimated_unit_cost,
+            (total: number, item: { quantity: number; estimated_unit_cost: number }) =>
+                total + item.quantity * item.estimated_unit_cost,
             0
         );
 
@@ -548,11 +533,11 @@ export class purchaseRequisitionService {
 
         const dataCreate: purchaseRequisitionData = {
             id,
-            root_id: id,
+            root_id: requisition.root_id,
             tenant_id,
             company_id: companyId,
             pr_number,
-            generation: 1,
+            generation,
             requested_by_user_id,
             purpose,
             justification,
@@ -580,7 +565,7 @@ export class purchaseRequisitionService {
                 quantity: item.quantity,
                 unit_of_measure: item.unit_of_measure,
                 estimated_unit_cost: item.estimated_unit_cost,
-                estimated_total_cost: total_amount,
+                estimated_total_cost: item.quantity * item.estimated_unit_cost,
                 category_id: item.category_id ?? null,
                 needed_by_date: item.needed_by_date ?? null,
                 status: PurchaseRequisitionStatus.DRAFT                
@@ -590,39 +575,31 @@ export class purchaseRequisitionService {
             line_no++;
         }
 
-                const metadata = await this.repository.findDetailsById(requisitionId)
-
-        if (!metadata) {
-            throw new NotFoundError(
-                "Purchase requisition not found"
-            );
-        }
-
         const acted_at = new Date()       
 
         const statusLogs: purchaseRequisitionStatusLogData = {
             tenant_id,
-            purchase_requisition_id: requisitionId,
-            from_status: null,
-            to_status: PurchaseRequisitionStatus.CANCELLED,
-            action: "CREATED",
+            purchase_requisition_id: id,
+            from_status: latest.status,
+            to_status: PurchaseRequisitionStatus.DRAFT,
+            action: "RESUBMITTED",
             acted_by_user_id: userId,
-            remarks,
+            remarks: remarks ?? null,
             acted_at,
-            metadata_json: metadata           
+            metadata_json: Prisma.JsonNull
             
         }      
 
-        await this.repository.createRequisition(dataCreate)
-
-        await this.repository.createItems(dataItems)
-
-        await this.repository.createStatusLog(statusLogs)
+        await this.repository.createRequisitionWithItemsAndStatusLog(
+            dataCreate,
+            dataItems,
+            statusLogs
+        )
 
         return {
-            requisition_id: requisition.id,
-            requisition_status: requisition.status,
-            submitted_at: requisition.submitted_at
+            requisition_id: id,
+            requisition_status: PurchaseRequisitionStatus.DRAFT,
+            submitted_at: null
         }        
 
     }
@@ -646,6 +623,7 @@ export class purchaseRequisitionService {
         const {
             userId,
             tenantId,
+            companyId,
             status,
             requesterId,
             pr_number,
@@ -658,7 +636,7 @@ export class purchaseRequisitionService {
         }
 
         const membership =
-            await this.repository.findActiveByUserId(userId);
+            await this.repository.findActiveByUserId(userId, tenantId, companyId);
 
         if (!membership) {
             throw new Error("User has no active company membership");
@@ -667,6 +645,7 @@ export class purchaseRequisitionService {
         return this.repository.findRequisitionsForQuery({
             userId,
             tenantId,
+            companyId,
             status,
             requesterId,
             pr_number,
@@ -692,13 +671,23 @@ export class purchaseRequisitionService {
         
         const {
             requisitionId,
-            userId
+            userId,
+            tenantId,
+            companyId
         } = input    
         
         const requisition = await this.repository.findByRequisitionId(requisitionId)
 
         if(!requisition) {
             throw new NotFoundError ("Purchase requisition does not exist")
+        }
+
+        if (requisition.tenant_id !== tenantId) {
+            throw new RestrictedAccessError("You are not authorized to access this requisition")
+        }
+
+        if (requisition.company_id !== companyId) {
+            throw new RestrictedAccessError("You are not authorized to access this requisition")
         }
 
         const user = await this.repository.findByUserId(userId)
@@ -708,13 +697,17 @@ export class purchaseRequisitionService {
         }
 
         const membership =
-            await this.repository.findActiveByUserId(userId);
+            await this.repository.findActiveByUserId(userId, tenantId, companyId);
 
         if (!membership) {
             throw new Error("User has no active company membership");
         }
         
-        const details = await this.repository.findDetailsById(requisitionId)
+        const details = await this.repository.findDetailsById(requisitionId, tenantId, companyId)
+
+        if (!details) {
+            throw new NotFoundError("Purchase requisition does not exist")
+        }
 
         return details
 
@@ -723,6 +716,8 @@ export class purchaseRequisitionService {
     async updateRequisition(    
         requisitionId: string,
         userId: string,
+        tenantId: string,
+        companyId: string,
         updateData: PurchaseRequisitionUpdateData
     ) 
     {
@@ -734,6 +729,14 @@ export class purchaseRequisitionService {
             throw new NotFoundError(
                 "Purchase requisition does not exist"
             );
+        }
+
+        if (requisition.tenant_id !== tenantId) {
+            throw new RestrictedAccessError("You are not authorized to access this requisition")
+        }
+
+        if (requisition.company_id !== companyId) {
+            throw new RestrictedAccessError("You are not authorized to access this requisition")
         }
 
         // 2. Find the user
@@ -748,7 +751,7 @@ export class purchaseRequisitionService {
 
         // 3. Verify active organization/company membership
         const membership =
-            await this.repository.findActiveByUserId(userId);
+            await this.repository.findActiveByUserId(userId, tenantId, companyId);
 
         if (!membership) {
             throw new RestrictedAccessError(
@@ -774,8 +777,30 @@ export class purchaseRequisitionService {
 
 
         const repositoryUpdateData = {
-            ...updateData,
-            requested_by_user_id: userId
+            purpose: updateData.purpose,
+            justification: updateData.justification,
+            priority: updateData.priority,
+            needed_by_date: updateData.needed_by_date,
+            requested_by_user_id: userId,
+            ...(updateData.items
+                ? {
+                    items: updateData.items.map((item, index) => ({
+                        tenant_id: requisition.tenant_id,
+                        purchase_requisition_id: requisitionId,
+                        line_no: index + 1,
+                        item_type: item.item_type,
+                        description: item.description,
+                        specification: item.specification,
+                        quantity: item.quantity,
+                        unit_of_measure: item.unit_of_measure,
+                        estimated_unit_cost: item.estimated_unit_cost,
+                        estimated_total_cost: item.quantity * item.estimated_unit_cost,
+                        category_id: item.category_id ?? null,
+                        needed_by_date: item.needed_by_date ?? null,
+                        status: PurchaseRequisitionStatus.DRAFT
+                    }))
+                }
+                : {})
         };
 
         const updatedRequisition =

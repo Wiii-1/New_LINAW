@@ -1,30 +1,35 @@
 import type { AppContext } from "../../shared/types/hono.js";
 import { Context } from "hono"
 import { ApprovalWorkflowService } from "./approvalWorkflowService.js"
-import {    APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA, 
-            APPROVAL_WORKFLOW_QUERY_SCHEMA, 
-            REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA,
-            ApprovalWorkflowIdParams,
-            RejectApprovalWorkflowBody,
+import {    APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA,  
+            REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA, 
             APPROVAL_WORKFLOW_LEVEL_CREATION,
             APPROVAL_WORKFLOW_CREATION,
-            CreateWorkflow,
         } from "./approvalWorkflowValidator.js";
 
+import type { CreateWorkflow } from "./approvalWorkflowValidator.js"
+import { APPROVAL_WORKFLOW_QUERY_SCHEMA } from "./approvalWorkflowValidator.js"
+
+import { UnauthorizedAccessError } from "../../shared/errors/"
+
 export class ApprovalWorkflowController {
-    constructor(private service: ApprovalWorkflowService) {
-        this.service = service
-    }
+    constructor(private service: ApprovalWorkflowService) {}
 
     approve = async (
         c: Context<AppContext>
     ): Promise <void> => {
 
-        const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param("id"))
+        const { approvalWorkflowId } = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param())
 
-        const data: ApprovalWorkflowIdParams = {
-            ApprovalWorkflowId: params.ApprovalWorkflowId,
-            userId: c.get("user").user_id
+        const { user_id, company_id } = c.var.user
+
+        if (!company_id) {
+            throw new UnauthorizedAccessError ("Company context is required.");
+        }
+
+        const data = {
+            approvalWorkflow_id: approvalWorkflowId,
+            user_id,
         }
 
         const approved = await this.service.approveRequest(data)
@@ -40,14 +45,20 @@ export class ApprovalWorkflowController {
         c: Context<AppContext>
     ): Promise <void> => {
 
-        const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param("id"))
+        const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param())
 
         const body = REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA.parse(await c.req.json())
 
-        const data: RejectApprovalWorkflowBody = {
+        const { user_id, company_id } = c.var.user
+
+        if (!company_id) {
+            throw new UnauthorizedAccessError ("Company context is required.");
+        }        
+
+        const data = {
+            user_id: user_id,
             remarks: body.remarks,
-            userId: c.get("user").user_id,
-            approvalWorkflowId: params.ApprovalWorkflowId
+            approvalWorkflow_id: params.approvalWorkflowId
         }
 
         const rejected = await this.service.rejectRequest(data)
@@ -62,11 +73,17 @@ export class ApprovalWorkflowController {
         c: Context<AppContext>
     ): Promise <void> => {
 
-        const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param)
+        const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param())
 
-        const data: ApprovalWorkflowIdParams = {
-            ApprovalWorkflowId: params.ApprovalWorkflowId,
-            userId: c.get("user").user_id
+        const { user_id, company_id } = c.var.user
+
+        if (!company_id) {
+            throw new UnauthorizedAccessError ("Company context is required.");
+        }
+
+        const data = { 
+            approvalWorkflow_id: params.approvalWorkflowId,
+            user_id: user_id
         }
 
         const cancelled = await this.service.cancelRequest(data)
@@ -82,9 +99,14 @@ export class ApprovalWorkflowController {
         c: Context<AppContext>
     ) => {
 
-        const data = {
-            userId: c.get("user").user_id
-        }
+        const { user_id, company_id } = c.var.user
+
+        if (!company_id) {
+            throw new UnauthorizedAccessError ("Company context is required.");
+        }        
+
+        const query = APPROVAL_WORKFLOW_QUERY_SCHEMA.parse(c.req.query())
+        const data = { userId: user_id, status: query.status }
 
         const getApprovalWorkflows = await this.service.getApprovalWorkflows(data)
 
@@ -99,11 +121,17 @@ export class ApprovalWorkflowController {
         c: Context<AppContext>
     ): Promise <void> => {
 
-        const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param("id"))
+        const { approvalWorkflowId } = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param())
+
+        const { user_id, company_id } = c.var.user
+
+        if (!company_id) {
+            throw new UnauthorizedAccessError ("Company context is required.");
+        }
 
         const data = {
-            userId: c.get("user").user_id,
-            approvalWorkflowId: params.ApprovalWorkflowId
+            userId: user_id,
+            approvalWorkflowId
         }
 
         const request = await this.service.approvalRequest(data)
@@ -120,11 +148,17 @@ export class ApprovalWorkflowController {
         c: Context<AppContext>
     ): Promise<void> => {
 
-        const body = APPROVAL_WORKFLOW_LEVEL_CREATION.parse(c.req.json())
+        const body = APPROVAL_WORKFLOW_LEVEL_CREATION.parse(await c.req.json())
+
+        const { user_id, company_id } = c.var.user
+
+        if (!company_id) {
+            throw new UnauthorizedAccessError ("Company context is required.");
+        }
 
         const data = {
             ...body,
-            userId: c.get("user").user_id
+            userId: user_id
         }
 
         const level = await this.service.createLevel(data)
@@ -142,9 +176,15 @@ export class ApprovalWorkflowController {
     
         const body = APPROVAL_WORKFLOW_CREATION.parse(await c.req.json())
 
+        const { user_id, company_id } = c.var.user
+
+        if (!company_id) {
+            throw new UnauthorizedAccessError ("Company context is required.");
+        }
+
         const data: CreateWorkflow = {
             ...body,
-            userId: c.get("user").user_id
+            userId: user_id
         }
 
         const workflow = await this.service.createWorkflowDefinition(data)
@@ -159,15 +199,22 @@ export class ApprovalWorkflowController {
     workflowCodes = async (
         c: Context<AppContext>
     ): Promise<void> => {
+
+        const { user_id, company_id } = c.var.user
+
+        if (!company_id) {
+            throw new UnauthorizedAccessError ("Company context is required.");
+        }        
+
         const data = {
-            userId: c.get("user").user_id
+            userId: user_id
         }
 
         const getCodes = await this.service.workflowCodes(data)
 
         c.json({
             success: true,
-            getCodes
+            data: getCodes
         },200)
     }
 }

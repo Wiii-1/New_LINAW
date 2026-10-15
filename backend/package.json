@@ -25,29 +25,27 @@
     "decimal.js": "^10.6.0",
     "dotenv": "^17.4.2",
     "ethers": "^6.17.0",
-    "express": "^5.2.1",
     "express-session": "^1.19.0",
     "helmet": "^8.3.0",
-    "hono": "^4.13.7",
+    "hono": "^4.13.8",
     "jsonwebtoken": "^9.0.3",
-    "morgan": "^1.11.0",
     "pg": "^8.23.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260915.1",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.19.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.6.2",
     "@types/supertest": "^7.2.1",
+    "oxlint": "^1.85.0",
     "prisma": "7.10.0",
-    "tsx": "^4.23.1",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.0",
-    "wrangler": "^4.129.0"
+    "vitest": "^5.0.1",
+    "wrangler": "^4.135.0"
   }
 }

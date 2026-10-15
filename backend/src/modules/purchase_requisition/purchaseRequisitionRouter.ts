@@ -5,8 +5,8 @@ import { purchaseRequisitionService } from "./purchaseRequisitionService.js"
 import { purchaseRequisitionRepository } from "./purchaseRequisitionRepository.js"
 import { authenticate } from "../../shared/middleware/authenticate.js"
 import { EventBus } from "../../shared/events/eventBus.js"
-import { Authorize } from "../../shared/Auhorization/authorize.js"
-import { systemPermissions, systemPermissionSeeds } from "../../shared/Auhorization/seeds/systemPermissions.js"
+import { Authorize } from "../../shared/Authorization/authorize.js"
+import { systemPermissions } from "../../shared/Authorization/seeds/systemPermissions.js"
 import { criticalRateLimit } from "../../shared/middleware/rateLimit/critical-rate-limit.js"
 
 export function createPurchaseRequistionRouter () {
@@ -24,8 +24,8 @@ export function createPurchaseRequistionRouter () {
 
     // Get
 
-    router.get("/",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read),criticalRateLimit,  controller.requisition );
-    router.get("/:requisitonId",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read), criticalRateLimit,controller.details)
+    router.get("/",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read), controller.requisition );
+    router.get("/:requisitionId",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read), controller.details)
 
     // Patch
     router.patch("/:requisitionId",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.update), controller.update)

@@ -1,125 +1,140 @@
-import { sign, verify } from "hono/jwt"
-import type { AppEnv } from "../../config/env.js"
-
+import { sign, verify } from "hono/jwt";
+import type { AppEnv } from "../../config/env.js";
 
 export interface AccessTokenPayload {
-    user_id:string,
-    session_id:string,
-    tenant_id:string
+    user_id: string;
+    session_id: string;
+    tenant_id: string;
+    company_id?: string;
 }
 
 export interface RefreshTokenPayload {
-    user_id:string,
-    session_id:string
+    user_id: string;
+    session_id: string;
 }
 
-let jwtEnv: AppEnv
-
-export function initializeJWT (env: AppEnv): void {
-    jwtEnv = env
-}
-
-
-export async function generateAccessToken (
-    payload:AccessTokenPayload,
+export async function generateAccessToken(
+    payload: AccessTokenPayload,
+    env: AppEnv,
 ): Promise<string> {
-    if (!jwtEnv) {
-        throw new Error("JWT has not been initialized");
-    }
+    const now = Math.floor(Date.now() / 1000);
+    const expiresIn = parseExpiration(
+        env.JWT_ACCESS_EXPIRES,
+        60 * 60,
+    );
 
-    return await sign(
+    return sign(
         {
             ...payload,
-            iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000)
-                + parseExpiration(jwtEnv.JWT_ACCESS_EXPIRES),
+            iat: now,
+            exp: now + expiresIn,
         },
-        jwtEnv.JWT_ACCESS_SECRET,
+        env.JWT_ACCESS_SECRET,
         "HS256",
     );
 }
 
 export async function generateRefreshToken(
-    payload: RefreshTokenPayload      
+    payload: RefreshTokenPayload,
+    env: AppEnv,
 ): Promise<string> {
-    if (!jwtEnv) {
-        throw new Error("JWT has not been initialized");
-    }
+    const now = Math.floor(Date.now() / 1000);
+    const expiresIn = parseExpiration(
+        env.JWT_REFRESH_EXPIRES,
+        60 * 60 * 24 * 7,
+    );
 
-    return await sign(
+    return sign(
         {
             ...payload,
-            iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000)
-                + parseExpiration(jwtEnv.JWT_REFRESH_EXPIRES),
+            iat: now,
+            exp: now + expiresIn,
         },
-        jwtEnv.JWT_REFRESH_SECRET,
+        env.JWT_REFRESH_SECRET,
         "HS256",
     );
 }
 
 export async function verifyRefreshToken(
     token: string,
+    env: AppEnv,
 ): Promise<RefreshTokenPayload> {
-    if (!jwtEnv) {
-        throw new Error("JWT has not been initialized");
-    }
-
     const payload = await verify(
         token,
-        jwtEnv.JWT_REFRESH_SECRET,
-        "HS256"
-    )
+        env.JWT_REFRESH_SECRET,
+        "HS256",
+    );
 
     if (
-        typeof payload.user_id !== "string" ||
-        typeof payload.session_id !== "string"
+        typeof payload["user_id"] !== "string" ||
+        payload["user_id"].length === 0 ||
+        typeof payload["session_id"] !== "string" ||
+        payload["session_id"].length === 0
     ) {
-        throw new Error("Invalid refresh token payload")
+        throw new Error("Invalid refresh token payload");
     }
 
     return {
-        user_id: payload.user_id,
-        session_id: payload.session_id
-    }
+        user_id: payload["user_id"],
+        session_id: payload["session_id"],
+    };
 }
 
-function parseExpiration (
+function parseExpiration(
     expiresIn: string | undefined,
+    defaultSeconds: number,
 ): number {
-    if (!expiresIn) {
-        return 60 * 60 
+    if (expiresIn === undefined) {
+        return defaultSeconds;
     }
 
-    const match = expiresIn.match(
-        /^(\d+)(s|m|h|d)$/,
-    )
+    const match = expiresIn.match(/^(\d+)(s|m|h|d)$/);
 
     if (!match) {
-        throw new Error (
+        throw new Error(
             `Invalid JWT expiration format: ${expiresIn}`,
-        )
+        );
     }
 
-    const value = Number(match[1])
-    const unit = match[2]
+    const value = Number(match[1]);
+    const unit = match[2];
+
+    if (!Number.isSafeInteger(value) || value <= 0) {
+        throw new Error(
+            `Invalid JWT expiration value: ${expiresIn}`,
+        );
+    }
+
+    let seconds: number;
 
     switch (unit) {
         case "s":
-            return value;
+            seconds = value;
+            break;
 
         case "m":
-            return value * 60;
+            seconds = value * 60;
+            break;
 
         case "h":
-            return value * 60 * 60;
+            seconds = value * 60 * 60;
+            break;
 
         case "d":
-            return value * 60 * 60 * 24;
+            seconds = value * 60 * 60 * 24;
+            break;
 
         default:
             throw new Error(
                 `Unsupported JWT expiration unit: ${unit}`,
-            );        
+            );
     }
+
+    if (!Number.isSafeInteger(seconds)) {
+        throw new Error(
+            `JWT expiration exceeds the supported range: ${expiresIn}`,
+        );
+    }
+
+    return seconds;
 }

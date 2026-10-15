@@ -1,82 +1,77 @@
 import { ethers } from "ethers";
 
 import type { AppEnv } from "../../config/env.js";
-import { createAuditTrailContract } from "./blockchainClient.js"; 
+import { createAuditTrailContract } from "./blockchainClient.js";
 
 type AnchorAuditInput = {
     auditId: string;
     hashValue: string;
     eventType: string;
-}
+};
 
-export class BlockchainAdapter{
+export type BlockchainAuditRecord = {
+    auditId: string;
+    hashValue: string;
+    eventType: string;
+    anchoredAt: number;
+};
 
-    constructor( 
+export class BlockchainAdapter {
+    constructor(
         private readonly env: AppEnv
     ) {}
 
-    async anchorAudit(
-        input: AnchorAuditInput
-    ) {
-
+    async anchorAudit(input: AnchorAuditInput) {
         const auditTrailContract = createAuditTrailContract(this.env);
 
-        // UUID/String - byte32
+        const auditIdBytes32 = ethers.id(input.auditId);
 
-        const auditIdbyte32 = ethers.id(
-            input.auditId
-        )
+        const hashValueBytes32 = input.hashValue.startsWith("0x")
+            ? input.hashValue
+            : `0x${input.hashValue}`;
 
-        // SHA 256 hex - byte32
+        if (!/^0x[0-9a-fA-F]{64}$/.test(hashValueBytes32)) {
+            throw new Error(
+                "Invalid hashValue: expected a 32-byte hexadecimal hash"
+            );
+        }
 
-        const hashValueByte32 = 
-            input.hashValue.startsWith("0x") 
-                ? input.hashValue
-                : `0x${input.hashValue}`
-
-        if (!/^0x[0-9a-fA-F]{64}$/.test(hashValueByte32)) {
-        throw new Error(
-            "Invalid hashValue: expected a 32-byte hexadecimal hash"
-        );
-    }
-
-        const transaction = 
+        const transaction =
             await auditTrailContract.getFunction("anchorAudit")(
-                input.auditId,
-                input.hashValue,
-                input.eventType
+                auditIdBytes32,
+                hashValueBytes32,
+                input.eventType,
             );
 
-        const receipt = await transaction.wait()
+        const receipt = await transaction.wait();
 
-        const block = await auditTrailContract.runner?.provider?.getBlock(receipt.blockNumber)
+        const block =
+            await auditTrailContract.runner?.provider?.getBlock(
+                receipt.blockNumber
+            );
 
         if (!block) {
-            throw new Error("Block not found")
+            throw new Error("Block not found");
         }
 
         return {
             transactionHash: receipt.hash,
             blockNumber: receipt.blockNumber,
-            anchoredAt: block.timestamp
-        }
+            anchoredAt: block.timestamp,
+        };
     }
 
     async verifyAudit(
         auditId: string,
         hashValue: string
     ) {
+        const auditTrailContract = createAuditTrailContract(this.env);
 
-        const auditTrailContract = createAuditTrailContract(this.env);        
+        const auditIdBytes32 = ethers.id(auditId);
 
-        const auditIdBytes32 = ethers.id(
-            auditId
-        );
-
-        const hashValueBytes32 =
-            hashValue.startsWith("0x")
-                ? hashValue
-                : `0x${hashValue}`;
+        const hashValueBytes32 = hashValue.startsWith("0x")
+            ? hashValue
+            : `0x${hashValue}`;
 
         if (!/^0x[0-9a-fA-F]{64}$/.test(hashValueBytes32)) {
             throw new Error(
@@ -85,19 +80,25 @@ export class BlockchainAdapter{
         }
 
         return await auditTrailContract.getFunction("verifyAudit")(
-            auditId,
-            hashValue
-        )
+            auditIdBytes32,
+            hashValueBytes32,
+        );
     }
 
-    async getAudit(
-        env: AppEnv,
-        auditId: string
-    ){
-        const auditTrailContract = createAuditTrailContract(env);
+    async getAudit(auditId: string): Promise<BlockchainAuditRecord> {
+        const auditTrailContract = createAuditTrailContract(this.env);
 
-        return await auditTrailContract.getFunction("getAudit")(
-            auditId
-        )
+        const auditIdBytes32 = ethers.id(auditId);
+
+        const record = await auditTrailContract.getFunction("getAudit")(
+            auditIdBytes32,
+        );
+
+        return {
+            auditId: record[0],
+            hashValue: record[1].replace(/^0x/, "").toLowerCase(),
+            eventType: record[2],
+            anchoredAt: Number(record[3]),
+        };
     }
 }
