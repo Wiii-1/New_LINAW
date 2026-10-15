@@ -21,6 +21,7 @@ import { createSupplierManagement } from "./modules/supplier_management/supplier
 
 import { AuditTrailRepository } from "./modules/audit_trail/auditTrailRepository.js";
 import { AuditTrailService } from "./modules/audit_trail/auditTrailService.js";
+import { registerAuditTrailEvents } from "./modules/audit_trail/auditTrailEventHandler.js";
 import { BlockchainAdapter } from "./shared/blockchain/blockchainAdapter.js";
 
 const app = new Hono<AppContext>().basePath("/api");
@@ -55,6 +56,7 @@ app.all("*", async (c: Context<AppContext>) => {
     const blockchainAdapter = new BlockchainAdapter(env);
     const repository = new AuditTrailRepository();
     const service = new AuditTrailService(repository, blockchainAdapter);
+    registerAuditTrailEvents(service);
 
     const authRouter = createAuthRouter(env);
     const auditRouter = createAuditRouter(service);
@@ -69,11 +71,11 @@ app.all("*", async (c: Context<AppContext>) => {
 
     router.route("/auth", authRouter);
     router.route("/auditTrail", auditRouter);
-    router.route("/approvalWorkflow", approvalWorkflowRouter);
-    router.route("/createPurchaseRequisition", purchaseRequisitionRouter );
+    router.route("/approval-workflows", approvalWorkflowRouter);
+    router.route("/PurchaseRequisition", purchaseRequisitionRouter );
     router.route("/organizationManagement", organizationAdministrationRouter)
-    router.route("/purcahseOrderManagementRouter", purchaseOrderManagementRouter)
-    router.route("/supplierManagement", supplierManagementRouter);
+    router.route("/purchase-orders", purchaseOrderManagementRouter)
+    router.route("/", supplierManagementRouter);
     router.route("/userManagementRouter", userManagementRouter)
 
     const forwardedUrl = new URL(c.req.url);

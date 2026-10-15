@@ -1,7 +1,7 @@
 import type { AppContext } from "../../shared/types/hono";
 import { Context } from "hono"
 import { PurchaseOrderManagementService } from "./purchaseOrderManagementService"
-import { CreatePurchaseOrderSchema, CreateRFQSchema, ListPurchaseOrdersQuerySchema, ListRFQsQuerySchema, PurchaseOrderIdParamsSchema, QuotationParamsSchema, RFQIdParamsSchema, UpdatePurchaseOrderSchema, UpdateRFQSchema } from "./purchaseOrderManagementValidator";
+import { CreateRFQSchema, ListPurchaseOrdersQuerySchema, ListRFQsQuerySchema, ProcurementQueueQuerySchema, PurchaseOrderIdParamsSchema, QuotationParamsSchema, RFQIdParamsSchema, UpdatePurchaseOrderSchema, UpdateRFQSchema } from "./purchaseOrderManagementValidator";
 import { NotFoundError } from "../../shared/errors";
 
 
@@ -10,11 +10,11 @@ export class PurchaseOrderManagementController {
         private service : PurchaseOrderManagementService
     ) {}
 
-    createPurchaseOrder = async (
+    orderPurchaseOrder = async (
         c: Context<AppContext>
     ) => {
 
-        const body = CreatePurchaseOrderSchema.parse( await c.req.json())
+        const { poId } = await PurchaseOrderIdParamsSchema.parse(c.req.param())
 
         const { user_id, tenant_id, company_id } = c.var.user
 
@@ -26,16 +26,16 @@ export class PurchaseOrderManagementController {
             user_id,
             tenant_id,
             company_id,
-            body
+            poId
         }
 
-        const createdPO = await this.service.createPurchaseOrder(input)
+        const createdPO = await this.service.orderPurchaseOrder(input)
 
         return c.json({
             success: true,
             message: "Successfully Created Purchase Order",
             createdPO
-        }, 201)
+        }, 200)
     }
 
     createRFQS  = async (
@@ -92,7 +92,7 @@ export class PurchaseOrderManagementController {
             success: true,
             message: "Successfully published RFQS",
             published
-        }, 201)
+        }, 200)
     }
 
     selectSupplier = async (
@@ -120,7 +120,7 @@ export class PurchaseOrderManagementController {
             success: true,
             message: "Supplier has been selected",
             selectedSupplier
-        },201)
+        }, 200)
     }
 
     getList = async (
@@ -147,14 +147,37 @@ export class PurchaseOrderManagementController {
             success: true,
             message: "Success list is returned",
             list
-        }, 201)
+        }, 200)
+    }
+
+    getApprovedPurchaseRequisition = async (
+        c: Context<AppContext>
+    ) => {
+        const query = ProcurementQueueQuerySchema.parse(c.req.query())
+        const { tenant_id, company_id } = c.var.user
+
+        if (!company_id) {
+            throw new NotFoundError("User does not belong to a company")
+        }
+
+        const ApprovedPR = await this.service.getProcurementQueue({
+            tenant_id,
+            company_id,
+            query,
+        })
+
+        return c.json({
+            success: true,
+            message: "Success list is returned",
+            ApprovedPR
+        }, 200)
     }
 
     getRfqs = async (
         c: Context<AppContext>
     ) => {
 
-        const query = ListRFQsQuerySchema.parse(c.req.param())
+        const query = ListRFQsQuerySchema.parse(c.req.query())
 
         const { user_id, tenant_id, company_id } = c.var.user
 
@@ -174,7 +197,7 @@ export class PurchaseOrderManagementController {
         return c.json({
             success: true,
             list
-        },201)
+        }, 200)
 
     }
 
@@ -202,7 +225,7 @@ export class PurchaseOrderManagementController {
         return c.json({
             success: true,
             QuotationList
-        },201 )
+        }, 200)
     }
 
     getQuotation = async (
@@ -229,7 +252,7 @@ export class PurchaseOrderManagementController {
         return c.json({
             success: true,
             Quotation
-        }, 201)
+        }, 200)
     }
 
     getPO= async (
@@ -256,7 +279,7 @@ export class PurchaseOrderManagementController {
         return c.json({
             success: true,
             PO
-        },201)
+        }, 200)
 
     }
 
@@ -288,7 +311,7 @@ export class PurchaseOrderManagementController {
             success: true,
             message: "Sucessful",
             updated
-        }, 201)
+        }, 200)
     }
 
     updatePo = async (
@@ -318,7 +341,7 @@ export class PurchaseOrderManagementController {
         return c.json({
             success: true,
             updated
-        }, 201)
+        }, 200)
     }
 
     deleteRfq = async (
@@ -345,7 +368,7 @@ export class PurchaseOrderManagementController {
         return c.json({
             success: true,
             deleted
-        }, 201)
+        }, 200)
 
     }
 
@@ -373,7 +396,7 @@ export class PurchaseOrderManagementController {
         return c.json({
             success: true,
             deletedPO
-        },201)
+        }, 200)
 
     }
 }

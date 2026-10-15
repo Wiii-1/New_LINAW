@@ -34,17 +34,34 @@ export class SupplierManagementInvitationRepository {
             user_id: string;
             tenant_id: string;
             company_id: string;
+            status?: string;
+            email?: string;
+            page: number;
+            limit: number;
         },
     ) {
-        return prisma.supplierInvitation.findMany({
-            where: {
-                tenant_id: input.tenant_id,
-                company_id: input.company_id,
-            },
-            orderBy: {
-                created_at: "desc",
-            },
-        });
+        const where = {
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+            ...(input.status ? { status: input.status } : {}),
+            ...(input.email
+                ? { email: { contains: input.email, mode: "insensitive" as const } }
+                : {}),
+        };
+
+        const [invitations, total] = await prisma.$transaction([
+            prisma.supplierInvitation.findMany({
+                where,
+                orderBy: {
+                    created_at: "desc",
+                },
+                skip: (input.page - 1) * input.limit,
+                take: input.limit,
+            }),
+            prisma.supplierInvitation.count({ where }),
+        ]);
+
+        return { invitations, total };
     }
 
     /**
@@ -89,7 +106,10 @@ export class SupplierManagementInvitationRepository {
                 id: input.invitation_id,
                 tenant_id: input.tenant_id,
                 company_id: input.company_id,
-                status: "DRAFT",
+                OR: [
+                    { status: "DRAFT" },
+                    { status: "PENDING", expires_at: { lte: new Date() } },
+                ],
             },
             data: {
                 token_hash: input.token_hash,
@@ -99,6 +119,26 @@ export class SupplierManagementInvitationRepository {
         });
 
         return result.count > 0;
+    }
+
+    async resetInvitationToDraft(input: {
+        invitation_id: string;
+        tenant_id: string;
+        company_id: string;
+    }) {
+        return prisma.supplierInvitation.updateMany({
+            where: {
+                id: input.invitation_id,
+                tenant_id: input.tenant_id,
+                company_id: input.company_id,
+                status: "SENDING",
+            },
+            data: {
+                status: "DRAFT",
+                token_hash: null,
+                expires_at: null,
+            },
+        });
     }
 
     /**
@@ -174,6 +214,17 @@ export class SupplierManagementInvitationRepository {
                 id: true,
                 email: true,
             },
+        });
+    }
+
+    async findUserByEmail(input: { tenant_id: string; email: string }) {
+        return prisma.user.findFirst({
+            where: {
+                tenant_id: input.tenant_id,
+                email: { equals: input.email, mode: "insensitive" },
+                status: "ACTIVE",
+            },
+            select: { id: true },
         });
     }
 

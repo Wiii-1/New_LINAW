@@ -4,6 +4,7 @@ import type {
     SubmitSupplierQuotation,
 } from "./supplierManagementPortalValidator";
 import { SupplierManagementPortalRepository } from "./supplierManagementPortalRepository";
+import { SUPPLIER_QUOTATION_SUBMITTED_EVENT } from "./supplierManagementPortalEventHandler";
 
 interface SupplierPortalContext {
     user_id: string;
@@ -282,7 +283,7 @@ export class SupplierManagementPortalService {
 
         // Notify subscribers only after the repository successfully creates
         // the quotation.
-        await this.eventBus.publish("supplier.quotation.submitted", {
+        await this.eventBus.publish(SUPPLIER_QUOTATION_SUBMITTED_EVENT, {
             quotation_id: quotation.id,
             quotation_number: quotation.quotation_number,
             tenant_id: quotation.tenant_id,

@@ -3,6 +3,7 @@ import type { Context, Next } from "hono"
 
 import { verify } from "hono/jwt"
 import type { AccessTokenPayload } from "../../modules/authentication/authJWT.js";
+import { AuthRepository } from "../../modules/authentication/authRepository.js";
 import type { AppContext } from "../types/hono.js"
 
 import { UnauthorizedAccessError } from "../errors/appError.js";
@@ -51,6 +52,22 @@ export async function authenticate(
                 payload["company_id"].length === 0
             )
         )
+    ) {
+        throw new UnauthorizedAccessError("Invalid Token");
+    }
+
+    const session = await new AuthRepository().findSessionForAccessToken(
+        payload["session_id"],
+    );
+
+    if (
+        !session ||
+        session.user_id !== payload["user_id"] ||
+        session.tenant_id !== payload["tenant_id"] ||
+        session.user.tenant_id !== payload["tenant_id"] ||
+        session.revoked_at !== null ||
+        session.expires_at <= new Date() ||
+        session.user.status !== "ACTIVE"
     ) {
         throw new UnauthorizedAccessError("Invalid Token");
     }

@@ -39,6 +39,7 @@ const session = {
 const user = {
     id: "user-id",
     tenant_id: "tenant-id",
+    status: "ACTIVE",
 };
 
 const repositoryMock = {
@@ -158,6 +159,19 @@ describe("AuthService refresh-token rotation", () => {
         repositoryMock.findSessionById.mockResolvedValue({
             ...session,
             revoked_at: new Date(),
+        });
+
+        await expect(
+            createService().refresh(refreshToken),
+        ).rejects.toBeInstanceOf(UnauthorizedAccessError);
+
+        expect(repositoryMock.rotateSessionToken).not.toHaveBeenCalled();
+    });
+
+    it("rejects a refresh for an inactive user", async () => {
+        repositoryMock.findUserById.mockResolvedValue({
+            ...user,
+            status: "INACTIVE",
         });
 
         await expect(

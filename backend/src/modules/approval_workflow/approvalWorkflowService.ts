@@ -6,7 +6,8 @@ import type { ApprovalWorkflowRepository,
          UpdateRequestStatusData,
          roleCheck,
          ApprovalActionData,
-         ApprovalRequestData
+         ApprovalRequestData,
+         ApprovalRequestStatus
        } from "./approvalWorkflowRepository.js";
 import { EventBus } from "../../shared/events/eventBus.js";
 import type { 
@@ -19,6 +20,7 @@ import { Decimal } from "decimal.js";
 interface AuthenticatedUser {
    userId: string
    approvalWorkflowId?: string | null
+   status?: ApprovalRequestStatus
 }
 
 interface CreateApprovalWorkflowRequest {
@@ -87,6 +89,7 @@ export class ApprovalWorkflowService {
       userId: string,
       tenantId: string,
       companyId: string,
+      workflowId: string,
       currentLevel: number
    ): Promise <void> {
       const role: roleCheck = {
@@ -105,7 +108,8 @@ export class ApprovalWorkflowService {
 
       const levels = await this.repository.getLevels(
          companyId,
-         tenantId
+         tenantId,
+         workflowId,
       )
 
       if (!levels || levels.length === 0) {
@@ -136,6 +140,7 @@ export class ApprovalWorkflowService {
       purchaseRequisitionId: string;
       tenantId: string;
       companyId: string;
+      workflowId: string;
    }) {
       const requisition = await this.repository.findRequisitionById({
          purchaseRequisition_id: input.purchaseRequisitionId,
@@ -150,7 +155,8 @@ export class ApprovalWorkflowService {
       }
       const levels = await this.repository.getLevels(
          requisition.company_id,
-         requisition.tenant_id
+         requisition.tenant_id,
+         input.workflowId,
       );
 
       if (!levels.length) {
@@ -207,10 +213,31 @@ export class ApprovalWorkflowService {
 
       const entityType = event.entityType
 
+      const workflow = await this.repository.findWorkflowByEntityType(
+         entityType,
+         event.tenantId,
+         event.companyId,
+      )
+
+      if (!workflow) {
+         throw new NotFoundError("Approval workflow does not exist")
+      }
+
+      const existingRequest = await this.repository.findApprovalRequestByEntity({
+         tenant_id: event.tenantId,
+         company_id: event.companyId,
+         entity_id: event.purchaseRequisitionId,
+      })
+
+      if (existingRequest) {
+         return existingRequest
+      }
+
       const currentLevel = await this.levelAssignment({
          purchaseRequisitionId: event.purchaseRequisitionId,
          tenantId: event.tenantId,
          companyId: event.companyId,
+         workflowId: workflow.id,
       });
 
       const approvalRequest: ApprovalRequestData = {
@@ -221,7 +248,7 @@ export class ApprovalWorkflowService {
          requester_user_id: event.userId,
          current_level: currentLevel,
          status: "PENDING",
-         submitted_at: new Date()
+         submitted_at: event.submitted_At
       }
 
       return await this.repository.createApprovalRequest(approvalRequest)
@@ -270,11 +297,21 @@ export class ApprovalWorkflowService {
          company_id
       )
 
-      if (request.status === "APPROVED"){
-         throw new ConflictError("Request Already Approved")
+      if (request.status !== "PENDING"){
+         throw new ConflictError("Request is no longer pending")
       }
 
       const currentLevel = request.current_level      
+
+      const workflow = await this.repository.findWorkflowByEntityType(
+         request.entity_type,
+         tenantId,
+         company_id,
+      )
+
+      if (!workflow) {
+         throw new NotFoundError("Approval workflow does not exist")
+      }
 
       const data = { 
          approvalWorkflow_id: input.approvalWorkflow_id,
@@ -282,9 +319,13 @@ export class ApprovalWorkflowService {
          company_id: company_id
       }
 
-      const level_id = await this.repository.getApprovalActionById(data)
+      const level = await this.repository.getCurrentLevel(
+         data,
+         currentLevel,
+         request.entity_type,
+      )
 
-      if (!level_id) {
+      if (!level) {
          throw new NotFoundError("Level not found")
       }
 
@@ -292,13 +333,14 @@ export class ApprovalWorkflowService {
          input.user_id, 
          tenantId,
          membership.company_id,
+         workflow.id,
          currentLevel         
       )
 
       const action: ApprovalActionData = {
          tenant_id: tenantId,
          approval_request_id: input.approvalWorkflow_id,
-         level_id: level_id.level_id,
+         level_id: level.id,
          acted_by_user_id: input.user_id,
          action: "APPROVED",
          remarks: null,
@@ -308,23 +350,41 @@ export class ApprovalWorkflowService {
       const approve: UpdateRequestStatusData = {
          approvalWorkflow_id: input.approvalWorkflow_id,
          tenant_id: tenantId,
-         status: "APPROVED",  
+         status: "APPROVED",
+         current_level: currentLevel,
+         resolved_at: new Date(),
          company_id       
       }
 
-      await this.repository.createApprovalAction(action)
-
-      const approveRequest = await this.repository.updateRequestStatus(approve)
-
-      this.eventBus.publish(
-         "approvalWorkflow.approved",
-         {
-            purchaseRequisition_id: level_id.approval_request.entity_id,
-            approvalWorkflow_id: input.approvalWorkflow_id,
-            tenant_id: tenantId,
-            company_id: company_id
-         }
+      const levels = await this.repository.getLevels(
+         company_id,
+         tenantId,
+         workflow.id,
       )
+      const nextLevel = levels.find((level) => level.level_no > currentLevel)
+
+      if (nextLevel) {
+         approve.status = "PENDING"
+         approve.current_level = nextLevel.level_no
+         approve.resolved_at = null
+      }
+
+      const approveRequest = await this.repository.recordDecision({
+         action,
+         request: approve,
+      })
+
+      if (!nextLevel) {
+         await this.eventBus.publish(
+            "approvalWorkflow.approved",
+            {
+               purchaseRequisition_id: request.entity_id,
+               approvalWorkflow_id: input.approvalWorkflow_id,
+               tenant_id: tenantId,
+               company_id,
+            }
+         )
+      }
 
       return approveRequest
     }
@@ -371,8 +431,8 @@ export class ApprovalWorkflowService {
 
       const request = await this.checkWorkflow(input.approvalWorkflow_id, tenantId, company_id)
 
-      if (request.status === "rejected") {
-         throw new ConflictError ("Request is already Rejected")
+      if (request.status !== "PENDING") {
+         throw new ConflictError ("Request is no longer pending")
       }
 
       const currentLevel = request.current_level
@@ -383,23 +443,38 @@ export class ApprovalWorkflowService {
          company_id: company_id
       }
 
-      const level_id = await this.repository.getApprovalActionById(data)
+      const workflow = await this.repository.findWorkflowByEntityType(
+         request.entity_type,
+         tenantId,
+         company_id,
+      )
 
-      if (!level_id) {
-         throw new NotFoundError("tangina di nakita")
+      if (!workflow) {
+         throw new NotFoundError("Approval workflow does not exist")
+      }
+
+      const level = await this.repository.getCurrentLevel(
+         data,
+         currentLevel,
+         request.entity_type,
+      )
+
+      if (!level) {
+         throw new NotFoundError("Level not found")
       }      
 
       await this.checkAuthorizationRole(
          input.user_id, 
          tenantId,
          membership.company_id,
+         workflow.id,
          currentLevel
       )
 
       const action: ApprovalActionData = {
          tenant_id: tenantId,
          approval_request_id: input.approvalWorkflow_id,
-         level_id: level_id.level_id,
+         level_id: level.id,
          acted_by_user_id: input.user_id,
          action: "REJECTED",
          remarks: input.remarks,
@@ -411,12 +486,14 @@ export class ApprovalWorkflowService {
          tenant_id: tenantId,
          company_id: company_id,
          status: "REJECTED",
+         resolved_at: new Date(),
          remarks: input.remarks
       }
 
-      await this.repository.createApprovalAction(action)      
-      
-      const rejectRequest = await this.repository.updateRequestStatus(reject)
+      const rejectRequest = await this.repository.recordDecision({
+         action,
+         request: reject,
+      })
 
       return rejectRequest
     }
@@ -454,8 +531,8 @@ export class ApprovalWorkflowService {
 
       const request = await this.checkWorkflow (input.approvalWorkflow_id, tenantId, company_id)
 
-      if (request.status === "cancelled") {
-         throw new ConflictError(" Request Already cancelled")
+      if (request.status !== "PENDING") {
+         throw new ConflictError("Request is no longer pending")
       }
 
       const data:ApprovalRequest = { 
@@ -466,23 +543,38 @@ export class ApprovalWorkflowService {
 
       const currentLevel = request.current_level
 
-            const level_id = await this.repository.getApprovalActionById(data)
+      const workflow = await this.repository.findWorkflowByEntityType(
+         request.entity_type,
+         tenantId,
+         company_id,
+      )
 
-      if (!level_id) {
-         throw new NotFoundError("tangina di nakita")
+      if (!workflow) {
+         throw new NotFoundError("Approval workflow does not exist")
+      }
+
+      const level = await this.repository.getCurrentLevel(
+         data,
+         currentLevel,
+         request.entity_type,
+      )
+
+      if (!level) {
+         throw new NotFoundError("Level not found")
       }
 
       await this.checkAuthorizationRole(
          input.user_id, 
          tenantId,
          membership.company_id,
+         workflow.id,
          currentLevel
       )    
       
       const action: ApprovalActionData = {
          tenant_id: tenantId,
          approval_request_id: input.approvalWorkflow_id,
-         level_id: level_id.level_id,
+         level_id: level.id,
          acted_by_user_id: input.user_id,
          action: "CANCELLED",
          remarks: null,
@@ -493,12 +585,14 @@ export class ApprovalWorkflowService {
          approvalWorkflow_id: input.approvalWorkflow_id,
          tenant_id: tenantId,
          company_id: company_id,
-         status: "CANCELLED"
+         status: "CANCELLED",
+         resolved_at: new Date(),
       }
 
-      await this.repository.createApprovalAction(action)
-
-      const cancelRequest = await this.repository.updateRequestStatus(cancel)
+      const cancelRequest = await this.repository.recordDecision({
+         action,
+         request: cancel,
+      })
 
       return cancelRequest
 
@@ -535,7 +629,8 @@ export class ApprovalWorkflowService {
 
       const query: GetData = {
          tenant_id: tenantId,
-         company_id: companyId
+         company_id: companyId,
+         status: input.status,
       }
 
       const workflowRequests = await this.repository.findApprovalWorkflowRequests(query)
@@ -588,7 +683,7 @@ export class ApprovalWorkflowService {
          await this.repository.getApprovalRequestById(query)
          
       if (!approvalRequest) {
-         throw new Error('Approval request not found')
+         throw new NotFoundError("Approval request not found")
       }
 
       return approvalRequest      
@@ -641,7 +736,8 @@ export class ApprovalWorkflowService {
       const workflow =
          await this.repository.findApprovalWorkflowDefinition(
             workflowCode,
-            membership.company.tenant_id
+            membership.company.tenant_id,
+            companyId,
          )
 
       if (!workflow) {

@@ -1,5 +1,5 @@
 import { EmailService } from "../../shared/email/email.service"
-import { NotFoundError } from "../../shared/errors"
+import { ConflictError, NotFoundError } from "../../shared/errors"
 import { hashToken } from "../../shared/types/cryptoUtility"
 import type { 
     updateSettings,
@@ -12,7 +12,7 @@ import type {
     removePermission
 } from "./organizationAdministrationValidator"
 import type { AppEnv } from "../../config/env"
-import type { AssignRoleContext, CreateRoleContext, FindUserContext, OrganizationAdministrationRepository } from "./organizationAdministrationRepository"
+import type { AssignRoleContext, CreateRoleContext, OrganizationAdministrationRepository } from "./organizationAdministrationRepository"
 import { MailgunEmailProvider } from "../../shared/email/mailgun.provider"
 
 
@@ -33,7 +33,7 @@ interface GetUserInput {
     user_id:string
     tenant_id:string
     company_id:string
-    email:memberEmail
+    target_user_id:string
 }
 
 interface RoleInput {
@@ -47,6 +47,7 @@ interface AssignRoleInput {
     user_id:string
     tenant_id:string
     company_id:string
+    member_user_id:string
     assignRole:assignRole
 }
 
@@ -54,7 +55,7 @@ interface UpdateMemberInput {
     user_id:string
     tenant_id:string
     company_id:string
-    email:memberEmail
+    target_user_id:string
     update:updateMember
 }
 
@@ -87,7 +88,7 @@ interface deletePermissionsFromRoleInput {
     tenant_id:string
     company_id:string
     role_id:string
-    permission_id:removePermission
+    permission_id:removePermission["permission_id"]
 }
 
 interface UpdateSettingsInput {
@@ -101,7 +102,7 @@ interface RemoveRoleFromMemberInput {
     user_id: string
     tenant_id: string
     company_id: string
-    email: memberEmail
+    member_user_id: string
     role_id: string
 }
 
@@ -109,25 +110,6 @@ export class OrganizationAdministrationService {
     constructor(
         private repository: OrganizationAdministrationRepository,
     ){}
-
-    private async checkMembership(company_id: string,email: string) {
-      
-        const checkMembership: FindUserContext = {
-            company_id: company_id,
-            email: email
-        }
-        
-        const membership =
-           await this.repository.findUserByEmail(checkMembership)
-
-        if (!membership) {
-            throw new NotFoundError(
-                "User is not a user of the app"
-            )
-        } 
-
-        return membership
-    }
 
     async addMember (
         input: InviteMemberInput,
@@ -145,9 +127,24 @@ export class OrganizationAdministrationService {
             5. Return result
         */
         
-        // 1 Is email already a member
-        
-        await this.checkMembership(input.company_id,input.email)
+        const existingMember = await this.repository.findCompanyMemberByEmail({
+            company_id: input.company_id,
+            tenant_id: input.tenant_id,
+            email: input.email
+        })
+
+        if (existingMember) {
+            throw new ConflictError("User is already a member of this company")
+        }
+
+        const user = await this.repository.findUserByEmail({
+            tenant_id: input.tenant_id,
+            email: input.email
+        })
+
+        if (!user) {
+            throw new NotFoundError("User is not a user of the app")
+        }
 
         const tokenBytes = new Uint8Array(32)
         crypto.getRandomValues(tokenBytes)
@@ -207,26 +204,33 @@ ${invitationUrl}`,
     }
 
     async getMember (input: GetInput) {
-        const members = await this.repository.findMembersByCompanyId({company_id: input.company_id})
+        const members = await this.repository.findMembersByCompanyId({
+            company_id: input.company_id,
+            tenant_id: input.tenant_id
+        })
 
         return members
     }
 
     async getUser (input: GetUserInput) {      
-        const data:FindUserContext = {
+        const companyMember = await this.repository.findCompanyMemberByUserId({
             company_id: input.company_id,
-            email: input.email
-        }
+            tenant_id: input.tenant_id,
+            user_id: input.target_user_id
+        })
 
-        const companyMember = await this.repository.findCompanyMemberByEmail(data)
+        if (!companyMember) {
+            throw new NotFoundError("User is not a member")
+        }
 
         return companyMember
     }
 
     async updateMember (input: UpdateMemberInput) {
-        const member = await this.repository.findCompanyMemberByEmail({
+        const member = await this.repository.findCompanyMemberByUserId({
             company_id: input.company_id,
-            email: input.email
+            tenant_id: input.tenant_id,
+            user_id: input.target_user_id
         })
 
         if(!member) {
@@ -234,7 +238,7 @@ ${invitationUrl}`,
         }
 
         return this.repository.updateMember({
-            user_id: member.user_id,
+            user_id: input.target_user_id,
             company_id: input.company_id,
             tenant_id: input.tenant_id,
             update: input.update
@@ -243,9 +247,10 @@ ${invitationUrl}`,
 
     async removeMember (input: GetUserInput) {
 
-        const member = await this.repository.findCompanyMemberByEmail({
+        const member = await this.repository.findCompanyMemberByUserId({
             company_id: input.company_id,
-            email: input.email
+            tenant_id: input.tenant_id,
+            user_id: input.target_user_id
         })
 
         if(!member){
@@ -254,7 +259,8 @@ ${invitationUrl}`,
 
         return this.repository.removeMember({
             user_id: member.user_id,
-            company_id: input.company_id
+            company_id: input.company_id,
+            tenant_id: input.tenant_id
         })
     }
 
@@ -271,13 +277,24 @@ ${invitationUrl}`,
 
     async assignRoleToMember (input:AssignRoleInput) {
 
-        const member = await this.repository.findCompanyMemberByEmail({
+        const member = await this.repository.findCompanyMemberByUserId({
             company_id: input.company_id,
-            email: input.assignRole.email
+            tenant_id: input.tenant_id,
+            user_id: input.member_user_id
         })
 
         if (!member) {
             throw new NotFoundError("Company member not found")
+        }
+
+        const role = await this.repository.findRoleById({
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+            role_id: input.assignRole.role_id
+        })
+
+        if (!role) {
+            throw new NotFoundError("Role not found")
         }
 
         const assign: AssignRoleContext = {
@@ -292,6 +309,7 @@ ${invitationUrl}`,
 
     async assignPermissionsToRole(input: AssignPermissionsInput) {
         const role = await this.repository.findRoleById({
+            tenant_id: input.tenant_id,
             company_id: input.company_id,
             role_id: input.role_id
         })
@@ -312,13 +330,17 @@ ${invitationUrl}`,
 
     async getRoles(input: GetInput) {
 
-        return this.repository.findRolesByTenantId(input.tenant_id)
+        return this.repository.findRolesByCompanyId({
+            tenant_id: input.tenant_id,
+            company_id: input.company_id
+        })
     
     }
 
     async getRole(input: GetRolesInput) {
     
         return this.repository.findRoleById({
+            tenant_id: input.tenant_id,
             company_id:input.company_id,
             role_id: input.role_id
         })
@@ -329,6 +351,7 @@ ${invitationUrl}`,
     
         return this.repository.findRolePermissions({
             tenant_id: input.tenant_id,
+            company_id: input.company_id,
             role_id: input.role_id
         })
     
@@ -342,6 +365,7 @@ ${invitationUrl}`,
 
     async updateRole(input: UpdateRoleInput) {
         const role = await this.repository.findRoleById({
+            tenant_id: input.tenant_id,
             company_id: input.company_id,
             role_id: input.role_id
         })
@@ -358,6 +382,7 @@ ${invitationUrl}`,
 
     async deleteRole(input: GetRolesInput) {
         const role = await this.repository.findRoleById({
+            tenant_id: input.tenant_id,
             company_id:input.company_id,
             role_id:input.role_id
         })
@@ -377,6 +402,7 @@ ${invitationUrl}`,
         input: deletePermissionsFromRoleInput
     ) {
         const role = await this.repository.findRoleById({
+            tenant_id: input.tenant_id,
             company_id:input.company_id,
             role_id:input.role_id
         })
@@ -391,14 +417,15 @@ ${invitationUrl}`,
 
         return this.repository.deletePermissionFromRole({
             role_id: input.role_id,
-            permission_id: input.permission_id.permission_id
+            permission_id: input.permission_id
         })
     }
 
     async removeRoleFromMember(input: RemoveRoleFromMemberInput) {
-        const member = await this.repository.findCompanyMemberByEmail({
+        const member = await this.repository.findCompanyMemberByUserId({
             company_id: input.company_id,
-            email: input.email
+            tenant_id: input.tenant_id,
+            user_id: input.member_user_id
         })
 
         if (!member) {
@@ -408,6 +435,7 @@ ${invitationUrl}`,
         return this.repository.removeRoleFromMember({
             user_id: member.user_id,
             company_id: input.company_id,
+            tenant_id: input.tenant_id,
             role_id: input.role_id
         })
     }

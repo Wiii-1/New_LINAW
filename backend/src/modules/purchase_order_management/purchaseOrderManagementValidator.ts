@@ -18,7 +18,7 @@ export const RFQStatusSchema = z.enum([
 // ====================
 
 export const ListRFQsQuerySchema = z.object({
-    status: z.enum(["DRAFT", "PUBLISHED", "CLOSED"]).optional(),
+    status: RFQStatusSchema.optional(),
     purchase_requisition_id: z.uuid().optional(),
 });
 
@@ -26,6 +26,7 @@ export const ListPurchaseOrdersQuerySchema = z.object({
     status: z.enum([
         "DRAFT",
         "ISSUED",
+        "ORDERED",
         "CANCELLED",
         "COMPLETED",
     ]).optional(),
@@ -36,6 +37,10 @@ export const ListPurchaseOrdersQuerySchema = z.object({
         .min(1)
         .max(100)
         .optional(),
+});
+
+export const ProcurementQueueQuerySchema = z.object({
+    referenceNo: z.string().trim().min(1).max(100).optional(),
 });
 
 // ====================
@@ -62,7 +67,6 @@ export const CreateRFQSchema = z.object({
     title: z.string().trim().min(1).max(255),
     description: z.string().trim().max(5000).optional(),
     closing_date: z.coerce.date(),
-    status:RFQStatus,
     rfq_items: z.array(
         z.object({
             line_no: z.number().int().positive(),
@@ -71,8 +75,28 @@ export const CreateRFQSchema = z.object({
             unit_of_measure: z.string().trim().min(1).max(50),
             specification: z.string().trim().min(1).max(5000),
         }),
-    ).min(1),
-});
+    ).min(1).optional(),
+    items: z.array(
+        z.object({
+            line_no: z.number().int().positive(),
+            description:  z.string().trim().max(5000),
+            quantity: z.number().positive(),
+            unit_of_measure: z.string().trim().min(1).max(50),
+            specification: z.string().trim().min(1).max(5000),
+        }),
+    ).min(1).optional(),
+}).superRefine((value, context) => {
+    if (!value.rfq_items && !value.items) {
+        context.addIssue({
+            code: "custom",
+            path: ["items"],
+            message: "At least one RFQ item is required",
+        });
+    }
+}).transform(({ items, rfq_items, ...data }) => ({
+    ...data,
+    rfq_items: rfq_items ?? items ?? [],
+}));
 
 export const UpdateRFQSchema = z.object({
     title: z.string().trim().min(1).max(255).optional(),
@@ -137,6 +161,9 @@ export type ListRFQsQuery =
 
 export type ListPurchaseOrdersQuery = 
     z.infer<typeof ListPurchaseOrdersQuerySchema>
+
+export type ProcurementQueueQuery =
+    z.infer<typeof ProcurementQueueQuerySchema>
 
 export type RFQIdParams =
     z.infer<typeof RFQIdParamsSchema>

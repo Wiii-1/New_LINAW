@@ -9,6 +9,13 @@ type AnchorAuditInput = {
     eventType: string;
 };
 
+export type BlockchainAuditRecord = {
+    auditId: string;
+    hashValue: string;
+    eventType: string;
+    anchoredAt: number;
+};
+
 export class BlockchainAdapter {
     constructor(
         private readonly env: AppEnv
@@ -78,13 +85,20 @@ export class BlockchainAdapter {
         );
     }
 
-    async getAudit(auditId: string) {
+    async getAudit(auditId: string): Promise<BlockchainAuditRecord> {
         const auditTrailContract = createAuditTrailContract(this.env);
 
         const auditIdBytes32 = ethers.id(auditId);
 
-        return await auditTrailContract.getFunction("getAudit")(
+        const record = await auditTrailContract.getFunction("getAudit")(
             auditIdBytes32,
         );
+
+        return {
+            auditId: record[0],
+            hashValue: record[1].replace(/^0x/, "").toLowerCase(),
+            eventType: record[2],
+            anchoredAt: Number(record[3]),
+        };
     }
 }

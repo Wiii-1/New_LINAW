@@ -36,6 +36,17 @@ export const InvitationTokenSchema = z.object({
         )    
 })
 
+// =============
+// Invitation Query Schema
+// =============
+
+export const InvitationQuerySchema = z.object({
+    status: z.string().trim().min(1).max(32).optional(),
+    email: InvitationEmailSchema.optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
 
 
 // =============
@@ -44,6 +55,11 @@ export const InvitationTokenSchema = z.object({
 
 export const CreateSupplierInvitationSchema = z.object({
     email: InvitationEmailSchema,
+});
+
+export const AcceptSupplierInvitationSchema = z.object({
+    token: InvitationTokenSchema.shape.token,
+    company_id: z.uuid("Invalid company ID.").optional(),
 });
 
 

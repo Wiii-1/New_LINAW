@@ -4,7 +4,7 @@ export type purchaseRequisitionSubmittedEvent = {
     companyId: string;
     userId: string;
     entityType: string;    
-    submitted_At: Date;
+    submittedAt: Date;
 }
 
 export type PurchaseRequisitionCancelledEvent = {

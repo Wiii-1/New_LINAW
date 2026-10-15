@@ -33,6 +33,7 @@ export const purchaseRequisitionStatusSchema = z.enum([
     "SUBMITTED",
     "APPROVED",
     "REJECTED",
+    "CANCELLED",
 ]);
 
 // ===========================
@@ -124,7 +125,9 @@ export const purchaseRequisitionInputSchema = z
             .max(
                 500,
                 "Purpose cannot exceed 500 characters."
-            ),
+            )
+            .optional()
+            .default(""),
 
         justification: z
             .string()
@@ -138,7 +141,9 @@ export const purchaseRequisitionInputSchema = z
                 "Justification cannot exceed 500 characters."
             ),
 
-        priority: purchaseRequisitionPrioritySchema,
+        priority: purchaseRequisitionPrioritySchema
+            .optional()
+            .default("NORMAL"),
 
         currency_code: z
             .string()
@@ -147,24 +152,44 @@ export const purchaseRequisitionInputSchema = z
                 3,
                 "Currency code must be 3 characters."
             )
-            .toUpperCase(),
+            .toUpperCase()
+            .optional()
+            .default("PHP"),
 
         needed_by_date: z
             .string()
             .date("Invalid needed-by date format.")
             .optional(),
 
-        items: z
-            .array(purchaseRequisitionItemSchema)
-            .min(1, "At least one item is required."),
+        items: z.array(purchaseRequisitionItemSchema).optional(),
+
+        line_items: z.array(purchaseRequisitionItemSchema).optional(),
+
+        requisition_number: z.string().optional(),
+        requester_id: z.string().optional(),
+        company_id: z.string().optional(),
+        request_date: z.string().date().optional(),
+        requisition_status: purchaseRequisitionStatusSchema.optional(),
+        total_estimated_amount: z.number().nonnegative().optional(),
+        created_by: z.string().optional(),
+        submitted_at: z.string().datetime().optional(),
 
         remarks: z
-        .string()
-        .trim()
-        .max(500, "Cancellation remarks cannot exceed 500 characters.")
+            .string()
+            .trim()
+            .max(500, "Remarks cannot exceed 500 characters.")
+            .optional()
 
     })
-    .strict();
+    .strict()
+    .transform((value) => ({
+        ...value,
+        items: value.items ?? value.line_items ?? [],
+    }))
+    .refine((value) => value.items.length > 0, {
+        message: "At least one line item is required.",
+        path: ["line_items"],
+    });
 
 // ===========================
 // Update Schema
@@ -191,11 +216,27 @@ export const updatePurchaseRequisitionSchema = z.object({
         .date("Invalid needed-by date format.")
         .optional(),
 
+    request_date: z
+        .string()
+        .date("Invalid request date format.")
+        .optional(),
+
+    items: z.array(purchaseRequisitionItemSchema).optional(),
+
+    line_items: z.array(purchaseRequisitionItemSchema).optional(),
+
+    total_estimated_amount: z.number().nonnegative().optional(),
+
     remarks: z
         .string()
         .trim()
-        .max(500, "Cancellation remarks cannot exceed 500 characters.")
-}).strict();
+        .max(500, "Remarks cannot exceed 500 characters.")
+        .optional(),
+}).strict().transform((value) => ({
+    ...value,
+    needed_by_date: value.needed_by_date ?? value.request_date,
+    items: value.items ?? value.line_items,
+}));
 
 export const PurchaseRequisitionStatusSchema = z.object({
     status:purchaseRequisitionStatusSchema
@@ -225,7 +266,16 @@ export const PurchaseRequisitionQuerySchema = z.object({
         .trim()
         .min(1)
         .optional(),
-});
+
+    referenceNo: z
+        .string()
+        .trim()
+        .min(1)
+        .optional(),
+}).transform((value) => ({
+    ...value,
+    pr_number: value.pr_number ?? value.referenceNo,
+}));
 
 // ===========================
 // Types
@@ -235,11 +285,14 @@ export type PurchaseRequisitionQuery =
     z.infer<typeof PurchaseRequisitionQuerySchema> & {
         userId: string
         tenantId: string
+        companyId: string
     }
 
 export type PurchaseRequisitionIdParams =
     z.infer<typeof purchaseRequisitionIdParamsSchema> & {
         userId: string
+        tenantId: string
+        companyId: string
     };
 
 export type PurchaseRequisitionItem =
@@ -249,12 +302,15 @@ export type PurchaseRequisitionInput =
     z.infer<typeof purchaseRequisitionInputSchema> & {
         userId: string;
         tenantId: string;
+        companyId: string;
     };
 
 export type ResubmitPurchaseRequisitionInput =
     z.infer<typeof purchaseRequisitionInputSchema> & {
         userId: string;
         requisitionId: string;
+        tenantId: string;
+        companyId: string;
     };
 
 export type PurchaseRequisitionUpdateData =
@@ -270,4 +326,6 @@ export type CancelPurchaseRequisitionInput =
     z.infer<typeof cancelPurchaseRequisitionSchema> & {
         requisitionId: string;
         userId: string;
+        tenantId: string;
+        companyId: string;
     };

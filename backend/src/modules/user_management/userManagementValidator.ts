@@ -43,12 +43,14 @@ export const ContactNumberSchema = z
 export const UpdateUserProfileSchema = z.object({
     first_name: z
         .string()
+        .trim()
         .min(3, "Must have a minimum of 3 characters")
         .max(40, "First name too long")
         .optional(),
 
     last_name: z
         .string()
+        .trim()
         .min(3, "Must have a minimum of 3 characters")
         .max(40, "First name too long")
         .optional(),
@@ -62,10 +64,14 @@ export const UpdateUserProfileSchema = z.object({
 
     job_title: z
         .string()
+        .trim()
         .min(3, " Must have minimum of 3 characters")
         .max(40)
         .optional()
-})
+}).refine(
+    (value) => Object.keys(value).length > 0,
+    "At least one profile field must be provided",
+)
 
 // =============
 // Organization Registration Schema

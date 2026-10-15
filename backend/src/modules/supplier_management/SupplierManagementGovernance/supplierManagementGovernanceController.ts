@@ -2,7 +2,10 @@ import type { Context } from "hono";
 import type { AppContext } from "../../../shared/types/hono.js";
 import { NotFoundError } from "../../../shared/errors/appError.js";
 import type { SupplierManagementGovernanceService } from "./supplierManagementGovernanceService.js";
-import { SupplierIdSchema } from "./supplierManagementGovernanceValidator.js";
+import {
+    SupplierIdSchema,
+    SupplierQuerySchema,
+} from "./supplierManagementGovernanceValidator.js";
 
 export class SupplierManagementGovernanceController {
     constructor(
@@ -16,9 +19,11 @@ export class SupplierManagementGovernanceController {
             throw new NotFoundError("User does not belong to a company.");
         }
 
+        const query = SupplierQuerySchema.parse(c.req.query());
         const suppliers = await this.service.getSuppliers({
             tenant_id,
             company_id,
+            ...query,
         });
 
         return c.json({

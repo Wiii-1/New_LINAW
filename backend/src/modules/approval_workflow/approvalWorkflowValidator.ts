@@ -5,7 +5,7 @@ import { z } from "zod"
 // ===========================
 
 export const GET_SCHEMA = z.object ({
-    userId: z
+    user_id: z
         .string()
 })
 
@@ -14,17 +14,21 @@ export const GET_SCHEMA = z.object ({
 // ===========================
 
 export const APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA = z.object({
-    approvalWorkflow_id: z 
+    "approval-workflow-id": z
         .string()
-})
+}).transform(({ "approval-workflow-id": approvalWorkflowId }) => ({
+    approvalWorkflowId,
+}))
 
 // ===========================
 // approvalWorkflowQuerySchema
 // ===========================
 
 export const APPROVAL_WORKFLOW_QUERY_SCHEMA = z.object ({
-    status: z
-        .enum(["pending", "approved", "rejected", "cancelled"])
+    status: z.preprocess(
+        (value) => typeof value === "string" ? value.toUpperCase() : value,
+        z.enum(["PENDING", "APPROVED", "REJECTED", "CANCELLED"]),
+    )
         .optional()
 })
 
@@ -45,36 +49,42 @@ export const REJECT_APPROVAL_WORKFLOW_BODY_SCHEMA = z.object({
 // ===========================
 
 export const APPROVAL_WORKFLOW_LEVEL_CREATION = z.object({
-    workflowCode: z
+    workflow_code: z
         .string(),
     
-    levelNo: z
+    level_no: z
         .number()
         .int()
         .positive(),
     
-    roleCode: z
+    role_code: z
         .string(),
 
-    minAmount: z
+    min_amount: z
         .number()
-        .positive(),
+        .nonnegative(),
 
-    maxAmount: z
+    max_amount: z
         .number()
-        .positive(),
+        .nonnegative(),
     
-    isRequired: z
+    is_required: z
         .boolean()
-
-})
+}).transform(({ workflow_code, level_no, role_code, min_amount, max_amount, is_required }) => ({
+    workflowCode: workflow_code,
+    levelNo: level_no,
+    roleCode: role_code,
+    minAmount: min_amount,
+    maxAmount: max_amount,
+    isRequired: is_required,
+}))
 
 // ===========================
 //  ApprovalWorkflowCode
 // ===========================
 
 export const APPROVAL_WORKFLOW_CREATION = z.object({
-    workflowCode: z
+    workflow_code: z
         .string()
         .trim()
         .min(1, "Workflow code is required.")
@@ -96,12 +106,17 @@ export const APPROVAL_WORKFLOW_CREATION = z.object({
         .max(1000)
         .optional(),
 
-    entityType: z
+    entity_type: z
         .string()
         .trim()
         .min(1, "Entity type is required.")
         .max(100)
-})
+}).transform(({ workflow_code, name, description, entity_type }) => ({
+    workflowCode: workflow_code,
+    name,
+    description,
+    entityType: entity_type,
+}))
 
 // ===========================
 // Interface types

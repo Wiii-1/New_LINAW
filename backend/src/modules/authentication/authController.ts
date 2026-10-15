@@ -9,7 +9,10 @@ import {
     signupSchema,
     findByIdSchema,
 } from "./authValidator.js";
-import { InvalidTokenError } from "../../shared/errors/appError.js";
+import {
+    InvalidTokenError,
+    UnauthorizedAccessError,
+} from "../../shared/errors/appError.js";
 
 export class AuthController {
     constructor(private service: AuthService) {}
@@ -19,7 +22,16 @@ export class AuthController {
             id: c.req.param("id"),
         });
 
-        const user = await this.service.findId(input);
+        const authenticatedUser = c.get("user");
+
+        if (!authenticatedUser) {
+            throw new UnauthorizedAccessError("Authentication required");
+        }
+
+        const user = await this.service.findId(
+            input,
+            authenticatedUser.user_id,
+        );
 
         return c.json(
             {

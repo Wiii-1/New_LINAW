@@ -17,6 +17,30 @@ import { PurchaseRequisitionQuerySchema,
 } from "./purchaseRequisitionValidation.js"
 import { UnauthorizedAccessError } from "../../shared/errors/appError.js"
 
+function requisitionSummary(requisition: {
+    id: string;
+    pr_number: string;
+    status: string;
+    total_amount: unknown;
+}) {
+    return {
+        requisition_id: requisition.id,
+        requisition_number: requisition.pr_number,
+        requisition_status: requisition.status,
+        total_estimated_amount: requisition.total_amount,
+    };
+}
+
+function authenticatedCompanyId(c: Context<AppContext>): string {
+    const companyId = c.get("user").company_id;
+
+    if (!companyId) {
+        throw new UnauthorizedAccessError("Company context is required");
+    }
+
+    return companyId;
+}
+
 export class PurchaseRequisitionController {
     constructor(private service: purchaseRequisitionService ) {
         this.service = service
@@ -34,11 +58,13 @@ export class PurchaseRequisitionController {
         const userId = c.get("user").user_id
 
         const tenantId = c.get("user").tenant_id
+        const companyId = authenticatedCompanyId(c)
 
         const purchaseRequisition: PurchaseRequisitionInput = {
             ...requisition,
             userId,
-            tenantId
+            tenantId,
+            companyId
         }
 
         const creation = await this.service.createRequisition(purchaseRequisition)
@@ -46,7 +72,7 @@ export class PurchaseRequisitionController {
         c.json({
             success: true,
             message: "Purchase requisition created successfully.",
-            data: creation
+            data: requisitionSummary(creation)
         }, 201)
   
     }
@@ -60,7 +86,9 @@ export class PurchaseRequisitionController {
 
             const submitRequisition: PurchaseRequisitionIdParams = {
                 requisitionId: params.requisitionId,
-                userId: c.get("user").user_id
+                userId: c.get("user").user_id,
+                tenantId: c.get("user").tenant_id,
+                companyId: authenticatedCompanyId(c)
             };
 
             const submit = await this.service.submitRequisition(submitRequisition)
@@ -83,12 +111,14 @@ export class PurchaseRequisitionController {
           
             const cancellation = cancelPurchaseRequisitionSchema.parse( await c.req.json())
 
-            const params = purchaseRequisitionIdParamsSchema.parse(c.req.param("id"))
+            const params = purchaseRequisitionIdParamsSchema.parse(c.req.param())
 
             const cancelRequisition: CancelPurchaseRequisitionInput = {
                 ...cancellation,
                 requisitionId: params.requisitionId,
-                userId: c.get("user").user_id
+                userId: c.get("user").user_id,
+                tenantId: c.get("user").tenant_id,
+                companyId: authenticatedCompanyId(c)
             }
 
             const cancel = await this.service.cancelRequisition(cancelRequisition)
@@ -109,12 +139,14 @@ export class PurchaseRequisitionController {
 
             const params = purchaseRequisitionIdParamsSchema.parse(c.req.param())
 
-            const retryRequisition = purchaseRequisitionInputSchema.parse(c.req.json())
+            const retryRequisition = purchaseRequisitionInputSchema.parse(await c.req.json())
 
             const resubmit: ResubmitPurchaseRequisitionInput = {
                 ...retryRequisition,
                 requisitionId: params.requisitionId,
-                userId: c.get("user").user_id
+                userId: c.get("user").user_id,
+                tenantId: c.get("user").tenant_id,
+                companyId: authenticatedCompanyId(c)
             }
 
             const resubmitRequisition = await this.service.resubmitRequisition(resubmit)
@@ -143,6 +175,7 @@ export class PurchaseRequisitionController {
         const data: PurchaseRequisitionQuery = {
             userId: user.user_id,
             tenantId: user.tenant_id,
+            companyId: authenticatedCompanyId(c),
             status: query.status,
             requesterId: query.requesterId,
             pr_number: query.pr_number,
@@ -152,7 +185,10 @@ export class PurchaseRequisitionController {
 
         c.json({
             success: true,
-            data: requisition
+            message: "Purchase requisitions retrieved successfully.",
+            data: {
+                purchase_requisitions: requisition.map(requisitionSummary)
+            }
         },200);
 
     }
@@ -165,14 +201,26 @@ export class PurchaseRequisitionController {
 
         const requisitionDetails: PurchaseRequisitionIdParams = {
             requisitionId: params.requisitionId,
-            userId: c.get("user").user_id
+            userId: c.get("user").user_id,
+            tenantId: c.get("user").tenant_id,
+            companyId: authenticatedCompanyId(c)
         }
 
         const details = await this.service.purchaseRequisitionDetail(requisitionDetails)
 
         c.json({
             success: true,
+            message: "Purchase requisition retrieved successfully.",
             data: details
+                ? {
+                    ...details,
+                    requisition_id: details.id,
+                    requisition_number: details.pr_number,
+                    requester_id: details.requested_by_user_id,
+                    requisition_status: details.status,
+                    line_items: details.items,
+                }
+                : details
         },200)
 
     }
@@ -189,13 +237,15 @@ export class PurchaseRequisitionController {
         const updateReqs = await this.service.updateRequisition(
             params.requisitionId,
             c.get("user").user_id,
+            c.get("user").tenant_id,
+            authenticatedCompanyId(c),
             updateContent
         )
 
         c.json({
             success: true,
-            message: "Purchase Requisition update",
-            data: updateReqs
+            message: "Purchase requisition updated successfully.",
+            data: requisitionSummary(updateReqs)
         },200)
 
     }

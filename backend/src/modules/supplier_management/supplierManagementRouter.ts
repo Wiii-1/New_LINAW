@@ -1,16 +1,18 @@
 import { Hono } from "hono";
-import type { AppContext } from "../../shared/types/hono";
-import { authenticate } from "../../shared/middleware/authenticate";
+import type { AppContext } from "../../shared/types/hono.js";
+import { authenticate } from "../../shared/middleware/authenticate.js";
+import { Authorize } from "../../shared/Authorization/authorize.js";
+import { systemPermissions } from "../../shared/Authorization/seeds/systemPermissions.js";
 import { SupplierManagementGovernanceController } from "./SupplierManagementGovernance/supplierManagementGovernanceController.js";
 import { SupplierManagementGovernanceService } from "./SupplierManagementGovernance/supplierManagementGovernanceService.js";
 import { SupplierManagementGovernanceRepository } from "./SupplierManagementGovernance/supplierManagementGovernanceRepository.js";
-import { SupplierManagementInvitationController } from "./SupplierManagementInvitation/supplierManagementInvitationController";
-import { SupplierManagementInvitationService } from "./SupplierManagementInvitation/supplierManagementInvitationService";
-import { SupplierManagementInvitationRepository } from "./SupplierManagementInvitation/supplierManagementInvitationRepository";
-import { SupplierManagementPortalController } from "./supplierManagementPortal/supplierManagementPortalController";
-import { SupplierManagementPortalService } from "./supplierManagementPortal/supplierManagementPortalService";
-import { SupplierManagementPortalRepository } from "./supplierManagementPortal/supplierManagementPortalRepository";
-import { EventBus } from "../../shared/events/eventBus";
+import { SupplierManagementInvitationController } from "./SupplierManagementInvitation/supplierManagementInvitationController.js";
+import { SupplierManagementInvitationService } from "./SupplierManagementInvitation/supplierManagementInvitationService.js";
+import { SupplierManagementInvitationRepository } from "./SupplierManagementInvitation/supplierManagementInvitationRepository.js";
+import { SupplierManagementPortalController } from "./supplierManagementPortal/supplierManagementPortalController.js";
+import { SupplierManagementPortalService } from "./supplierManagementPortal/supplierManagementPortalService.js";
+import { SupplierManagementPortalRepository } from "./supplierManagementPortal/supplierManagementPortalRepository.js";
+import { eventBus } from "../../shared/events/eventBus.js";
 
 export function createSupplierManagement() {
     const router = new Hono<AppContext>();
@@ -25,7 +27,7 @@ export function createSupplierManagement() {
 
     const portalService = new SupplierManagementPortalService(
         new SupplierManagementPortalRepository(),
-        new EventBus()
+        eventBus
     );
 
     const governanceController = new SupplierManagementGovernanceController(
@@ -40,19 +42,33 @@ export function createSupplierManagement() {
         portalService
     );
 
-    router.use(authenticate);
+    router.get(
+        "/supplier-invitations/validate/:token",
+        invitationController.validateInvitation,
+    );
+
+    router.use("*", authenticate);
 
     // ==========================================
     // SUPPLIER GOVERNANCE
     // ==========================================
 
     // GET
-    router.get("/suppliers", governanceController.getSuppliers);
-    router.get("/suppliers/:supplierId", governanceController.getSupplier);
+    router.get(
+        "/suppliers",
+        Authorize(systemPermissions.supplierManagement.read),
+        governanceController.getSuppliers,
+    );
+    router.get(
+        "/suppliers/:supplierId",
+        Authorize(systemPermissions.supplierManagement.readSupplier),
+        governanceController.getSupplier,
+    );
 
     // DELETE
     router.delete(
         "/suppliers/:supplierId/relationship",
+        Authorize(systemPermissions.supplierManagement.removeSupplier),
         governanceController.removeSupplierRelationship
     );
 
@@ -61,30 +77,33 @@ export function createSupplierManagement() {
     // ==========================================
 
     // POST
-    router.post("/supplier-invitations", invitationController.createInvitation);
+    router.post(
+        "/supplier-invitations",
+        Authorize(systemPermissions.supplierManagement.inviteSupplier),
+        invitationController.createInvitation,
+    );
     router.post(
         "/supplier-invitations/:invitationId/resend",
+        Authorize(systemPermissions.supplierManagement.inviteSupplier),
         invitationController.MailgunInvitation
     );
     router.post(
         "/supplier-invitations/:invitationId/accept",
+        Authorize(systemPermissions.supplierManagement.read),
         invitationController.acceptInvitation
     );
 
     // GET
     router.get(
         "/supplier-invitations",
+        Authorize(systemPermissions.supplierManagement.read),
         invitationController.getInvitations
     )
 
     router.get(
         "/supplier-invitations/:invitationId",
+        Authorize(systemPermissions.supplierManagement.read),
         invitationController.getInvitation
-    );
-
-    router.get(
-        "/supplier-invitations/validate/:token",
-        invitationController.validateInvitation
     );
 
     // ==========================================
@@ -92,17 +111,31 @@ export function createSupplierManagement() {
     // ==========================================
 
     // GET
-    router.get("/supplier-portal/rfqs", portalController.getAvailableRFQs);
-    router.get("/supplier-portal/rfqs/:rfqId", portalController.getRFQ);
-    router.get("/supplier-portal/quotations", portalController.getQuotations);
+    router.get(
+        "/supplier-portal/rfqs",
+        Authorize(systemPermissions.supplier.readRFQ),
+        portalController.getAvailableRFQs,
+    );
+    router.get(
+        "/supplier-portal/rfqs/:rfqId",
+        Authorize(systemPermissions.supplier.readRFQ),
+        portalController.getRFQ,
+    );
+    router.get(
+        "/supplier-portal/quotations",
+        Authorize(systemPermissions.supplier.read),
+        portalController.getQuotations,
+    );
     router.get(
         "/supplier-portal/quotations/:quotationId",
+        Authorize(systemPermissions.supplier.read),
         portalController.getQuotation
     );
 
     // POST
     router.post(
         "/supplier-portal/rfqs/:rfqId/quotations",
+        Authorize(systemPermissions.supplier.submitQuotation),
         portalController.submitQuotation
     );
 

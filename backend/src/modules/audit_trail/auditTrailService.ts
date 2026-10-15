@@ -1,7 +1,7 @@
 import { AuditTrailRepository } from "./auditTrailRepository.js";
 import { BlockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js"
 import { NotFoundError, UnauthorizedAccessError } from '../../shared/errors/appError.js';
-import type { auditIntegrity, searchAudit } from "./auditTrailValidator.js"
+import type { auditIntegrity, listAudit, searchAudit } from "./auditTrailValidator.js"
 
 type CreateAuditTrailInput = {
     purchaseOrderId: string
@@ -40,13 +40,52 @@ export class AuditTrailService {
         private blockchainAdapter: BlockchainAdapter
     ) {}
 
+    async listAudits(data: listAudit) {
+        const { page, page_size, tenant_id, company_id } = data
+        const skip = (page - 1) * page_size
+
+        const result = await this.repository.listAudits({
+            tenantId: tenant_id,
+            companyId: company_id,
+            entityType: data.entity_type,
+            action: data.action,
+            result: data.result,
+            skip,
+            take: page_size,
+        })
+
+        const auditTrails = result.records.map((record) => ({
+            ...record,
+            blockchain_ref: record.blockchain_ref
+                ? {
+                    ...record.blockchain_ref,
+                    block_number: record.blockchain_ref.block_number?.toString() ?? null,
+                }
+                : null,
+        }))
+
+        return {
+            audit_trails: auditTrails,
+            pagination: {
+                page,
+                page_size,
+                total: result.total,
+                total_pages: Math.ceil(result.total / page_size),
+            },
+        }
+    }
+
     async searchAudit ( data: searchAudit) {
         
         const { 
-            audit_id, tenant_id, user_id
+            audit_id, tenant_id, company_id, user_id
         } = data
  
-        const audit = await this.repository.findAuditByid(audit_id)
+        const audit = await this.repository.findAuditByid(
+            audit_id,
+            tenant_id,
+            company_id,
+        )
 
         const user = await this.repository.findById(user_id)
 
@@ -72,7 +111,7 @@ export class AuditTrailService {
     async auditIntegrity( data: auditIntegrity) {
        
         const { 
-            audit_id, tenant_id, user_id
+            audit_id, tenant_id, company_id, user_id
         } = data
  
         const user = await this.repository.findById(user_id)
@@ -81,7 +120,11 @@ export class AuditTrailService {
             throw new UnauthorizedAccessError("You do not belong to this organization")
         }
 
-        const audit = await this.repository.findAuditForVerification(audit_id)
+        const audit = await this.repository.findAuditForVerification(
+            audit_id,
+            tenant_id,
+            company_id,
+        )
 
         if( !audit ) {
             throw new NotFoundError("audit not found")
@@ -184,7 +227,7 @@ export class AuditTrailService {
             eventType: event.eventType
         }
 
-        void this.anchor(auditAnchor)
+        await this.anchor(auditAnchor)
     }
 
 
@@ -193,34 +236,49 @@ export class AuditTrailService {
     async anchor (input: AnchorContext) {
 
 
-        const result = await this.blockchainAdapter.anchorAudit({
-            auditId: input.auditId,
-            hashValue: input.hashValue,
-            eventType: input.eventType
-        })
+        try {
+            const result = await this.blockchainAdapter.anchorAudit({
+                auditId: input.auditId,
+                hashValue: input.hashValue,
+                eventType: input.eventType
+            })
 
-        await this.repository.updateAuditTrail(
-            input.auditId,
-            "SUCCESS"
-        )
+            const blockchainRefInput: AuditRefsInput = {
+                tenantId: input.tenantId,
+                auditId: input.auditId,
+                transactionHash: result.transactionHash,
+                blockNumber: result.blockNumber,
+                anchoredAt: new Date(result.anchoredAt * 1000)
+            }
 
-        const blockchainRefInput: AuditRefsInput = {
-            tenantId: input.tenantId,
-            auditId: input.auditId,
-            transactionHash: result.transactionHash,
-            blockNumber: result.blockNumber,
-            anchoredAt: new Date(result.anchoredAt * 1000)
+            const auditHash: AuditHashInput = {
+                tenantId: input.tenantId,
+                auditTrailId: input.auditId,
+                hashAlgorithm: "SHA-256",
+                hashValue: input.hashValue
+            }
+
+            await Promise.all([
+                this.createAuditHash(auditHash),
+                this.createAuditBlockchainRef(blockchainRefInput),
+            ])
+
+            await this.repository.updateAuditTrail(
+                input.auditId,
+                "SUCCESS"
+            )
+        } catch (error) {
+            try {
+                await this.repository.updateAuditTrail(
+                    input.auditId,
+                    "FAILED"
+                )
+            } catch (statusError) {
+                console.error("Failed to update audit status", statusError)
+            }
+
+            throw error
         }
-
-        const audit_hash: AuditHashInput = {
-            tenantId: input.tenantId,
-            auditTrailId: input.auditId,
-            hashAlgorithm: "SHA-256",
-            hashValue: input.hashValue
-        }
-
-        void this.createAuditHash(audit_hash)
-        void this.createAuditBlockchainRef(blockchainRefInput)
     }
 
 

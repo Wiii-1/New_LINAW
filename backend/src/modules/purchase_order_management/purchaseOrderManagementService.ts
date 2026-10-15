@@ -1,11 +1,12 @@
 import { NotFoundError } from "../../shared/errors";
 import type { EventBus } from "../../shared/events/eventBus";
+import type { SupplierQuotationSubmittedEvent } from "../../shared/events/supplierQuotationSubmittedEvent";
 import { PurchaseOrderManagementRepository } from "./purchaseOrderManagementRepository";
 import type { 
-    CreatePurchaseOrder,
     CreateRFQ,
     ListPurchaseOrdersQuery,
     ListRFQsQuery,
+    ProcurementQueueQuery,
     RFQIdParams,
     QuotationParams,
     PurchaseOrderIdParams,
@@ -13,11 +14,13 @@ import type {
     UpdateRFQ
  } from "./purchaseOrderManagementValidator";
 
-interface CreatePurchaseOrderInput {
-    user_id: string
-    tenant_id: string
-    company_id: string
-    body: CreatePurchaseOrder
+import { ConflictError } from "../../shared/errors";
+
+interface OrderPurchaseOrderContext {
+    user_id: string;
+    tenant_id: string;
+    company_id: string;
+    poId: string;
 }
 
 interface CreateRFQInput {
@@ -39,6 +42,12 @@ interface ServiceRfqsQuery {
     tenant_id: string
     company_id: string
     query?: ListRFQsQuery
+}
+
+interface ServiceProcurementQueueQuery {
+    tenant_id: string;
+    company_id: string;
+    query?: ProcurementQueueQuery;
 }
 
 interface ServiceRfqIdParam {
@@ -92,6 +101,14 @@ interface ServiceDeletePurchaseOrderInput {
     params: PurchaseOrderIdParams    
 }
 
+interface ApprovedPRContext {
+    purchaseRequisition_id?: string
+    approvalWorkflow_id?: string
+    tenant_id?: string
+    company_id?: string
+    user_id?: string
+}
+
 export class PurchaseOrderManagementService {
     constructor(
         private repository: PurchaseOrderManagementRepository,
@@ -113,55 +130,57 @@ export class PurchaseOrderManagementService {
 
     }    
 
-    async createPurchaseOrder (input: CreatePurchaseOrderInput) {
-
-        const id = crypto.randomUUID();
-        const created_at = new Date();
-        const generation = 1;
-
-        const po_number = this.NumberGenerator(
-            created_at,
-            id,
-            generation,
-        );
-
-        const data = {
-            id: id,
+    async orderPurchaseOrder(input: OrderPurchaseOrderContext) {
+        const purchaseOrder = await this.repository.findPoById({
+            po_id: input.poId,
             tenant_id: input.tenant_id,
             company_id: input.company_id,
+        });
 
-            po_number,
-            issued_by_user_id: input.user_id,
-            status: "DRAFT",
+        if (!purchaseOrder) {
+            throw new NotFoundError("Purchase order does not exist");
+        }
 
-            supplier_id: input.body.supplier_id,
-            rfq_id: input.body.rfq_id,
-            purchase_requisition_id: input.body.purchase_requisition_id,
-            supplier_quotation_id: input.body.supplier_quotation_id,
+        if (purchaseOrder.status !== "ISSUED") {
+            throw new ConflictError(
+                "Only issued purchase orders can be ordered",
+            );
+        }
 
-            currency_code: input.body.currency_code,
-            total_amount: input.body.total_amount,
+        const orderedPurchaseOrder = await this.repository.orderPurchaseOrder({
+            po_id: input.poId,
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+        });
 
-            order_date: input.body.order_date,
-            expected_delivery_date: input.body.expected_delivery_date,
+        if (!orderedPurchaseOrder) {
+            throw new ConflictError(
+                "Purchase order could not be transitioned to ORDERED",
+            );
+        }
 
-            items: input.body.items.map((item) => ({
-                tenant_id: input.tenant_id,
-                purchase_order_id: id,
-                line_no: item.line_no,
-                description: item.description,
-                quantity: item.quantity,
-                unit_of_measure: item.unit_of_measure,
-                unit_price: item.unit_price,
-                total_price: item.total_price,
-                status: "ACTIVE",
-            })),
-        };
-
-        return this.repository.createPurchaseOrder(data);
+        return orderedPurchaseOrder;
     }
 
     async createRFQS (input: CreateRFQInput) {
+        const purchaseRequisition =
+            await this.repository.findApprovedPurchaseRequisitionForRFQ({
+                purchaseRequisition_id: input.body.purchase_requisition_id,
+                tenant_id: input.tenant_id,
+                company_id: input.company_id,
+            });
+
+        if (!purchaseRequisition) {
+            throw new NotFoundError(
+                "Approved purchase requisition does not exist",
+            );
+        }
+
+        if (purchaseRequisition.rfqs.length > 0) {
+            throw new ConflictError(
+                "A purchase requisition already has an RFQ",
+            );
+        }
 
         const id = crypto.randomUUID()
         const created_at = new Date()
@@ -208,6 +227,10 @@ export class PurchaseOrderManagementService {
             throw new NotFoundError("RFQ does not exist")
         }
 
+        if (rfq.status !== "DRAFT") {
+            throw new ConflictError("Only draft RFQs can be published")
+        }
+
         const PublishContext = {
             tenant_id: input.tenant_id,
             company_id: input.company_id,
@@ -243,38 +266,113 @@ export class PurchaseOrderManagementService {
         }
     }
 
-    async selectSupplier (input:ServiceQuotationParam) {
-
-        const Quotation = await this.repository.findQuotationById({
+    async selectSupplier(input: ServiceQuotationParam) {
+        const quotation = await this.repository.findQuotationById({
             quotation_id: input.params.quotationId,
             tenant_id: input.tenant_id,
-            company_id: input.company_id,            
-        })
+            company_id: input.company_id,
+        });
 
-        const RFQ = await this.repository.findRfqById({
+        const rfq = await this.repository.findRfqById({
             rfq_id: input.params.rfqId,
             tenant_id: input.tenant_id,
-            company_id: input.company_id,            
-        })
+            company_id: input.company_id,
+        });
 
-        if (!Quotation || !RFQ) {
-            throw new NotFoundError("Quotation or RFQ does not exist")
+        if (!quotation || !rfq) {
+            throw new NotFoundError("Quotation or RFQ does not exist");
         }
 
-        if (Quotation.rfq_id !== RFQ.id) {
-            throw new NotFoundError("Quotation does not belong to this RFQ")
+        if (quotation.rfq_id !== rfq.id) {
+            throw new NotFoundError("Quotation does not belong to this RFQ");
         }
 
-        const data = {
+        if (rfq.status !== "PUBLISHED") {
+            throw new ConflictError("Only published RFQs can have quotations selected");
+        }
+
+        const createdAt = new Date();
+        const id = crypto.randomUUID();
+        const poNumber = this.NumberGenerator(createdAt, id, 1);
+
+        const purchaseOrder = await this.repository.selectSupplier({
+            id,
             tenant_id: input.tenant_id,
-            company_id: Quotation.company_id,
-            rfq_id: Quotation.rfq_id,
-            quotation_id: input.params.quotationId,
-            supplier_id: Quotation.supplier_id,            
+            company_id: input.company_id,
+            user_id: input.user_id,
+            rfq_id: rfq.id,
+            quotation_id: quotation.id,
+            supplier_id: quotation.supplier_id,
+            po_number: poNumber,
+            order_date: createdAt,
+            expected_delivery_date: undefined,
+        });
+
+        if (!purchaseOrder) {
+            throw new ConflictError(
+                "The quotation could not be selected. It may no longer be available."
+            );
         }
 
-        return await this.repository.selectSupplier(data)
+        return purchaseOrder;
+    }
 
+    async handleSupplierQuotationSubmitted(
+        event: SupplierQuotationSubmittedEvent,
+    ) {
+        return this.repository.markQuotationPosted({
+            quotation_id: event.quotation_id,
+            tenant_id: event.tenant_id,
+            company_id: event.company_id,
+        });
+    }
+
+    async handleApprovedPurchaseRequisition(
+        event: ApprovedPRContext,
+    ) {
+        const { purchaseRequisition_id, approvalWorkflow_id, tenant_id, company_id } = event;
+
+        if (!purchaseRequisition_id || !approvalWorkflow_id || !tenant_id || !company_id) {
+            throw new NotFoundError(
+                "Missing required information to handle approved purchase requisition",
+            );
+        }
+
+        const purchaseRequisition =
+            await this.repository.findApprovedPurchaseRequisition({
+                purchaseRequisition_id: purchaseRequisition_id,
+                approvalWorkflow_id: approvalWorkflow_id,
+                tenant_id: tenant_id,
+                company_id: company_id,
+            });
+
+        if (!purchaseRequisition) {
+            throw new NotFoundError(
+                "Approved purchase requisition does not exist",
+            );
+        }
+
+        if (purchaseRequisition.rfqs.length > 0) {
+            throw new ConflictError(
+                "A purchase requisition already has an RFQ",
+            );
+        }
+
+        return {
+            purchaseRequisition_id: purchaseRequisition.id,
+            pr_number: purchaseRequisition.pr_number,
+            tenant_id: purchaseRequisition.tenant_id,
+            company_id: purchaseRequisition.company_id,
+            items: purchaseRequisition.items,
+        };
+    }
+
+    async getProcurementQueue(input: ServiceProcurementQueueQuery) {
+        return this.repository.getProcurementQueue({
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+            query: input.query,
+        });
     }
 
     async getList(input: ServicePoQuery) {
@@ -294,6 +392,16 @@ export class PurchaseOrderManagementService {
     }
 
     async getQuotationList(input: ServiceRfqIdParam) {
+        const rfq = await this.repository.findRfqById({
+            rfq_id: input.params.rfqId,
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+        });
+
+        if (!rfq) {
+            throw new NotFoundError("RFQ does not exist");
+        }
+
         return await this.repository.getQuotationList({
             tenant_id: input.tenant_id,
             company_id: input.company_id,
@@ -302,22 +410,47 @@ export class PurchaseOrderManagementService {
     }
 
     async getQuotation(input: ServiceQuotationParam) {
-        return await this.repository.getQuotation({
+        const quotation = await this.repository.getQuotation({
             tenant_id: input.tenant_id,
             company_id: input.company_id,
             rfq_id: input.params.rfqId,
             quotation_id: input.params.quotationId,
         })
+
+        if (!quotation) {
+            throw new NotFoundError("Quotation does not exist");
+        }
+
+        return quotation;
     }
 
     async getPO(input: ServicesPurchaseOrderIdParam) {
-        return await this.repository.getPO({
+        const purchaseOrder = await this.repository.getPO({
             tenant_id: input.tenant_id,
             company_id: input.company_id,
             po_id: input.params.poId,
         })
+
+        if (!purchaseOrder) {
+            throw new NotFoundError("Purchase order does not exist");
+        }
+
+        return purchaseOrder;
     }
     async updateRFQS (input: ServiceUpdateRfqInput) {
+        const rfq = await this.repository.findRfqById({
+            rfq_id: input.params.rfqId,
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+        });
+
+        if (!rfq) {
+            throw new NotFoundError("RFQ does not exist");
+        }
+
+        if (rfq.status !== "DRAFT") {
+            throw new ConflictError("Only draft RFQs can be updated");
+        }
 
         const data = {
             rfq_id: input.params.rfqId,
@@ -340,6 +473,19 @@ export class PurchaseOrderManagementService {
     }
 
     async updatePO (input: ServiceUpdatePurchaseOrderInput) {
+        const purchaseOrder = await this.repository.findPoById({
+            po_id: input.params.poId,
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+        });
+
+        if (!purchaseOrder) {
+            throw new NotFoundError("Purchase order does not exist");
+        }
+
+        if (purchaseOrder.status !== "ISSUED") {
+            throw new ConflictError("Only issued purchase orders can be updated");
+        }
         
         const data = {
             po_id: input.params.poId,
@@ -372,6 +518,10 @@ export class PurchaseOrderManagementService {
             throw new NotFoundError("RFQ does not Exist")
         }
 
+        if (rfq.status !== "DRAFT") {
+            throw new ConflictError("Only draft RFQs can be deleted")
+        }
+
         const data = {
             rfq_id: input.params.rfqId,
             tenant_id: input.tenant_id,
@@ -392,6 +542,10 @@ export class PurchaseOrderManagementService {
 
         if (!po) {
             throw new NotFoundError("Purchase order does not exist")
+        }
+
+        if (["ORDERED", "COMPLETED", "CANCELLED"].includes(po.status)) {
+            throw new ConflictError("Purchase order cannot be cancelled in its current state")
         }
 
         const data = {

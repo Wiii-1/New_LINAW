@@ -30,6 +30,10 @@ export interface UpdateMemberRepositoryInput extends Company {
     update: updateMember
 }
 
+export interface RemoveMemberRepositoryInput extends Company {
+    tenant_id: string
+}
+
 export type ScopedRepositoryContext = 
     | Company
     | Tenant
@@ -58,10 +62,12 @@ export interface CreateRoleContext {
 }
 
 export interface RoleCompanyContext extends CompanyContext {
+    tenant_id: string
     role_id: string
 }
 
 export interface RoleTenantContext extends TenantContext {
+    company_id: string
     role_id: string
 }
 
@@ -85,6 +91,7 @@ export interface UpdateCompanySettingsContext extends CompanyContext {
 }
 
 export interface RemoveRoleFromMemberContext extends Company {
+    tenant_id: string
     role_id: string
 }
 
@@ -92,24 +99,22 @@ export class OrganizationAdministrationRepository {
 
     // find
 
-    async findUserByEmail(input: FindUserContext) {
-        return prisma.companyMembership.findFirst({
+    async findUserByEmail(input: TenantContext & { email: string }) {
+        return prisma.user.findUnique({
             where: {
-                company_id: input.company_id,
-                user: {
-                    email: input.email
+                tenant_id_email: {
+                    email: input.email,
+                    tenant_id: input.tenant_id
                 }
-            },
-            include: {
-                user: true
             }
         })
     }
 
-    async findMembersByCompanyId(input: CompanyContext) {
+    async findMembersByCompanyId(input: CompanyContext & TenantContext) {
         return prisma.companyMembership.findMany({
             where: {
-                company_id: input.company_id
+                company_id: input.company_id,
+                tenant_id: input.tenant_id
             },
             include: {
                 user: true,
@@ -118,13 +123,28 @@ export class OrganizationAdministrationRepository {
         })
     }
 
-    async findCompanyMemberByEmail(input: FindUserContext) {
+    async findCompanyMemberByEmail(input: FindUserContext & TenantContext) {
         return prisma.companyMembership.findFirst({
             where: {
                 company_id: input.company_id,
+                tenant_id: input.tenant_id,
                 user: {
                     email: input.email
                 }
+            },
+            include: {
+                user: true,
+                role: true
+            }
+        })
+    }
+
+    async findCompanyMemberByUserId(input: Company & TenantContext) {
+        return prisma.companyMembership.findFirst({
+            where: {
+                company_id: input.company_id,
+                tenant_id: input.tenant_id,
+                user_id: input.user_id
             },
             include: {
                 user: true,
@@ -137,15 +157,17 @@ export class OrganizationAdministrationRepository {
         return prisma.role.findFirst({
             where: {
                 id: input.role_id,
-                company_id: input.company_id
+                company_id: input.company_id,
+                tenant_id: input.tenant_id
             }
         })
     }
 
-    async findRolesByTenantId(tenant_id: string) {
+    async findRolesByCompanyId(input: CompanyContext & TenantContext) {
         return prisma.role.findMany({
             where: {
-                tenant_id
+                tenant_id: input.tenant_id,
+                company_id: input.company_id
             }
         })
     }
@@ -155,7 +177,8 @@ export class OrganizationAdministrationRepository {
             where: {
                 role_id: input.role_id,
                 role: {
-                    tenant_id: input.tenant_id
+                    tenant_id: input.tenant_id,
+                    company_id: input.company_id
                 }
             },
             include: {
@@ -276,10 +299,11 @@ export class OrganizationAdministrationRepository {
 
     // remove / delete
 
-    async removeMember(input: Company) {
+    async removeMember(input: RemoveMemberRepositoryInput) {
         return prisma.companyMembership.deleteMany({
             where: {
                 company_id: input.company_id,
+                tenant_id: input.tenant_id,
                 user_id: input.user_id
             }
         })
@@ -306,6 +330,7 @@ export class OrganizationAdministrationRepository {
         return prisma.userRole.deleteMany({
             where: {
                 company_id: input.company_id,
+                tenant_id: input.tenant_id,
                 user_id: input.user_id,
                 role_id: input.role_id
             }

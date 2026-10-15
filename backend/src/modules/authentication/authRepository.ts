@@ -103,6 +103,26 @@ export class AuthRepository {
         })
     }
 
+    async findSessionForAccessToken(session_id: string) {
+        return prisma.userSession.findUnique({
+            where: {
+                id: session_id,
+            },
+            select: {
+                user_id: true,
+                tenant_id: true,
+                revoked_at: true,
+                expires_at: true,
+                user: {
+                    select: {
+                        status: true,
+                        tenant_id: true,
+                    },
+                },
+            },
+        });
+    }
+
     async createSession(data: {
         id: string;
         tenant_id: string;
@@ -351,8 +371,12 @@ export async function getUserRole(
     const userRole = await prisma.userRole.findFirst({
         where: {
             user_id: userId,
+            tenant_id: tenantId,
             role: {
-                tenant_id: tenantId,
+                OR: [
+                    { tenant_id: tenantId },
+                    { tenant_id: null },
+                ],
             },
         },
         include: {

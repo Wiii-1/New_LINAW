@@ -1,4 +1,4 @@
-import { NotFoundError } from "../../shared/errors/appError.js";
+import { ConflictError, NotFoundError } from "../../shared/errors/appError.js";
 import { EventBus } from "../../shared/events/eventBus.js";
 import { UserManagementRepository } from "./userManagementRepository.js";
 import type {
@@ -15,20 +15,21 @@ export class UserManagementService {
 
     // get
 
-    async profile(userId: string) {
-        const user = await this.repository.findById(userId);
+    async profile(userId: string, tenantId: string) {
+        const user = await this.repository.findById(userId, tenantId);
 
         if (!user) {
             throw new NotFoundError("User Not Found");
         }
 
-        return user;
+        return this.toProfileResponse(user);
     }
 
     // patch
 
     async updateProfile(
         userId: string,
+        tenantId: string,
         input: UpdateUserProfile
     ) {
 
@@ -43,7 +44,7 @@ export class UserManagementService {
         */
 
         // 1. Check if the user exists
-        const isExist = await this.repository.findById(userId);
+        const isExist = await this.repository.findById(userId, tenantId);
 
         if (!isExist) {
             throw new NotFoundError("User Not Found");
@@ -55,19 +56,25 @@ export class UserManagementService {
         // 3. Structure the update data
         const updateData = {
             userId,
+            tenantId,
             ...input,
         };
 
         const updatedUser = await this.repository.updateProfile(updateData);
 
+        if (!updatedUser) {
+            throw new NotFoundError("User Not Found");
+        }
+
         // 4. Return
-        return updatedUser;
+        return this.toProfileResponse(updatedUser);
     }
 
     // post
 
     async companyRegister(
         userId: string,
+        tenantId: string,
         input: OrganizationRegistration
     ) {
         /*
@@ -88,7 +95,7 @@ export class UserManagementService {
         */
 
         // 1. Check user's existing information
-        const user = await this.repository.findById(userId);
+        const user = await this.repository.findById(userId, tenantId);
 
         if (!user) {
             throw new NotFoundError("User Not Found");
@@ -97,53 +104,57 @@ export class UserManagementService {
         // 2. Get authenticated user's id and tenant information
         const userData = {
             userId: user.id,
-            tenantId: user.tenant_id,
+            tenantId,
         };
 
-        // 3. Register the company
-        const company = await this.repository.createCompany({
-            ...input,
+        const registration = await this.repository.registerCompany({
+            userId: userData.userId,
             tenantId: userData.tenantId,
+            ...input,
         });
 
-        const ownerRole = await this.repository.findSystemRoleByCode(
-            "ORGANIZATION_ADMIN"
-        );
+        if (registration.status === "duplicate") {
+            throw new ConflictError(
+                "User is already associated with an organization",
+            );
+        }
 
-        if (!ownerRole) {
+        if (registration.status === "missing_role") {
             throw new NotFoundError("Organization Admin role not found");
         }
 
-        // 4. Register the user as a company member
-        //    with the appropriate owner/admin role.
-        await this.repository.createCompanyMembership({
-            userId: userData.userId,
-            companyId: company.id,
-            tenantId: userData.tenantId,
-        });
-
-        await this.repository.createUserRole({
-            userId: userData.userId,
-            companyId: company.id,
-            tenantId: userData.tenantId,
-            roleId: ownerRole.id,
-        });
-
-        // 5. Publish event
+        // Publish only after all registration writes have committed.
         await this.eventBus.publish(
             "organization.registered",
             {
-                companyId: company.id,
-                tenantId: user.tenant_id,
+                companyId: registration.company.id,
+                tenantId,
                 userId,                
             }
         )
 
         // 6. Return
         return {
-            companyId: company.id,
-            companyName: company.display_name,
-            success: true,
+            companyId: registration.company.id,
+            companyName: registration.company.display_name,
+        };
+    }
+
+    private toProfileResponse(user: {
+        id: string;
+        first_name: string;
+        last_name: string;
+        email: string;
+        job_title?: string | null;
+        status: string;
+    }) {
+        return {
+            user_id: user.id,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email: user.email,
+            job_title: user.job_title ?? null,
+            status: user.status,
         };
     }
 }

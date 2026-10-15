@@ -2,8 +2,10 @@ import type { AppContext } from "../../../shared/types/hono.js";
 import type { Context } from "hono";
 
 import {
+    AcceptSupplierInvitationSchema,
     CreateSupplierInvitationSchema,
     InvitationIdSchema,
+    InvitationQuerySchema,
     InvitationTokenSchema
 } from "./supplierManagementInvitationValidator.js";
 import type { SupplierManagementInvitationService } from "./supplierManagementInvitationService.js";
@@ -37,12 +39,21 @@ export class SupplierManagementInvitationController {
             email
         };
 
-        const Invitation = await this.service.createInvitation(invitation)
+        const createdInvitation = await this.service.createInvitation(invitation);
+        const sentInvitation = await this.service.sendInvitation(
+            {
+                user_id,
+                tenant_id,
+                company_id,
+                invitation_id: createdInvitation.id,
+            },
+            c.env,
+        );
 
         return c.json({
             success: true,
             message: "Supplier invitation created successfully.",
-            data: Invitation
+            data: sentInvitation
         }, 201);
     };
 
@@ -55,17 +66,19 @@ export class SupplierManagementInvitationController {
             throw new NotFoundError("User does not belong to a company")
         } 
         
+        const query = InvitationQuerySchema.parse(c.req.query());
         const input = {
             user_id,
             tenant_id,
-            company_id
+            company_id,
+            ...query,
         }
 
         const Invitations = await this.service.getInvitations(input)
 
         return c.json({
             success: true,
-            message: "Invitations retrieved",
+            message: "Supplier invitations retrieved successfully.",
             data: Invitations
         })
     }
@@ -92,12 +105,12 @@ export class SupplierManagementInvitationController {
             invitation_id: invitationId
         };
 
-        // TODO: Pass invitation to the service.
+        const result = await this.service.getInvitation(invitation);
 
         return c.json({
             success: true,
             message: "Supplier invitation retrieved successfully.",
-            data: invitation
+            data: result
         }, 200);
     };
 
@@ -123,9 +136,6 @@ export class SupplierManagementInvitationController {
             invitation_id: invitationId
         };
 
-        // TODO: Pass invitation to the service.
-        // The service should handle token rotation and email delivery.
-
         const invitationSent = await this.service.sendInvitation(
             invitation,
             c.env
@@ -147,16 +157,12 @@ export class SupplierManagementInvitationController {
             token: c.req.param("token")
         });
 
-        // TODO: Pass token to the service for validation.
-        // The service should hash the token and compare it with token_hash.
-
+        const invitation = await this.service.validateInvitation({ token });
         
         return c.json({
             success: true,
-            message: "Supplier invitation token received for validation.",
-            data: {
-                token_received: Boolean(token)
-            }
+            message: "Supplier invitation is valid.",
+            data: invitation,
         }, 200);
     };
 
@@ -165,30 +171,27 @@ export class SupplierManagementInvitationController {
         c: Context<AppContext>
     ) => {
 
-        const { user_id, tenant_id, company_id } = c.get("user");
-
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }         
+        const { user_id, tenant_id, company_id: activeCompanyId } = c.get("user");
 
         const { invitationId } = InvitationIdSchema.parse({
             invitationId: c.req.param("invitationId")
         });
 
+        const body = AcceptSupplierInvitationSchema.parse(await c.req.json());
         const invitation = {
             user_id,
             tenant_id,
-            company_id,
+            company_id: body.company_id ?? activeCompanyId,
+            token: body.token,
             invitation_id: invitationId
         };
 
-        // TODO: Pass invitation to the service.
-        // The service should verify eligibility and perform acceptance.
+        const acceptedInvitation = await this.service.acceptInvitation(invitation);
 
         return c.json({
             success: true,
-            message: "Supplier invitation acceptance requested.",
-            data: invitation
+            message: "Supplier invitation accepted successfully.",
+            data: acceptedInvitation,
         }, 200);
     };
 }

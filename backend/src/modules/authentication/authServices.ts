@@ -137,11 +137,15 @@ export class AuthService {
         };
     }
 
-    async findId(user: findById) {
+    async findId(user: findById, requesterUserId: string) {
 
         const {
             id
         } = user
+
+        if (id !== requesterUserId) {
+            throw new UnauthorizedAccessError("Cannot access another user's data")
+        }
 
         const checkUser = await this.repository.findUserById(id)
 
@@ -236,6 +240,10 @@ export class AuthService {
             throw new UnauthorizedAccessError(
                 "User does not exist"
             )
+        }
+
+        if (user.status !== "ACTIVE") {
+            throw new UnauthorizedAccessError("Invalid refresh token")
         }
 
         if (session.revoked_at) {

@@ -1,21 +1,9 @@
+import { systemPermissionSeeds } from "./systemPermissions.js";
+
 export const systemRolePermissions = {
-    ORGANIZATION_ADMIN: [
-        "organization:read",
-        "organization:update",
-
-        "organization_member:invite",
-        "organization_member:read",
-        "organization_member:update",
-        "organization_member:remove",
-
-        "organization_role:create",
-        "organization_role:read",
-        "organization_role:update",
-        "organization_role:delete",
-
-        "organization_role_permission:add",
-        "organization_role_permission:remove",
-    ],
+    ORGANIZATION_ADMIN: systemPermissionSeeds.map(
+        (permission) => permission.code,
+    ),
 
     EMPLOYEE: [
         "pr:create",

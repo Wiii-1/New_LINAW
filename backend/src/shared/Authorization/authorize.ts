@@ -13,6 +13,10 @@ export function hasPermission(
         return false;
     }
 
+    if (role.code === "ORGANIZATION_ADMIN") {
+        return true;
+    }
+
     return role.role_permissions.some(
         (rolePermission) =>
             rolePermission.permission.code === permission
@@ -24,28 +28,24 @@ export function Authorize(permission: Permission) {
     return async (
         c: Context<AppContext>,
         next: Next
-    ): Promise<void> => {
+    ): Promise<Response | void> => {
         
         const user = c.get("user")
 
         const role = await getUserRole(user.user_id, user.tenant_id);
 
         if (!role) {
-            c.json({
+            return c.json({
                 message: "Forbidden"
             }, 403 )
-
-            return;
         }
 
         if (!hasPermission(role, permission)) {
-            c.json({
+            return c.json({
                 message: "Forbidden"
             }, 403)
-
-            return;
         }
 
-        next()
+        await next()
     }
 }

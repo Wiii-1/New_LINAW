@@ -17,6 +17,7 @@ export function createAuditRouter(service: AuditTrailService) {
     router.use( criticalRateLimit )
     router.use( authenticate )
 
+    router.get("/", Authorize(systemPermissions.auditTrail.search), controller.listAuditRecords)
     router.get("/search", Authorize(systemPermissions.auditTrail.search), controller.searchAuditRecord)
     router.get("/:auditId/verify", Authorize(systemPermissions.auditTrail.verify),controller.verifyAuditIntegrity)
 

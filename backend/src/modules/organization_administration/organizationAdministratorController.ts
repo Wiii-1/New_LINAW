@@ -2,7 +2,7 @@ import type { AppContext } from "../../shared/types/hono";
 import { NotFoundError, RequestDataError } from "../../shared/errors/appError"
 import { Context } from "hono"
 import { OrganizationAdministrationService } from "./organizationAdministrationService";
-import { removePermissionSchema, assignPermissionsSchema, updateRoleSchema, assignRoleSchema, createRoleSchema, memberEmailSchema, updateMemberSchema, updateSettingsSchema, removeRoleSchema } from "./organizationAdministrationValidator";
+import { assignPermissionsSchema, updateRoleSchema, assignRoleSchema, createRoleSchema, memberEmailSchema, updateMemberSchema, updateSettingsSchema } from "./organizationAdministrationValidator";
 
 
 export class OrganizationAdministrationController {
@@ -40,7 +40,7 @@ export class OrganizationAdministrationController {
             success: true,
             message: "invitation sent",
             member
-        },201)
+        },200)
     }
     
     getMember = async (
@@ -65,7 +65,7 @@ export class OrganizationAdministrationController {
             success: true,
             message: "successfully retrieved list",
             memberList
-        },201)
+        },200)
     }
     
     getUser = async (
@@ -73,8 +73,11 @@ export class OrganizationAdministrationController {
     ) => {
 
         const { user_id, tenant_id, company_id } = c.var.user
+        const target_user_id = c.req.param("userId")
 
-        const { email } = memberEmailSchema.parse(await c.req.json())
+        if (!target_user_id) {
+            throw new RequestDataError("User ID is required", 400)
+        }
 
         if (!company_id) {
             throw new NotFoundError("User does not belong to a company")
@@ -84,7 +87,7 @@ export class OrganizationAdministrationController {
             user_id,
             tenant_id,
             company_id,
-            email
+            target_user_id
         }
 
         const user = await this.service.getUser(getUser)
@@ -93,7 +96,7 @@ export class OrganizationAdministrationController {
             success: true,
             message:"User retrieved",
             user
-        },201)
+        },200)
 
     }
 
@@ -102,10 +105,12 @@ export class OrganizationAdministrationController {
     ) => {
         const { user_id, tenant_id, company_id } = c.var.user
 
-        const body = await c.req.json()
+        const target_user_id = c.req.param("userId")
+        const update = updateMemberSchema.parse(await c.req.json())
 
-        const { email } = memberEmailSchema.parse(body)
-        const update = updateMemberSchema.parse(body)
+        if (!target_user_id) {
+            throw new RequestDataError("User ID is required", 400)
+        }
 
         if (!company_id) {
             throw new NotFoundError("User does not belong to a company")
@@ -115,7 +120,7 @@ export class OrganizationAdministrationController {
             user_id,
             tenant_id,
             company_id,
-            email,
+            target_user_id,
             update
         }
 
@@ -126,15 +131,18 @@ export class OrganizationAdministrationController {
             message: " Successfully updated user ",
             updated
 
-        },201)
+        },200)
     }
 
     removeMember  = async (
         c:Context<AppContext>
     ) => {
         const { user_id, tenant_id, company_id } = c.var.user
+        const target_user_id = c.req.param("userId")
 
-        const { email } = memberEmailSchema.parse( await c.req.json())
+        if (!target_user_id) {
+            throw new RequestDataError("User ID is required", 400)
+        }
 
         if (!company_id) {
             throw new NotFoundError("User does not belong to a company")
@@ -144,7 +152,7 @@ export class OrganizationAdministrationController {
             user_id,
             tenant_id,
             company_id,
-            email
+            target_user_id
         }
 
         const removed = await this.service.removeMember(removeMember)
@@ -153,7 +161,7 @@ export class OrganizationAdministrationController {
             success: true,
             message: "Successfully remove user",
             removed
-        },201)
+        },200)
     }
 
     role  = async (
@@ -188,7 +196,12 @@ export class OrganizationAdministrationController {
     ) => {
         const { user_id, tenant_id, company_id } = c.var.user
 
+        const member_user_id = c.req.param("userId")
         const assignRole = assignRoleSchema.parse(await c.req.json())
+
+        if (!member_user_id) {
+            throw new RequestDataError("User ID is required", 400)
+        }
 
         if (!company_id) {
             throw new NotFoundError("User does not belong to a company")
@@ -198,6 +211,7 @@ export class OrganizationAdministrationController {
             user_id,
             tenant_id,
             company_id,
+            member_user_id,
             assignRole
         }
 
@@ -425,9 +439,11 @@ export class OrganizationAdministrationController {
             throw new NotFoundError("User does not belong to a company")
         }    
 
-        const permission_id  = removePermissionSchema.parse(
-            await c.req.json()
-        )
+        const permission_id = c.req.param("permissionId")
+
+        if (!permission_id) {
+            throw new RequestDataError("Permission ID is required", 400)
+        }
 
         const input = {
             user_id,
@@ -450,20 +466,26 @@ export class OrganizationAdministrationController {
         c: Context<AppContext>
     ) => {
         const { user_id, tenant_id, company_id } = c.var.user
+        const member_user_id = c.req.param("userId")
+        const role_id = c.req.param("roleId")
 
         if (!company_id) {
             throw new NotFoundError("User does not belong to a company")
         }    
 
-        const { email, role_id } = removeRoleSchema.parse(
-            await c.req.json()
-        )
+        if (!member_user_id) {
+            throw new RequestDataError("User ID is required", 400)
+        }
+
+        if (!role_id) {
+            throw new RequestDataError("Role ID is required", 400)
+        }
 
         const input = {
             user_id,
             tenant_id,
             company_id,
-            email,
+            member_user_id,
             role_id
         }
 

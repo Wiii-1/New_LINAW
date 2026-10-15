@@ -3,42 +3,8 @@ import {
     RFQStatus,
     type ListPurchaseOrdersQuery,
     type ListRFQsQuery,
+    type ProcurementQueueQuery,
 } from "./purchaseOrderManagementValidator.js"
-
-interface CreatePurchaseOrderContext {
-
-    id: string;
-    tenant_id: string;
-    company_id: string;
-
-    po_number: string;
-    issued_by_user_id: string;
-    status: string;
-
-    supplier_id: string;
-    rfq_id: string | undefined;
-    purchase_requisition_id: string | undefined;
-    supplier_quotation_id: string | undefined;
-
-    currency_code: string;
-    total_amount: number;
-
-    order_date: Date;
-    expected_delivery_date: Date | undefined;
-
-    items: {
-        tenant_id: string;
-        purchase_order_id: string
-        line_no: number;
-        description: string;
-        quantity: number;
-        unit_of_measure: string;
-        unit_price: number;
-        total_price: number;
-        status: string;
-    }[];
-    
-}
 
 interface CreateRFQSContext {
     id: string;
@@ -86,11 +52,18 @@ interface POContext {
 
 
 interface SupplierSelectionContext {
-    tenant_id: string
-    company_id: string
-    rfq_id: string
-    quotation_id: string
-    supplier_id: string
+    id: string;
+    tenant_id: string;
+    company_id: string;
+    user_id: string;
+
+    rfq_id: string;
+    quotation_id: string;
+    supplier_id: string;
+
+    po_number: string;
+    order_date: Date;
+    expected_delivery_date: Date | undefined;
 }
 
 interface PublishContext {
@@ -109,6 +82,12 @@ interface RfqQueryContext {
     tenant_id: string
     company_id: string
     query?: ListRFQsQuery
+}
+
+interface ProcurementQueueQueryContext {
+    tenant_id: string;
+    company_id: string;
+    query?: ProcurementQueueQuery;
 }
 
 interface QuotationsListContext {
@@ -140,6 +119,12 @@ interface UpdateRfqsContext {
     }[] | undefined;
 }
 
+interface OrderPurchaseOrderRepositoryContext {
+    po_id: string;
+    tenant_id: string;
+    company_id: string;
+}
+
 interface UpdatePoContext  {
     po_id: string;
     tenant_id: string;
@@ -159,37 +144,6 @@ interface UpdatePoContext  {
 export class PurchaseOrderManagementRepository {
 
     // Create
-
-    async createPurchaseOrder(
-        data: CreatePurchaseOrderContext
-    ) {
-        return prisma.purchaseOrder.create({
-            data: {
-                id: data.id,
-                tenant_id: data.tenant_id,
-                company_id: data.company_id,
-                supplier_id: data.supplier_id,
-
-                purchase_requisition_id: data.purchase_requisition_id,
-                rfq_id: data.rfq_id,
-                supplier_quotation_id: data.supplier_quotation_id,
-
-                po_number: data.po_number,
-                issued_by_user_id: data.issued_by_user_id,
-                status: data.status,
-
-                currency_code: data.currency_code,
-                total_amount: data.total_amount,
-
-                order_date: data.order_date,
-                expected_delivery_date: data.expected_delivery_date,
-
-                items: {
-                    create: data.items,
-                },
-            },
-        });
-    }
 
     async createRFQS(
         data: CreateRFQSContext
@@ -253,63 +207,242 @@ export class PurchaseOrderManagementRepository {
         });
     }
 
+    async findApprovedPurchaseRequisition(data: {
+        purchaseRequisition_id: string;
+        approvalWorkflow_id: string;
+        tenant_id: string;
+        company_id: string;
+    }) {
+        return prisma.purchaseRequisition.findFirst({
+            where: {
+                id: data.purchaseRequisition_id,
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+                status: "APPROVED",
+                approved_at: {
+                    not: null,
+                },
+            },
+            include: {
+                items: true,
+                rfqs: {
+                    select: {
+                        id: true,
+                    },
+                },
+            },
+        });
+    }
+
+    async findApprovedPurchaseRequisitionForRFQ(data: {
+        purchaseRequisition_id: string;
+        tenant_id: string;
+        company_id: string;
+    }) {
+        return prisma.purchaseRequisition.findFirst({
+            where: {
+                id: data.purchaseRequisition_id,
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+                status: "APPROVED",
+                approved_at: {
+                    not: null,
+                },
+            },
+            include: {
+                rfqs: {
+                    select: {
+                        id: true,
+                    },
+                },
+            },
+        });
+    }
+
     // Publish / Selection
 
     async publishRfq(data: PublishContext) {
-        const rfq = await prisma.rFQ.findFirst({
+        const result = await prisma.rFQ.updateMany({
+            where: {
+                id: data.rfq_id,
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+                status: RFQStatus.DRAFT,
+            },
+            data: {
+                status: RFQStatus.PUBLISHED,
+                issue_date: new Date(),
+            },
+        });
+
+        if (result.count !== 1) {
+            return null;
+        }
+
+        return prisma.rFQ.findFirst({
             where: {
                 id: data.rfq_id,
                 tenant_id: data.tenant_id,
                 company_id: data.company_id,
             },
-            select: {
-                id: true,
-            },
-        });
-
-        if (!rfq) {
-            return null;
-        }
-
-        return prisma.rFQ.update({
-            where: {
-                id: rfq.id,
-            },
-            data: {
-                status: RFQStatus.PUBLISHED,
-            },
-            include: {
-                items: true,
-            },
+            include: { items: true },
         });
     }
 
     async selectSupplier(data: SupplierSelectionContext) {
-        const quotation = await prisma.supplierQuotation.findFirst({
+        return prisma.$transaction(async (tx) => {
+            const rfq = await tx.rFQ.findFirst({
+                where: {
+                    id: data.rfq_id,
+                    tenant_id: data.tenant_id,
+                    company_id: data.company_id,
+                    status: RFQStatus.PUBLISHED,
+                },
+                select: {
+                    id: true,
+                    purchase_requisition_id: true,
+                },
+            });
+
+            if (!rfq) {
+                return null;
+            }
+
+            const quotation = await tx.supplierQuotation.findFirst({
+                where: {
+                    id: data.quotation_id,
+                    tenant_id: data.tenant_id,
+                    company_id: data.company_id,
+                    rfq_id: rfq.id,
+                    supplier_id: data.supplier_id,
+                    status: "POSTED",
+                },
+                include: {
+                    items: true,
+                },
+            });
+
+            if (!quotation) {
+                return null;
+            }
+
+            const rfqItems = await tx.rFQItem.findMany({
+                where: {
+                    rfq_id: rfq.id,
+                    tenant_id: data.tenant_id,
+                },
+            });
+
+            const rfqItemsById = new Map(
+                rfqItems.map((item) => [item.id, item]),
+            );
+
+            const purchaseOrderItems = quotation.items.map((item) => {
+                const rfqItem = rfqItemsById.get(item.rfq_item_id);
+
+                if (!rfqItem) {
+                    throw new Error(
+                        `RFQ item ${item.rfq_item_id} was not found`,
+                    );
+                }
+
+                return {
+                    tenant_id: data.tenant_id,
+                    source_item_type: "RFQ_ITEM",
+                    source_item_id: rfqItem.id,
+                    line_no: item.line_no,
+                    description: rfqItem.description,
+                    quantity: item.quoted_quantity,
+                    unit_of_measure: rfqItem.unit_of_measure,
+                    unit_price: item.unit_price,
+                    total_price: item.total_price,
+                    status: "ACTIVE",
+                };
+            });
+            // Ensure this quotation has not already been selected.
+            const selection = await tx.supplierQuotation.updateMany({
+                where: {
+                    id: quotation.id,
+                    tenant_id: data.tenant_id,
+                    company_id: data.company_id,
+                    rfq_id: rfq.id,
+                    supplier_id: data.supplier_id,
+                    status: "POSTED",
+                },
+                data: {
+                    status: "SELECTED",
+                },
+            });
+
+            if (selection.count !== 1) {
+                return null;
+            }
+
+
+            const assignment = await tx.rFQSupplierAssignment.findFirst({
+                where: {
+                    tenant_id: data.tenant_id,
+                    company_id: data.company_id,
+                    rfq_id: rfq.id,
+                    supplier_id: data.supplier_id,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+            if (!assignment) {
+                return null;
+            }
+
+            const purchaseOrder = await tx.purchaseOrder.create({
+                data: {
+                    id: data.id,
+                    tenant_id: data.tenant_id,
+                    company_id: data.company_id,
+                    supplier_id: data.supplier_id,
+
+                    purchase_requisition_id: rfq.purchase_requisition_id,
+                    rfq_id: rfq.id,
+                    supplier_quotation_id: quotation.id,
+
+                    po_number: data.po_number,
+                    issued_by_user_id: data.user_id,
+                    status: "ISSUED",
+
+                    currency_code: quotation.currency_code,
+                    total_amount: quotation.total_amount,
+
+                    order_date: data.order_date,
+                    expected_delivery_date: data.expected_delivery_date,
+
+                    items: {
+                        create: purchaseOrderItems,
+                    },
+                },
+                include: {
+                    items: true,
+                },
+            });
+
+            return purchaseOrder;
+        });
+    }
+
+    async markQuotationPosted(data: QuotationContext) {
+        const result = await prisma.supplierQuotation.updateMany({
             where: {
                 id: data.quotation_id,
                 tenant_id: data.tenant_id,
                 company_id: data.company_id,
-                rfq_id: data.rfq_id,
-                supplier_id: data.supplier_id,
-            },
-            select: {
-                id: true,
-            },
-        });
-
-        if (!quotation) {
-            return null;
-        }
-
-        return prisma.supplierQuotation.update({
-            where: {
-                id: quotation.id,
+                status: "SUBMITTED",
             },
             data: {
-                status: "SELECTED",
+                status: "POSTED",
             },
         });
+
+        return result.count === 1;
     }
 
     // Query
@@ -360,6 +493,26 @@ export class PurchaseOrderManagementRepository {
             include: {
                 items: true,
             },
+        });
+    }
+
+    async getProcurementQueue(data: ProcurementQueueQueryContext) {
+        return prisma.purchaseRequisition.findMany({
+            where: {
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+                status: "APPROVED",
+                approved_at: { not: null },
+                rfqs: { none: {} },
+                ...(data.query?.referenceNo && {
+                    pr_number: {
+                        contains: data.query.referenceNo,
+                        mode: "insensitive",
+                    },
+                }),
+            },
+            orderBy: { approved_at: "desc" },
+            include: { items: true },
         });
     }
 
@@ -418,10 +571,11 @@ export class PurchaseOrderManagementRepository {
             },
             select: {
                 id: true,
+                status: true,
             },
         });
 
-        if (!rfq) {
+        if (!rfq || rfq.status !== RFQStatus.DRAFT) {
             return null;
         }
 
@@ -535,6 +689,30 @@ export class PurchaseOrderManagementRepository {
         });
     }
 
+    async orderPurchaseOrder(data: OrderPurchaseOrderRepositoryContext) {
+        const result = await prisma.purchaseOrder.updateMany({
+            where: {
+                id: data.po_id,
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+                status: "ISSUED",
+            },
+            data: {
+                status: "ORDERED",
+            },
+        });
+
+        if (result.count !== 1) {
+            return null;
+        }
+
+        return this.getPO({
+            po_id: data.po_id,
+            tenant_id: data.tenant_id,
+            company_id: data.company_id,
+        });
+    }
+
     // Delete
 
     async deleteRfq(data: RFQContext) {
@@ -546,10 +724,11 @@ export class PurchaseOrderManagementRepository {
             },
             select: {
                 id: true,
+                status: true,
             },
         });
 
-        if (!rfq) {
+        if (!rfq || rfq.status !== RFQStatus.DRAFT) {
             return null;
         }
 

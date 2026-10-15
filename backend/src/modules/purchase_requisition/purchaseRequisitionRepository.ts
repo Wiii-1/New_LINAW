@@ -48,18 +48,25 @@ export interface purchaseRequisitionStatusLogData {
     metadata_json: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
 }
 
+export type PurchaseRequisitionStatusLogInput = Omit<
+    purchaseRequisitionStatusLogData,
+    "metadata_json"
+>;
+
 export interface PurchaseRequisitionUpdateData {
     requested_by_user_id: string;
-    remarks: string;
+    remarks?: string;
     purpose?: string | undefined;
     justification?: string | undefined;
     priority?: PurchaseRequisitionPriority | undefined;
     needed_by_date?: string | undefined;
+    items?: PurchaseRequisitionItemCreateData[];
 }
 
 export interface PurchaseRequisitionQueryData {
     userId: string;
     tenantId: string;
+    companyId: string;
     status: PurchaseRequisitionStatus | undefined;
     requesterId: string | undefined;
     pr_number: string | undefined;
@@ -76,6 +83,7 @@ export class purchaseRequisitionRepository {
             take: 10,
             where: {
                 tenant_id: data.tenantId,
+                company_id: data.companyId,
 
                 ...(data.status && {
                     status: data.status,
@@ -130,14 +138,20 @@ export class purchaseRequisitionRepository {
     }
 
     async findDetailsById(
-        requisitionId: string
+        requisitionId: string,
+        tenantId?: string,
+        companyId?: string
     ) {
         return prisma.purchaseRequisition.findUnique({
             where: {
-                id: requisitionId
+                id: requisitionId,
+                ...(tenantId ? { tenant_id: tenantId } : {}),
+                ...(companyId ? { company_id: companyId } : {})
             },
             select: {
                 id: true,
+                requested_by_user_id: true,
+                company_id: true,
                 pr_number: true,
                 purpose: true,
                 justification: true,
@@ -180,10 +194,12 @@ export class purchaseRequisitionRepository {
         })
     }
 
-    async findActiveByUserId(userId: string) {
+    async findActiveByUserId(userId: string, tenantId: string, companyId: string) {
         return prisma.companyMembership.findFirst({
             where: {
                 user_id: userId,
+                tenant_id: tenantId,
+                company_id: companyId,
                 employment_status: "ACTIVE"
             },
             select: {
@@ -223,6 +239,64 @@ export class purchaseRequisitionRepository {
         })
     }
 
+    async createRequisitionWithItemsAndStatusLog(
+        data: purchaseRequisitionData,
+        dataItems: PurchaseRequisitionItemCreateData[],
+        statusLog: PurchaseRequisitionStatusLogInput
+    ) {
+        return prisma.$transaction(async (transaction) => {
+            const requisition = await transaction.purchaseRequisition.create({
+                data
+            });
+
+            await transaction.purchaseRequisitionItem.createMany({
+                data: dataItems
+            });
+
+            const metadata = await transaction.purchaseRequisition.findUnique({
+                where: {
+                    id: data.id
+                },
+                select: {
+                    id: true,
+                    requested_by_user_id: true,
+                    company_id: true,
+                    pr_number: true,
+                    purpose: true,
+                    justification: true,
+                    status: true,
+                    priority: true,
+                    currency_code: true,
+                    total_amount: true,
+                    needed_by_date: true,
+                    submitted_at: true,
+                    approved_at: true,
+                    rejected_at: true,
+                    created_at: true,
+                    updated_at: true,
+                    items: {
+                        orderBy: {
+                            line_no: "asc"
+                        }
+                    }
+                }
+            });
+
+            if (!metadata) {
+                throw new Error("Purchase requisition metadata could not be created");
+            }
+
+            await transaction.purchaseRequisitionStatusLog.create({
+                data: {
+                    ...statusLog,
+                    metadata_json: metadata
+                }
+            });
+
+            return requisition;
+        });
+    }
+
     async resubmit (
         data: purchaseRequisitionData
     ) {
@@ -236,29 +310,46 @@ export class purchaseRequisitionRepository {
         requisitionId: string,
         updateData: PurchaseRequisitionUpdateData
     ) {
+        const { items, ...headerUpdate } = updateData;
         const data: Prisma.PurchaseRequisitionUpdateInput = {};
 
-        if (updateData.purpose !== undefined) {
-            data.purpose = updateData.purpose;
+        if (headerUpdate.purpose !== undefined) {
+            data.purpose = headerUpdate.purpose;
         }
 
-        if (updateData.justification !== undefined) {
-            data.justification = updateData.justification;
+        if (headerUpdate.justification !== undefined) {
+            data.justification = headerUpdate.justification;
         }
 
-        if (updateData.priority !== undefined) {
-            data.priority = updateData.priority;
+        if (headerUpdate.priority !== undefined) {
+            data.priority = headerUpdate.priority;
         }
 
-        if (updateData.needed_by_date !== undefined) {
-            data.needed_by_date = new Date(updateData.needed_by_date);
+        if (headerUpdate.needed_by_date !== undefined) {
+            data.needed_by_date = new Date(headerUpdate.needed_by_date);
         }
 
-        return prisma.purchaseRequisition.update({
-            where: {
-                id: requisitionId
-            },
-            data
+        return prisma.$transaction(async (transaction) => {
+            const updated = await transaction.purchaseRequisition.update({
+                where: {
+                    id: requisitionId
+                },
+                data
+            });
+
+            if (items !== undefined) {
+                await transaction.purchaseRequisitionItem.deleteMany({
+                    where: {
+                        purchase_requisition_id: requisitionId
+                    }
+                });
+
+                await transaction.purchaseRequisitionItem.createMany({
+                    data: items
+                });
+            }
+
+            return updated;
         });
     }
 
@@ -275,6 +366,67 @@ export class purchaseRequisitionRepository {
                 id: requisitionId
             },
             data
+        });
+    }
+
+    async updateStatusWithStatusLog(
+        requisitionId: string,
+        statusData: {
+            status: PurchaseRequisitionStatus;
+            submitted_at?: Date;
+            cancelled_at?: Date;
+        },
+        statusLog: PurchaseRequisitionStatusLogInput
+    ) {
+        return prisma.$transaction(async (transaction) => {
+            const requisition = await transaction.purchaseRequisition.update({
+                where: {
+                    id: requisitionId
+                },
+                data: statusData
+            });
+
+            const metadata = await transaction.purchaseRequisition.findUnique({
+                where: {
+                    id: requisitionId
+                },
+                select: {
+                    id: true,
+                    requested_by_user_id: true,
+                    company_id: true,
+                    pr_number: true,
+                    purpose: true,
+                    justification: true,
+                    status: true,
+                    priority: true,
+                    currency_code: true,
+                    total_amount: true,
+                    needed_by_date: true,
+                    submitted_at: true,
+                    approved_at: true,
+                    rejected_at: true,
+                    created_at: true,
+                    updated_at: true,
+                    items: {
+                        orderBy: {
+                            line_no: "asc"
+                        }
+                    }
+                }
+            });
+
+            if (!metadata) {
+                throw new Error("Purchase requisition metadata could not be created");
+            }
+
+            await transaction.purchaseRequisitionStatusLog.create({
+                data: {
+                    ...statusLog,
+                    metadata_json: metadata
+                }
+            });
+
+            return requisition;
         });
     }
 

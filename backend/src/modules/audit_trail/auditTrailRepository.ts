@@ -69,16 +69,106 @@ export type audit_trail_blockchain_refs_input = {
     anchored_at: Date;
 }
 
+export type ListAuditsInput = {
+    tenantId: string;
+    companyId: string;
+    entityType?: string;
+    action?: string;
+    result?: string;
+    skip: number;
+    take: number;
+}
+
 export class AuditTrailRepository {
 
+    async listAudits(input: ListAuditsInput) {
+        const purchaseOrders = await prisma.purchaseOrder.findMany({
+            where: {
+                tenant_id: input.tenantId,
+                company_id: input.companyId,
+            },
+            select: { id: true },
+        })
+
+        const entityIds = purchaseOrders.map((purchaseOrder) => purchaseOrder.id)
+
+        if (entityIds.length === 0) {
+            return {
+                records: [],
+                total: 0,
+            }
+        }
+
+        const where = {
+            tenant_id: input.tenantId,
+            entity_id: { in: entityIds },
+            ...(input.entityType ? { entity_type: input.entityType } : {}),
+            ...(input.action ? { action: input.action } : {}),
+            ...(input.result ? { result: input.result } : {}),
+        }
+
+        const [records, total] = await Promise.all([
+            prisma.auditTrail.findMany({
+                where,
+                select: {
+                    id: true,
+                    entity_type: true,
+                    entity_id: true,
+                    action: true,
+                    result: true,
+                    created_at: true,
+                    actor_user_id: true,
+                    hash: {
+                        select: {
+                            hash_algorithm: true,
+                            hash_value: true,
+                        },
+                    },
+                    blockchain_ref: {
+                        select: {
+                            blockchain_transaction_hash: true,
+                            block_number: true,
+                            anchored_at: true,
+                        },
+                    },
+                },
+                orderBy: { created_at: "desc" },
+                skip: input.skip,
+                take: input.take,
+            }),
+            prisma.auditTrail.count({ where }),
+        ])
+
+        return { records, total }
+    }
+
     async findAuditByid (
-        auditId: string
+        auditId: string,
+        tenantId: string,
+        companyId: string,
     ) {
-        return prisma.auditTrail.findUnique({
+        const audit = await prisma.auditTrail.findFirst({
             where:{
-                id: auditId
+                id: auditId,
+                tenant_id: tenantId,
+                entity_type: "PURCHASE_ORDER",
             }
         })
+
+        if (!audit) {
+            return null
+        }
+
+        const purchaseOrder = await prisma.purchaseOrder.findFirst({
+            where: {
+                id: audit.entity_id,
+                tenant_id: tenantId,
+                company_id: companyId,
+            },
+            select: { id: true },
+        })
+
+        return purchaseOrder ? audit : null
     }
     async findById (
         userId: string
@@ -180,17 +270,36 @@ export class AuditTrailRepository {
     }
 
     async findAuditForVerification (
-        audit_id: string
+        audit_id: string,
+        tenantId: string,
+        companyId: string,
     ){
-        return prisma.auditTrail.findUnique({
+        const audit = await prisma.auditTrail.findFirst({
             where: {
                 id: audit_id,
+                tenant_id: tenantId,
+                entity_type: "PURCHASE_ORDER",
             },
             include: {
                 hash: true,
                 blockchain_ref: true,
             },
         });
+
+        if (!audit) {
+            return null
+        }
+
+        const purchaseOrder = await prisma.purchaseOrder.findFirst({
+            where: {
+                id: audit.entity_id,
+                tenant_id: tenantId,
+                company_id: companyId,
+            },
+            select: { id: true },
+        })
+
+        return purchaseOrder ? audit : null
     };
 
     async createAuditTrail (

@@ -35,7 +35,6 @@ export const createRoleSchema = z.object({
 });
 
 export const assignRoleSchema = z.object({
-    email: z.string().email(),
     role_id: z.string().uuid()
 })
 
@@ -96,12 +95,6 @@ export const updateSettingsSchema = z.object({
     { message: "At least one field must be provided" }
 )
 
-export const removeRoleSchema = z.object({
-    email: z.email(),
-    role_id: z.string().uuid()
-})
-
-
 // ==============
 // Interface
 // ==============
@@ -129,6 +122,3 @@ export type removePermission =
 
 export type updateSettings =
     z.infer<typeof updateSettingsSchema>
-
-export type removeRole = 
-    z.infer<typeof removeRoleSchema>    

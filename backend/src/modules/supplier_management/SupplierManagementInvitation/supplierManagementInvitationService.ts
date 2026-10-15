@@ -3,6 +3,12 @@ import type { Email } from "./supplierManagementInvitationValidator";
 import { SupplierManagementInvitationRepository } from "./supplierManagementInvitationRepository"
 import { EmailService } from "../../../shared/email/email.service";
 import { MailgunEmailProvider } from "../../../shared/email/mailgun.provider";
+import {
+    AppError,
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+} from "../../../shared/errors/appError.js";
 
 interface CreateInvitationContext {
     user_id: string;
@@ -15,6 +21,10 @@ interface GeneralContext {
     user_id: string;
     tenant_id: string;
     company_id: string;
+    status?: string;
+    email?: string;
+    page: number;
+    limit: number;
 }
 
 interface InvitationContext {
@@ -29,6 +39,16 @@ interface AcceptInvitationContext {
     tenant_id: string;
     company_id?: string;
     token: string;
+}
+
+interface InvitationRecord {
+    id: string;
+    email: string;
+    status: string;
+    expires_at: Date | null;
+    accepted_at: Date | null;
+    created_at: Date;
+    updated_at: Date;
 }
 
 export class SupplierManagementInvitationService {
@@ -84,6 +104,18 @@ export class SupplierManagementInvitationService {
         )
     }
 
+    private toInvitationResponse(invitation: InvitationRecord) {
+        return {
+            invitation_id: invitation.id,
+            email: invitation.email,
+            invitation_status: invitation.status,
+            expires_at: invitation.expires_at,
+            accepted_at: invitation.accepted_at,
+            created_at: invitation.created_at,
+            updated_at: invitation.updated_at,
+        };
+    }
+
     async createInvitation (input: CreateInvitationContext) {
         const invitation = await this.repository.createInvitation({
             user_id: input.user_id,
@@ -96,20 +128,42 @@ export class SupplierManagementInvitationService {
     }
 
     async getInvitations (input: GeneralContext) {
-        return await this.repository.getInvitations({
+        const result = await this.repository.getInvitations({
             user_id: input.user_id,
             tenant_id: input.tenant_id,
-            company_id: input.company_id
-        })
+            company_id: input.company_id,
+            status: input.status,
+            email: input.email,
+            page: input.page,
+            limit: input.limit,
+        });
+
+        return {
+            invitations: result.invitations.map((invitation) =>
+                this.toInvitationResponse(invitation),
+            ),
+            pagination: {
+                page: input.page,
+                limit: input.limit,
+                total: result.total,
+                total_pages: Math.ceil(result.total / input.limit),
+            },
+        };
     }
 
     async getInvitation (input: InvitationContext) {
-        return await this.repository.getInvitation({
+        const invitation = await this.repository.getInvitation({
             user_id: input.user_id,
             tenant_id: input.tenant_id,
             company_id: input.company_id,
             invitation_id: input.invitation_id
-        })
+        });
+
+        if (!invitation) {
+            throw new NotFoundError("Supplier invitation not found.");
+        }
+
+        return this.toInvitationResponse(invitation);
     }
 
 
@@ -125,11 +179,16 @@ export class SupplierManagementInvitationService {
         });
 
         if (!invitation) {
-            throw new Error("Invitation not found.");
+            throw new NotFoundError("Supplier invitation not found.");
         }
 
-        if (invitation.status !== "DRAFT") {
-            throw new Error("Only draft invitations can be sent.");
+        if (
+            invitation.status !== "DRAFT" &&
+            !(invitation.status === "PENDING" &&
+                invitation.expires_at !== null &&
+                invitation.expires_at.getTime() <= Date.now())
+        ) {
+            throw new ConflictError("This invitation cannot be sent again.");
         }
 
         const token = this.generateInvitationToken();
@@ -147,7 +206,7 @@ export class SupplierManagementInvitationService {
         });
 
         if (!prepared) {
-            throw new Error(
+            throw new ConflictError(
                 "The invitation could not be prepared for sending."
             );
         }
@@ -155,25 +214,26 @@ export class SupplierManagementInvitationService {
         const provider = new MailgunEmailProvider(env);
         const emailService = new EmailService(provider);
 
-        await emailService.send({
-            to: invitation.email,
-            subject: "You're Invited to Join LINAW as a Supplier",
-            text: [
-                "Hello,",
-                "",
-                "You have been invited to join LINAW as a supplier.",
-                "",
-                "To review and accept this invitation, open the link below:",
-                url,
-                "",
-                "This invitation expires in 72 hours.",
-                "",
-                "If you weren't expecting this invitation, you can safely ignore this email.",
-                "",
-                "Regards,",
-                "LINAW Team",
-            ].join("\n"),
-            html: `
+        try {
+            await emailService.send({
+                to: invitation.email,
+                subject: "You're Invited to Join LINAW as a Supplier",
+                text: [
+                    "Hello,",
+                    "",
+                    "You have been invited to join LINAW as a supplier.",
+                    "",
+                    "To review and accept this invitation, open the link below:",
+                    url,
+                    "",
+                    "This invitation expires in 72 hours.",
+                    "",
+                    "If you weren't expecting this email, you can safely ignore it.",
+                    "",
+                    "Regards,",
+                    "LINAW Team",
+                ].join("\n"),
+                html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #333;">
                     <h2>You're Invited to Join LINAW</h2>
 
@@ -201,8 +261,18 @@ export class SupplierManagementInvitationService {
 
                     <p>Regards,<br />LINAW Team</p>
                 </div>
-            `,
-        });
+                `,
+            });
+        } catch {
+            await this.repository.resetInvitationToDraft({
+                invitation_id: input.invitation_id,
+                tenant_id: input.tenant_id,
+                company_id: input.company_id,
+            });
+            throw new ServiceUnavailableError(
+                "The invitation email could not be delivered.",
+            );
+        }
 
         // Repository operation to transition SENDING -> PENDING.
         const sent = await this.repository.markInvitationPending({
@@ -212,14 +282,15 @@ export class SupplierManagementInvitationService {
         });
 
         if (!sent) {
-            throw new Error(
+            throw new ServiceUnavailableError(
                 "The email was submitted, but the invitation status could not be updated."
             );
         }
 
         return {
             invitation_id: input.invitation_id,
-            status: "PENDING",
+            invitation_status: "PENDING",
+            email: invitation.email,
             expires_at: expiresAt,
         };
     }
@@ -235,27 +306,32 @@ export class SupplierManagementInvitationService {
             });
 
         if (!invitation) {
-            throw new Error("Invalid invitation.");
+            throw new NotFoundError("Supplier invitation not found.");
         }
 
         if (invitation.status !== "PENDING") {
-            throw new Error("This invitation is no longer valid.");
+            throw new ConflictError("This invitation is no longer valid.");
         }
 
         if (
             !invitation.expires_at ||
             invitation.expires_at.getTime() <= Date.now()
         ) {
-            throw new Error("This invitation has expired.");
+            throw new AppError("Supplier invitation link expired.", 410, "GONE");
         }
 
+        const existingUser = await this.repository.findUserByEmail({
+            tenant_id: invitation.tenant_id,
+            email: invitation.email,
+        });
+
         return {
-            valid: true,
-            invitation: {
-                id: invitation.id,
-                email: invitation.email,
-                expires_at: invitation.expires_at,
-            },
+            invitation_id: invitation.id,
+            invitation_status: invitation.status,
+            expires_at: invitation.expires_at,
+            onboarding_action: existingUser
+                ? "EXISTING_COMPANY"
+                : "REGISTER_COMPANY",
         };
     }
 
@@ -269,18 +345,18 @@ export class SupplierManagementInvitationService {
         });
 
         if (!invitation) {
-            throw new Error("Invalid invitation.");
+            throw new NotFoundError("Supplier invitation not found.");
         }
 
         if (invitation.status !== "PENDING") {
-            throw new Error("This invitation is no longer valid.");
+            throw new ConflictError("This invitation is no longer valid.");
         }
 
         if (
             !invitation.expires_at ||
             invitation.expires_at.getTime() <= Date.now()
         ) {
-            throw new Error("This invitation has expired.");
+            throw new AppError("Supplier invitation link expired.", 410, "GONE");
         }
 
         // Resolve the authenticated user and verify the invited email.
@@ -290,7 +366,7 @@ export class SupplierManagementInvitationService {
         });
 
         if (!user) {
-            throw new Error("Authenticated user not found.");
+            throw new NotFoundError("Authenticated user not found.");
         }
 
         const normalizedUserEmail = user.email.trim().toLowerCase();
@@ -299,7 +375,7 @@ export class SupplierManagementInvitationService {
             .toLowerCase();
 
         if (normalizedUserEmail !== normalizedInvitationEmail) {
-            throw new Error(
+            throw new ConflictError(
                 "The invitation email does not match your account email.",
             );
         }
@@ -322,13 +398,13 @@ export class SupplierManagementInvitationService {
         }
 
         if (memberships.length === 0) {
-            throw new Error(
+            throw new ConflictError(
                 "Register or join a company before accepting this invitation.",
             );
         }
 
         if (!acceptingCompanyId) {
-            throw new Error(
+            throw new ConflictError(
                 "Select the company that will accept this invitation.",
             );
         }
@@ -339,7 +415,7 @@ export class SupplierManagementInvitationService {
         );
 
         if (!belongsToCompany) {
-            throw new Error(
+            throw new ConflictError(
                 "You do not have an active membership in the selected company.",
             );
         }
@@ -358,7 +434,7 @@ export class SupplierManagementInvitationService {
         });
 
         if (!result) {
-            throw new Error(
+            throw new ConflictError(
                 "The invitation could not be accepted. It may have expired or already been accepted.",
             );
         }

@@ -24,8 +24,8 @@ export function createPurchaseRequistionRouter () {
 
     // Get
 
-    router.get("/",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read),criticalRateLimit,  controller.requisition );
-    router.get("/:requisitonId",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read), criticalRateLimit,controller.details)
+    router.get("/",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read), controller.requisition );
+    router.get("/:requisitionId",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.read), controller.details)
 
     // Patch
     router.patch("/:requisitionId",criticalRateLimit, Authorize(systemPermissions.purchaseRequisition.update), controller.update)
