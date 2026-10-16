@@ -140,7 +140,7 @@ model CompanyMembership {
   company_id        String   @db.Uuid
   user_id           String   @db.Uuid
   job_title         String?
-  role_id           String?
+  role_id           String?  @db.Uuid
   employment_status String?
   department        String?
   created_at        DateTime @default(now()) @db.Timestamptz(6)

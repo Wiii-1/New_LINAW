@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError } from "../../shared/errors/appError.js";
+import { ConflictError, NotFoundError } from "../../shared/errors/";
 import { EventBus } from "../../shared/events/eventBus.js";
 import { UserManagementRepository } from "./userManagementRepository.js";
 import type {

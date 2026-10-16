@@ -57,17 +57,11 @@ contract AuditTrail {
     function verifyAudit(
         bytes32 _auditId,
         bytes32 _hashValue
-    )
-        external
-        view
-        returns(bool)
-    {
+    ) external view returns (bool) {
+        AuditRecord memory record = auditRecords[_auditId];
 
-        AuditRecord memory record =
-            auditRecords[_auditId];
-
-
-        return record.hashValue == _hashValue;
+        return record.anchoredAt != 0
+            && record.hashValue == _hashValue;
     }
 
 

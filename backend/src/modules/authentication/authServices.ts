@@ -1,5 +1,5 @@
 import { AuthRepository  } from "./authRepository.js";
-import { hashPassword, verifyPassword } from "./authPassword.js"
+import { hashPassword, verifyPassword } from "./authPassword.js";
 import type { forgotPasswordInput, loginInput, resetPasswordInput, signupInput, findById } from "./authValidator.js";
 import { ConflictError, NotFoundError, UnauthorizedAccessError } from "../../shared/errors/appError.js";
 import { randomBytes, randomUUID } from "node:crypto";

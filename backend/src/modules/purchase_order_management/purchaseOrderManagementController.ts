@@ -1,8 +1,8 @@
-import type { AppContext } from "../../shared/types/hono";
+import type { AppContext } from "../../shared/types/hono.js";
 import { Context } from "hono"
 import { PurchaseOrderManagementService } from "./purchaseOrderManagementService"
 import { CreateRFQSchema, ListPurchaseOrdersQuerySchema, ListRFQsQuerySchema, ProcurementQueueQuerySchema, PurchaseOrderIdParamsSchema, QuotationParamsSchema, RFQIdParamsSchema, UpdatePurchaseOrderSchema, UpdateRFQSchema } from "./purchaseOrderManagementValidator";
-import { NotFoundError } from "../../shared/errors";
+import { NotFoundError } from "../../shared/errors/appError.js";
 
 
 export class PurchaseOrderManagementController {

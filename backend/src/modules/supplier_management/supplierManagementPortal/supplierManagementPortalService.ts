@@ -1,4 +1,4 @@
-import { NotFoundError } from "../../../shared/errors";
+import { NotFoundError } from "../../../shared/errors/appError.js";
 import type { EventBus } from "../../../shared/events/eventBus";
 import type {
     SubmitSupplierQuotation,

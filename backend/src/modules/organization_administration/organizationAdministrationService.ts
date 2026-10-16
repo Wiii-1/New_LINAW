@@ -1,5 +1,5 @@
 import { EmailService } from "../../shared/email/email.service"
-import { ConflictError, NotFoundError } from "../../shared/errors"
+import { ConflictError, NotFoundError } from "../../shared/errors/appError.js"
 import { hashToken } from "../../shared/types/cryptoUtility"
 import type { 
     updateSettings,

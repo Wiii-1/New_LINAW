@@ -1,5 +1,5 @@
-import { NotFoundError } from "../../shared/errors";
-import type { EventBus } from "../../shared/events/eventBus";
+import { NotFoundError } from "../../shared/errors/appError.js";
+import type { EventBus } from "../../shared/events/eventBus.js";
 import type { SupplierQuotationSubmittedEvent } from "../../shared/events/supplierQuotationSubmittedEvent";
 import { PurchaseOrderManagementRepository } from "./purchaseOrderManagementRepository";
 import type { 
@@ -14,7 +14,7 @@ import type {
     UpdateRFQ
  } from "./purchaseOrderManagementValidator";
 
-import { ConflictError } from "../../shared/errors";
+import { ConflictError } from "../../shared/errors/appError.js";
 
 interface OrderPurchaseOrderContext {
     user_id: string;
