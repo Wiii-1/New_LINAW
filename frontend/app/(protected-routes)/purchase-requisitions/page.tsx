@@ -55,7 +55,7 @@ function createItem(id: number): RequisitionItem {
 const initialItems: RequisitionItem[] = [createItem(1)];
 
 const selectClassName =
-  "h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "h-9 w-full rounded-md border border-input px-2.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 function FormField({
   label,
@@ -70,7 +70,8 @@ function FormField({
     <Field>
       <FieldLabel>
         {label}
-        {required && <span className="text-blue-500">*</span>}
+        {required && <span>*</span>}
+        {required && <span>*</span>}
       </FieldLabel>
       <FieldContent>{children}</FieldContent>
     </Field>
@@ -118,22 +119,21 @@ export default function PurchaseRequisitionsPage() {
   }
 
   return (
-    <main className="min-h-[calc(100svh-var(--header-height))] bg-slate-50/70 dark:bg-slate-950">
+    <main className="min-h-[calc(100svh-var(--header-height))]">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <header className="flex flex-col gap-4 border-b border-slate-200/80 pb-5 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
-              <span className="size-2 rounded-sm bg-blue-500" />
+            <div className="mb-2 flex items-center gap-2 text-sm">
               <span>Requisitions</span>
               <span aria-hidden="true">/</span>
-              <span className="font-medium text-slate-900 dark:text-slate-100">
+              <span className="font-medium">
                 Create
               </span>
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="text-2xl font-semibold tracking-tight">
               New purchase requisition
             </h1>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-sm">
               Capture the request details and items needed for approval.
             </p>
           </div>
@@ -165,17 +165,17 @@ export default function PurchaseRequisitionsPage() {
           </div>
         </header>
 
-        <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:border-slate-800 dark:bg-slate-900">
-          <div className="border-b border-slate-200/80 bg-slate-50/80 px-5 py-4 dark:border-slate-800 dark:bg-slate-900/70">
+        <section className="overflow-hidden rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:border-slate-800">
+          <div className="border-b border-slate-200/80 px-5 py-4 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-300">
+              <div className="flex size-9 items-center justify-center rounded-lg">
                 <FileTextIcon className="size-4" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                <h2 className="text-sm font-semibold">
                   Requisition header
                 </h2>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs">
                   General information for this purchase request.
                 </p>
               </div>
@@ -229,7 +229,7 @@ export default function PurchaseRequisitionsPage() {
               <FormField label="Needed by">
                 <div className="relative">
                   <Input type="date" className="pr-10" />
-                  <CalendarDaysIcon className="pointer-events-none absolute right-3 top-2.5 size-4 text-slate-400" />
+                  <CalendarDaysIcon className="pointer-events-none absolute right-3 top-2.5 size-4" />
                 </div>
               </FormField>
               <FormField label="Department">
@@ -258,7 +258,7 @@ export default function PurchaseRequisitionsPage() {
               <FormField label="Attachments">
                 <Button
                   variant="outline"
-                  className="w-full justify-start text-slate-500"
+                  className="w-full justify-start"
                 >
                   <PaperclipIcon />
                   Add files
@@ -268,20 +268,20 @@ export default function PurchaseRequisitionsPage() {
 
             <FormField label="Justification">
               <textarea
-                className="min-h-24 w-full resize-y rounded-md border border-input bg-background px-2.5 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="min-h-24 w-full resize-y rounded-md border border-input px-2.5 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 placeholder="Explain the business need for this requisition"
               />
             </FormField>
           </FieldSet>
         </section>
 
-        <section className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-col gap-3 border-b border-slate-200/80 bg-slate-50/80 px-5 py-4 dark:border-slate-800 dark:bg-slate-900/70 sm:flex-row sm:items-center sm:justify-between">
+        <section className="overflow-hidden rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:border-slate-800">
+          <div className="flex flex-col gap-3 border-b border-slate-200/80 px-5 py-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+              <h2 className="text-sm font-semibold">
                 Requisition items
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs">
                 Add the goods or services needed for this request.
               </p>
             </div>
@@ -293,7 +293,7 @@ export default function PurchaseRequisitionsPage() {
 
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-260 text-left text-sm">
-              <thead className="border-b border-slate-200/80 bg-slate-50/50 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-400">
+              <thead className="border-b border-slate-200/80 text-xs dark:border-slate-800">
                 <tr>
                   <th className="px-5 py-3 font-medium">Item details</th>
                   <th className="w-28 px-3 py-3 font-medium">Qty</th>
@@ -396,7 +396,7 @@ export default function PurchaseRequisitionsPage() {
                         aria-label="Item needed by date"
                       />
                     </td>
-                    <td className="px-3 py-6 text-right font-medium text-slate-700 dark:text-slate-200">
+                    <td className="px-3 py-6 text-right font-medium">
                       ${((Number.parseFloat(item.quantity) || 0) * (Number.parseFloat(item.estimated_unit_cost) || 0)).toFixed(2)}
                     </td>
                     <td className="px-3 py-5">
@@ -406,7 +406,7 @@ export default function PurchaseRequisitionsPage() {
                         onClick={() => removeItem(item.id)}
                         aria-label="Remove line item"
                       >
-                        <Trash2Icon className="text-slate-400" />
+                        <Trash2Icon />
                       </Button>
                     </td>
                   </tr>
@@ -422,7 +422,7 @@ export default function PurchaseRequisitionsPage() {
                 className="rounded-lg border border-slate-200 p-4 dark:border-slate-800"
               >
                 <div className="mb-4 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                  <p className="text-sm font-semibold">
                     Line {index + 1}
                   </p>
                   <Button
@@ -431,7 +431,7 @@ export default function PurchaseRequisitionsPage() {
                     onClick={() => removeItem(item.id)}
                     aria-label="Remove line item"
                   >
-                    <Trash2Icon className="text-slate-400" />
+                    <Trash2Icon />
                   </Button>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -526,26 +526,26 @@ export default function PurchaseRequisitionsPage() {
           </div>
 
           {items.length === 0 && (
-            <div className="px-5 py-10 text-center text-sm text-slate-500">
+            <div className="px-5 py-10 text-center text-sm">
               No line items yet. Add a line to start building the requisition.
             </div>
           )}
 
-          <div className="flex flex-col gap-4 border-t border-slate-200/80 bg-slate-50/50 px-5 py-4 dark:border-slate-800 dark:bg-slate-900/50 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 border-t border-slate-200/80 px-5 py-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
             <Button variant="ghost" size="sm" onClick={addItem}>
               <PlusIcon />
               Add another line
             </Button>
             <div className="flex items-center justify-between gap-8 sm:justify-end">
-              <span className="text-sm text-slate-500">Estimated total</span>
-              <span className="text-xl font-semibold text-slate-900 dark:text-white">
+              <span className="text-sm">Estimated total</span>
+              <span className="text-xl font-semibold">
                 ${total.toFixed(2)}
               </span>
             </div>
           </div>
         </section>
 
-        <div className="flex items-center justify-between gap-4 pb-2 text-xs text-slate-500">
+        <div className="flex items-center justify-between gap-4 pb-2 text-xs">
           <p>Drafts are kept locally in this page for preview purposes.</p>
           <Button
             variant="ghost"
