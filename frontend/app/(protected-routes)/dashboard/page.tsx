@@ -118,16 +118,11 @@ const approvals = [
 ];
 
 const toneClasses: Record<string, string> = {
-  blue: 
-  "bg-blue-50 text-blue-700 ring-blue-100 dark:bg-blue-900/50 dark:text-blue-300 dark:ring-blue-700/50",
-  amber:
-    "bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-900/50 dark:text-amber-300 dark:ring-amber-700/50",
-  violet:
-    "bg-violet-50 text-violet-700 ring-violet-100 dark:bg-violet-900/50 dark:text-violet-300 dark:ring-violet-700/50",
-  green:
-    "bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-900/50 dark:text-emerald-300 dark:ring-emerald-700/50",
-  slate:
-    "bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700/50",
+  blue: "ring-1 ring-blue-100 dark:ring-blue-700/50",
+  amber: "ring-1 ring-amber-100 dark:ring-amber-700/50",
+  violet: "ring-1 ring-violet-100 dark:ring-violet-700/50",
+  green: "ring-1 ring-emerald-100 dark:ring-emerald-700/50",
+  slate: "ring-1 ring-slate-200 dark:ring-slate-700/50",
 };
 
 const date = new Date();
@@ -143,17 +138,17 @@ export default function Page() {
       : transactions.filter((transaction) => transaction.status === filter);
 
   return (
-    <main className="min-h-[calc(100svh-var(--header-height))] flex-1 bg-white dark:bg-slate-950">
+    <main className="min-h-[calc(100svh-var(--header-height))] flex-1 ">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-7 px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
         <section className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-500">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] ">
               {date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
             </p>
-            <h1 className="text-3xl font-semibold tracking-[-0.03em] text-slate-800 dark:text-slate-200 sm:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
               Good morning, Amina
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+            <p className="mt-2 max-w-xl text-sm leading-6">
               Here&apos;s what&apos;s happening across Northstar
               University&apos;s procurement workspace.
             </p>
@@ -161,12 +156,12 @@ export default function Page() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              className="border-slate-200 bg-white text-slate-700 dark:text-white shadow-sm hover:bg-slate-50"
+              className="shadow-sm"
             >
-              <CalendarDaysIcon className="size-4 dark:text-white" />
+              <CalendarDaysIcon className="size-4" />
               This month
             </Button>
-            <Button className="bg-blue-500 text-slate-100 dark:text-white shadow-[0_6px_16px_rgba(28,99,242,0.2)] hover:bg-blue-600">
+            <Button className="shadow-[0_6px_16px_rgba(28,99,242,0.2)]">
               <PlusIcon className="size-4" />
               New requisition
             </Button>
@@ -179,7 +174,7 @@ export default function Page() {
             return (
               <div
                 key={stat.label}
-                className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+                className="rounded-xl border border-slate-200/80 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div
@@ -193,58 +188,57 @@ export default function Page() {
                     {stat.change}
                   </span>
                 </div>
-                <p className="mt-5 text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-200">
+                <p className="mt-5 text-2xl font-semibold tracking-tight">
                   {stat.value}
                 </p>
-                <p className="mt-1 text-xs font-medium text-slate-500">
+                <p className="mt-1 text-xs font-medium">
                   {stat.label}
                 </p>
-                <p className="mt-3 text-[11px] text-slate-400">{stat.note}</p>
+                <p className="mt-3 text-[11px]">{stat.note}</p>
               </div>
             );
           })}
         </section>
 
-        <section className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:px-6">
+        <section className="rounded-xl border border-slate-200/80 px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:px-6">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              <p className="text-sm font-semibold">
                 Procurement pipeline
               </p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-xs">
                 Track activity from request to purchase order.
               </p>
             </div>
             <Link
               href="/purchase-requisitions"
-              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-blue-500 hover:text-blue-600 sm:mt-0"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold sm:mt-0"
             >
               View all activity <ArrowUpRightIcon className="size-3.5" />
             </Link>
           </div>
           <div className="mt-6 grid gap-3 md:grid-cols-5">
             {[
-              ["Requisitions", "128", "bg-blue-500"],
-              ["Approvals", "24", "bg-indigo-500"],
-              ["RFQs", "18", "bg-violet-500"],
-              ["Quotations", "31", "bg-fuchsia-500"],
-              ["Purchase orders", "46", "bg-emerald-500"],
-            ].map(([label, value, color], index) => (
+              ["Requisitions", "128"],
+              ["Approvals", "24"],
+              ["RFQs", "18"],
+              ["Quotations", "31"],
+              ["Purchase orders", "46"],
+            ].map(([label, value], index) => (
               <div
                 key={label}
-                className="relative flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-3 md:block md:bg-transparent md:px-0 md:py-0"
+                className="relative flex items-center gap-3 rounded-lg px-3 py-3 md:block md:px-0 md:py-0"
               >
                 <div className="flex items-center gap-2 md:mb-3">
-                  <span className={`size-2 rounded-full ${color}`} />
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  <span className="text-xs font-medium">
                     {label}
                   </span>
                 </div>
-                <p className="text-xl font-semibold text-black dark:text-white md:pl-4">
+                <p className="text-xl font-semibold md:pl-4">
                   {value}
                 </p>
                 {index < 4 && (
-                  <ChevronRightIcon className="absolute right-2 top-1/2 hidden size-4 -translate-y-1/2 text-slate-300 md:block" />
+                  <ChevronRightIcon className="absolute right-2 top-1/2 hidden size-4 -translate-y-1/2 md:block" />
                 )}
               </div>
             ))}
@@ -252,29 +246,29 @@ export default function Page() {
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.45fr_0.8fr]">
-          <div className="min-w-0 rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="min-w-0 rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
             <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div>
-                <p className="text-sm font-semibold text-black dark:text-white">
+                <p className="text-sm font-semibold">
                   Recent transactions
                 </p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-xs">
                   The latest changes across your workspace.
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative hidden sm:block">
-                  <SearchIcon className="absolute left-2.5 top-2 size-3.5 text-slate-400 dark:text-white" />
+                  <SearchIcon className="absolute left-2.5 top-2 size-3.5" />
                   <input
                     aria-label="Search transactions"
                     placeholder="Search"
-                    className="h-8 w-32 rounded-md border border-slate-200 bg-slate-50 dark:bg-slate-800 pl-8 pr-2 text-xs outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    className="h-8 w-32 rounded-md border border-slate-200 pl-8 pr-2 text-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 border-slate-200 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  className="h-8 border-slate-200 text-xs"
                 >
                   <FilterIcon className="size-3.5" />
                   Filter
@@ -291,7 +285,7 @@ export default function Page() {
                 <button
                   key={item}
                   onClick={() => setFilter(item)}
-                  className={`whitespace-nowrap border-b-2 px-1 pb-3 text-xs font-medium transition-colors ${filter === item ? "border-[#1c63f2] text-[#1c63f2]" : "border-transparent text-slate-400 hover:text-slate-700"}`}
+                  className="whitespace-nowrap border-b-2 px-1 pb-3 text-xs font-medium transition-colors"
                 >
                   {item}
                 </button>
@@ -299,7 +293,7 @@ export default function Page() {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-170 text-left text-sm">
-                <thead className="bg-slate-50/70 dark:bg-slate-900/70 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                <thead className="text-[11px] font-semibold uppercase tracking-wider">
                   <tr>
                     <th className="px-5 py-3 font-semibold sm:px-6">
                       Reference
@@ -322,20 +316,20 @@ export default function Page() {
                             : transaction.id,
                         )
                       }
-                      className="cursor-pointer transition-colors hover:bg-blue-50/40"
+                      className="cursor-pointer transition-colors"
                     >
                       <td className="px-5 py-4 sm:px-6">
-                        <div className="font-semibold text-black dark:text-white">
+                        <div className="font-semibold">
                           {transaction.id}
                         </div>
-                        <div className="mt-1 max-w-47.5 truncate text-xs text-slate-500 dark:text-slate-400">
+                        <div className="mt-1 max-w-47.5 truncate text-xs">
                           {transaction.title}
                         </div>
                       </td>
-                      <td className="px-3 py-4 text-xs text-slate-600 dark:text-slate-400">
+                      <td className="px-3 py-4 text-xs">
                         {transaction.requester}
                       </td>
-                      <td className="px-3 py-4 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <td className="px-3 py-4 text-xs font-semibold">
                         {transaction.amount}
                       </td>
                       <td className="px-3 py-4">
@@ -345,31 +339,31 @@ export default function Page() {
                           {transaction.status}
                         </span>
                       </td>
-                      <td className="px-3 py-4 text-xs text-slate-400">
+                      <td className="px-3 py-4 text-xs">
                         {transaction.date}
                       </td>
                       <td className="px-5 py-4 text-right sm:px-6">
-                        <MoreHorizontalIcon className="ml-auto size-4 text-slate-400" />
+                        <MoreHorizontalIcon className="ml-auto size-4" />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {visibleTransactions.length === 0 && (
-                <div className="px-6 py-10 text-center text-sm text-slate-500">
+                <div className="px-6 py-10 text-center text-sm">
                   No transactions match this filter.
                 </div>
               )}
             </div>
             {selectedTransaction && (
-              <div className="flex items-center justify-between border-t border-blue-100 bg-blue-50/50 dark:bg-slate-700/50 px-5 py-3 text-xs sm:px-6">
-                <span className="text-blue-800 dark:text-blue-300">
+              <div className="flex items-center justify-between border-t border-blue-100 px-5 py-3 text-xs sm:px-6">
+                <span>
                   Selected <strong>{selectedTransaction}</strong>. Open the
                   module for full details.
                 </span>
                 <Link
                   href="/purchase-requisitions"
-                  className="font-semibold text-blue-700"
+                  className="font-semibold"
                 >
                   View record{" "}
                   <ArrowUpRightIcon className="ml-1 inline size-3" />
@@ -378,17 +372,17 @@ export default function Page() {
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
             <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
               <div>
-                <p className="text-sm font-semibold text-black dark:text-white">
+                <p className="text-sm font-semibold">
                   Needs your review
                 </p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-xs">
                   Approvals waiting in your queue.
                 </p>
               </div>
-              <span className="flex size-7 items-center justify-center rounded-full bg-amber-50 dark:bg-amber-700 text-xs font-semibold text-amber-700 dark:text-amber-50 ring-1 ring-amber-50 dark:ring-amber-700/50">
+              <span className="flex size-7 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-amber-50 dark:ring-amber-700/50">
                 3
               </span>
             </div>
@@ -397,25 +391,25 @@ export default function Page() {
                 <div key={approval.id} className="px-5 py-4 sm:px-6">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-black dark:text-white">
+                      <p className="truncate text-sm font-semibold">
                         {approval.title}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs">
                         {approval.id} · {approval.owner}
                       </p>
                     </div>
                     <button
                       aria-label={`More actions for ${approval.id}`}
-                      className="text-slate-400 hover:text-slate-700"
+                      className=""
                     >
                       <MoreHorizontalIcon className="size-4" />
                     </button>
                   </div>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-700">
+                    <span className="text-sm font-semibold">
                       {approval.amount}
                     </span>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[11px]">
                       {approval.age}
                     </span>
                   </div>
@@ -424,7 +418,7 @@ export default function Page() {
             </div>
             <Link
               href="/approval-workflows"
-              className="flex items-center justify-center gap-1 border-t border-slate-100 px-5 py-4 text-xs font-semibold text-[#1c63f2] hover:bg-slate-50 dark:hover:bg-slate-700"
+              className="flex items-center justify-center gap-1 border-t border-slate-100 px-5 py-4 text-xs font-semibold"
             >
               Review all approvals <ChevronRightIcon className="size-3.5" />
             </Link>
@@ -432,66 +426,66 @@ export default function Page() {
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-          <div className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 p-6 text-white shadow-[0_10px_28px_rgba(19,34,56,0.12)]">
+          <div className="rounded-xl border border-slate-200/80 p-6 shadow-[0_10px_28px_rgba(19,34,56,0.12)]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-semibold text-black dark:text-white">Monthly spend overview</p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="text-sm font-semibold">Monthly spend overview</p>
+                <p className="mt-1 text-xs">
                   Committed spend against your quarterly budget.
                 </p>
               </div>
-              <WalletCardsIcon className="size-5 text-blue-300" />
+              <WalletCardsIcon className="size-5" />
             </div>
             <div className="mt-7 flex items-end gap-3">
-              <span className="text-3xl font-semibold tracking-tight text-black dark:text-white">
+              <span className="text-3xl font-semibold tracking-tight">
                 $486,240
               </span>
-              <span className="mb-1 rounded-full bg-emerald-400/15 px-2 py-1 text-[11px] font-semibold text-emerald-300">
+              <span className="mb-1 rounded-full px-2 py-1 text-[11px] font-semibold">
                 +8.2%
               </span>
             </div>
-            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full w-[68%] rounded-full bg-[#5e9bff]" />
+            <div className="mt-5 h-2 overflow-hidden rounded-full">
+              <div className="h-full w-[68%] rounded-full" />
             </div>
-            <div className="mt-2 flex justify-between text-[11px] text-slate-400">
+            <div className="mt-2 flex justify-between text-[11px]">
               <span>$486k committed</span>
               <span>$710k quarterly budget</span>
             </div>
           </div>
-          <div className="rounded-xl border border-slate-200/80 bg-white dark:bg-slate-800 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="rounded-xl border border-slate-200/80 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-semibold text-black dark:text-white">
+                <p className="text-sm font-semibold">
                   Quick actions
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs">
                   Start the next step in your workflow.
                 </p>
               </div>
-              <CheckCircle2Icon className="size-5 text-emerald-500" />
+              <CheckCircle2Icon className="size-5" />
             </div>
             <div className="mt-6 grid grid-cols-2 gap-2">
               <Link
                 href="/purchase-requisitions"
-                className="group rounded-lg border border-slate-200 p-3 transition-colors hover:border-blue-200 hover:bg-blue-50 dark:hover:bg-slate-700 dark:hover:border-blue-700"
+                className="group rounded-lg border border-slate-200 p-3 transition-colors"
               >
                 <FilePlus2Icon className="size-4 text-[#1c63f2]" />
-                <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-700">
+                <p className="mt-3 text-xs font-semibold">
                   New requisition
                 </p>
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-[11px]">
                   Request goods or services
                 </p>
               </Link>
               <Link
                 href="/approval-workflows"
-                className="group rounded-lg border border-slate-200 p-3 transition-colors hover:border-blue-200 hover:bg-blue-50 dark:hover:bg-slate-700 dark:hover:border-blue-700"
+                className="group rounded-lg border border-slate-200 p-3 transition-colors"
               >
                 <PackageCheckIcon className="size-4 text-[#1c63f2]" />
-                <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-blue-700">
+                <p className="mt-3 text-xs font-semibold">
                   Review approvals
                 </p>
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-[11px]">
                   3 items need review
                 </p>
               </Link>
