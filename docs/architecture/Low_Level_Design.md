@@ -232,7 +232,7 @@ Authenticated user or session record not found
 User account already exists or authentication session is already revoked or in conflicting state
 
 422  
-email format invalid, password too short, missing required fields.
+Authentication validation failed
 
 500  
 Internal server error
@@ -243,7 +243,10 @@ Authentication service unavailable
 ---
 
 ## Module 2
+<<<<<<< HEAD
 
+=======
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
 User Management
 
@@ -251,43 +254,62 @@ User Management
 
 ### Responsibilities
 
-- Register new user accounts in the system.
-- Register new organizations during the onboarding process.
-- Automatically assign the registering user as the initial organization administrator after successful organization registration.
-- Allow authenticated users to view and update their own profile information.
-- Maintain user account and organization profile information created during onboarding.
-- Provide authenticated user identity information required by other system modules.
-
----
+- Handle company registration and company profile maintenance.
+- Store and maintain company profile details and user membership under the registered company.
+- Allow authorized users to view and update their own profile information.
+- Allow authorized company administrators to manage company user accounts.
+- Control access to procurement functions based on company-scoped roles and permissions.
 
 ### Module Dependencies
 
-- Depends on: Authentication, `User`, `UserCredential`, `Company`, `CompanyMembership`, `Role`, and `UserRole`.
-- Produces: user accounts, credential records, company records, profile updates, company membership records, and initial administrator role assignments.
+- Depends On: Authentication, `users`, `companies`, `roles`, `permissions`, `user_roles`, and `role_permissions`.
+- Produces: company records, updated user profiles, company user account changes, role assignments, and permission mappings.
 
 ---
 
+<<<<<<< HEAD
+### Module Dependencies
+=======
 ### Functional Requirements
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
-- The system shall allow new users to register an account.
-- The system shall allow a registered user who is not yet associated with an organization to register a new company.
-- The system shall automatically assign the registering user as the initial organization administrator after successful company registration.
-- The system shall allow authenticated users to view their own profile information.
-- The system shall allow authenticated users to update their own profile information.
-- The system shall provide authenticated user identity information required by authorized system modules.
+- The system shall allow the initial organization administrator to register and maintain company details in the application.
+- The system shall allow the system to associate a registered user with a company as its organization administrator after company registration.
+- The system shall allow authorized users to view and update their account information within the scope allowed by the company.
+- The system shall allow authorized company administrators to create, view, update, deactivate, and remove company user accounts after company setup is completed.
+- The system shall allow authorized company administrators to assign roles and permissions to company users based on authorized access requirements.
+- The system shall allow authorized company administrators to search and filter company users by name, email, role, or account status.
+- The system shall allow the system to enforce access restrictions based on company membership, assigned roles, and permissions.
+- The system shall restrict company user and role management functions to authorized organization administrators only.
 
 ---
 
+<<<<<<< HEAD
+### Functional Requirements
+=======
 ### Business Rules
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
-- A registered user who is not associated with an organization may register a new company.
-- The user who successfully registers a company shall automatically become its initial organization administrator.
-- A user may only register one organization unless otherwise permitted by the system.
-- Authenticated users may view and update only their own profile information.
-- Organization administration functions shall become available only after successful company registration.
-- User authentication data shall be stored separately from user profile data.
-- Tenant isolation shall be enforced for all user, company, and membership records.
+- A company record must be created before company-level administration can be fully performed.
+- The registered user designated during company setup shall become the organization administrator of that company.
+- Every managed user account must belong to one valid company record based on the current system design.
+- A user account must have at least one valid company-scoped role before it can access protected procurement functions.
+- Company administrators shall manage only users belonging to their own company.
+- Inactive or deactivated user accounts shall not be allowed to access the system.
+- Company-related roles and permissions shall apply only within the scope of the user’s registered company.
+- Significant user, company, role, and membership changes shall be recorded with the acting user and timestamp.
 
+---
+
+<<<<<<< HEAD
+### Business Rules
+=======
+### Internal Sections
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
+
+#### User Profile Management
+
+<<<<<<< HEAD
 ---
 
 ### Internal Sections
@@ -295,13 +317,16 @@ User Management
 #### User Profile Management
 
 Handles retrieval and updates of the authenticated user's personal profile information.
+=======
+Handles self-service user profile retrieval and profile updates for the authenticated user.
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
 API Endpoints
 
-GET
-
+GET  
 /api/users/profile
 
+<<<<<<< HEAD
 PATCH
 
 /api/users/profile
@@ -310,56 +335,82 @@ Validation
 
 - first_name
 - last_name
+=======
+PUT  
+/api/users/profile
+
+**Validation**
+- full_name
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 - email
-- job_title
-- status
-- Email must be in a valid format.
-- User email must be unique within the tenant.
-- Profile updates shall only affect the authenticated user.
-- Account status must match an allowed user state.
+- contact_number
+- Email must be in a valid format
+- User email must be unique within the allowed account rules
+- Contact number must follow the accepted format when provided
 
----
+#### Organization (Company) Management
 
+<<<<<<< HEAD
 #### Organization Registration
 
 Handles organization registration during the onboarding process and associates the registering user as the initial organization administrator.
+=======
+Handles company registration and company profile maintenance for the SaaS platform.
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
 API Endpoints
 
-POST
-
+POST  
 /api/companies/register
 
-GET
-
+GET  
 /api/companies/:companyId
 
+PUT  
+/api/companies/:companyId
+
+<<<<<<< HEAD
 Validation
+=======
+**Validation**
+- company_name
+- company_email
+- company_address
+- company_contact_number
+- company_status
+- Company name must not be empty during company registration
+- Company record must contain required organization details before setup is completed
+- Company email must be in a valid format when provided
+- Company status must match an allowed company state
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
-- legal_name
-- display_name
-- tax_id
-- address
-- contact_email
-- contact_phone
-- Company legal name must not be empty.
-- Company registration information must be complete before onboarding is finalized.
-- Company email must be in a valid format when provided.
-- Company contact phone must follow the accepted format when provided.
+#### User Administration
 
----
+Handles company-scoped user creation, retrieval, update, deactivation, and removal after company setup is completed.
 
+<<<<<<< HEAD
 ### API Endpoints
+=======
+**API Endpoints**
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
-POST
+POST  
+/api/companies/:companyId/users
 
-/api/companies/register
+GET  
+/api/companies/:companyId/users  
+/api/companies/:companyId/users/:userId  
+/api/companies/:companyId/users?status=active  
+/api/companies/:companyId/users?role=:roleName
 
-GET
+PUT  
+/api/companies/:companyId/users/:userId  
+/api/companies/:companyId/users/:userId/status
 
-/api/users/profile
-/api/companies/:companyId
+DELETE  
+/api/companies/:companyId/users/:userId
 
+<<<<<<< HEAD
 PUT
 
 /api/users/profile
@@ -370,24 +421,42 @@ PUT
 
 - first_name
 - last_name
+=======
+**Validation**
+- full_name
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 - email
 - password
-- job_title
-- status
-- legal_name
-- display_name
-- tax_id
-- address
-- contact_email
-- contact_phone
-- Email must be in a valid format.
-- User email must be unique within the tenant.
-- Password must satisfy the configured security requirements.
-- Company registration information must be complete before onboarding is finalized.
-- User authentication data shall be provided separately from profile data.
+- user_status
+- User email must be unique within the allowed account rules
+- Password must meet the configured security requirements when applicable
+- User status must match an allowed account state
+- Company user administration must be restricted to the acting administrator’s company scope
+
+#### Role & Permission Management
+
+Handles company-scoped role assignment, role removal, and permission reference retrieval for RBAC enforcement.
+
+**API Endpoints**
+
+POST  
+/api/companies/:companyId/users/:userId/assign-role  
+/api/companies/:companyId/users/:userId/remove-role
+
+GET  
+/api/roles  
+/api/permissions
+
+**Validation**
+- role_id
+- permission_id
+- Role reference must match an existing company-scoped role record
+- Permission reference must match an existing permission record
+- User account must have at least one assigned role before protected procurement access is allowed
 
 ---
 
+<<<<<<< HEAD
 ### Database Tables
 
 - Tenant
@@ -419,6 +488,90 @@ PUT
 
 ---
 
+=======
+### API Endpoints
+
+POST  
+/api/companies/register  
+/api/companies/:companyId/users  
+/api/companies/:companyId/users/:userId/assign-role  
+/api/companies/:companyId/users/:userId/remove-role
+
+GET  
+/api/users/profile  
+/api/companies/:companyId  
+/api/companies/:companyId/users  
+/api/companies/:companyId/users/:userId  
+/api/companies/:companyId/users?status=active  
+/api/companies/:companyId/users?role=:roleName  
+/api/roles  
+/api/permissions
+
+PUT  
+/api/users/profile  
+/api/companies/:companyId  
+/api/companies/:companyId/users/:userId  
+/api/companies/:companyId/users/:userId/status
+
+DELETE  
+/api/companies/:companyId/users/:userId
+
+---
+
+### Validation
+
+- full_name
+- email
+- password
+- contact_number
+- user_status
+- company_name
+- company_email
+- company_address
+- company_contact_number
+- company_status
+- role_id
+- permission_id
+- Email must be in a valid format
+- User email must be unique within the allowed account rules
+- Password must meet the configured security requirements when applicable
+- Company name must not be empty during company registration
+- Company record must contain required organization details before setup is completed
+- Role reference must match an existing company-scoped role record
+- Permission reference must match an existing permission record
+- User account must have at least one assigned role before protected procurement access is allowed
+
+---
+
+### Database Tables
+
+- **users**
+  - Stores the main user account records.
+  - Includes full name, email, password hash, contact number, account status, and company reference.
+
+- **companies**
+  - Stores the registered company records in the application.
+  - Includes company name, address, contact details, status, registration metadata, and organization administrator reference.
+
+- **roles**
+  - Stores the role definitions used for company-scoped access control.
+  - Includes role name, description, and status.
+
+- **permissions**
+  - Stores the permission definitions used for module and action authorization.
+  - Includes permission name, module reference, action type, and description.
+
+- **user_roles**
+  - Stores the role assignments associated with company users.
+  - Includes user reference, company reference, role reference, assigned by, and assignment timestamp.
+
+- **role_permissions**
+  - Stores the permission assignments associated with roles.
+  - Includes role reference, permission reference, assigned by, and assignment timestamp.
+
+---
+
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 ### Sequence Diagram
 
 ```mermaid
@@ -429,32 +582,37 @@ sequenceDiagram
     participant UM as User Management Module
     participant DB as Database
 
-    User->>UI: Register account
-    UI->>API: Submit registration
-    API->>UM: Validate registration
-    UM->>DB: Create user account
-    UM->>DB: Create credential record
-    DB-->>UM: User created
-    UM-->>API: Registration successful
-    API-->>UI: Display registration result
+    User->>UI: Register company details
+    UI->>API: Submit company registration request
+    API->>UM: Validate company data
+    UM->>DB: Save company record and link organization administrator
+    DB-->>UM: Company registered
+    UM-->>API: Return company registration result
+    API-->>UI: Display organization setup result
 
-    User->>UI: Register organization
-    UI->>API: Submit organization information
-    API->>UM: Validate organization data
-    UM->>DB: Create company record
-    UM->>DB: Create membership record
-    UM->>DB: Assign initial administrator role
-    DB-->>UM: Organization registered
-    UM-->>API: Return onboarding result
-    API-->>UI: Display successful organization setup
-
-    User->>UI: View or update profile
+    User->>UI: View or update user profile
     UI->>API: Submit profile request
     API->>UM: Validate profile data
-    UM->>DB: Retrieve or update profile
+    UM->>DB: Retrieve or update user profile
     DB-->>UM: Profile processed
-    UM-->>API: Return profile information
-    API-->>UI: Display updated profile
+    UM-->>API: Return profile result
+    API-->>UI: Display updated profile information
+
+    User->>UI: Manage company user account
+    UI->>API: Submit company user management request
+    API->>UM: Validate company scope and permissions
+    UM->>DB: Save or update company user record
+    DB-->>UM: Company user record updated
+    UM-->>API: Return company user result
+    API-->>UI: Display updated company user data
+
+    User->>UI: Assign company role to employee
+    UI->>API: Submit role assignment request
+    API->>UM: Process role assignment
+    UM->>DB: Save company user role mapping
+    DB-->>UM: Role assignment saved
+    UM-->>API: Return updated access result
+    API-->>UI: Display updated user access
 ```
 
 ---
@@ -463,58 +621,55 @@ sequenceDiagram
 
 #### userRouter
 
-Defines the API routes for user registration, organization registration, and authenticated user profile management.
+Defines the API routes for company registration, user profile management, company user management, and company-scoped role and permission operations. It maps incoming HTTP requests to the appropriate controller functions.
 
 #### userController
 
-Handles incoming requests related to user registration, organization onboarding, and user profile management. It validates requests, invokes the service layer, and returns appropriate responses.
+Handles user management API requests and responses. It receives requests for company registration, profile updates, company user management, and role assignment, then returns the appropriate response to the client.
 
 #### userService
 
-Contains the business logic for user account and onboarding operations. It creates user accounts, registers organizations, assigns company membership, automatically grants the initial organization administrator role, manages authenticated user profile updates, and provides user identity information to other modules.
+Contains the business logic for user management operations. It registers companies, links organization administrators to companies, manages company user membership, validates company-scoped roles, and enforces company-based access control rules.
 
 #### userRepository
 
-Handles database operations related to user accounts, credentials, companies, memberships, and role assignments.
+Handles data access and database queries related to users, companies, roles, permissions, user-role mappings, and role-permission mappings.
 
 #### userValidator
 
-Validates registration, onboarding, and profile management requests before they are processed.
+Validates request data for user management operations. It ensures company registration details, profile inputs, role references, permission references, and account status inputs are complete and correctly formatted before processing.
 
 ---
 
 ### Error Handling
+<<<<<<< HEAD
 
 400
+=======
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
+400  
 Invalid user management request data
 
-401
-
+401  
 Unauthorized access
 
-403
+403  
+Insufficient privileges to manage company users, roles, or permissions
 
-Access denied
+404  
+User, company, role, or permission record not found
 
-404
+409  
+Company record or role assignment already exists or is in conflicting state
 
-User or organization not found
+422  
+User management validation failed
 
-409
-
-User account or organization already exists
-
-422
-
-Validation failed
-
-500
-
+500  
 Internal server error
 
-503
-
+503  
 User management service unavailable
 
 ---
@@ -570,25 +725,25 @@ Purchase Requisition
 ### API Endpoints
 
 POST  
-/api/purchase_requisitions/create 
-/api/purchase_requisitions/:requisitionId/submit  
-/api/purchase_requisitions/:requisitionId/cancel  
-/api/purchase_requisitions/:requisitionId/resubmit
+/api/purchase-requisitions  
+/api/purchase-requisitions/:requisitionId/submit  
+/api/purchase-requisitions/:requisitionId/cancel  
+/api/purchase-requisitions/:requisitionId/resubmit
 
 GET  
-/api/purchase_requisitions  
-/api/purchase_requisitions/:requisitionId  
-/api/purchase_requisitions?status=draft  
-/api/purchase_requisitions?status=submitted  
-/api/purchase_requisitions?requesterId=:requesterId  
-/api/purchase_requisitions?referenceNo=:referenceNo
+/api/purchase-requisitions  
+/api/purchase-requisitions/:requisitionId  
+/api/purchase-requisitions?status=draft  
+/api/purchase-requisitions?status=submitted  
+/api/purchase-requisitions?requesterId=:requesterId  
+/api/purchase-requisitions?referenceNo=:referenceNo
 
 PUT  
-/api/purchase_requisitions/:requisitionId  
-/api/purchase_requisitions/:requisitionId/status
+/api/purchase-requisitions/:requisitionId  
+/api/purchase-requisitions/:requisitionId/status
 
 DELETE  
-/api/purchase_requisitions/:requisitionId
+/api/purchase-requisitions/:requisitionId
 
 ---
 
@@ -790,7 +945,7 @@ GET
 /api/approval-workflows?status=pending  
 /api/approval-workflows?status=approved  
 /api/approval-workflows?status=rejected  
-/api/approval-workflows?approverId=:userId
+/api/approval-workflows?approverId=:approverId
 
 PUT  
 /api/approval-workflows/:requestId/status
@@ -2604,37 +2759,35 @@ Audit Trail
 
 ### Responsibilities
 
-- Record completed procurement transactions for audit purposes.
-- Generate cryptographic hashes from finalized transaction records.
-- Submit completed transaction hashes to the blockchain network for immutable verification.
-- Store blockchain transaction references associated with verified transactions.
-- Allow authorized users to verify the integrity of completed transactions through blockchain validation.
+- Record significant user and system actions performed within the application.
+- Maintain a chronological and tamper-evident history of transactions and record changes.
+- Generate cryptographic hashes of audit records for blockchain verification.
+- Store blockchain transaction references associated with verified audit trail entries.
+- Allow authorized users to view and verify audit records and related blockchain status.
 
 ### Module Dependencies
 
-- Depends On: Authentication, `users`, `companies`, and the configured blockchain network.
+- Depends On: Authentication, `users`, `companies`, all transactional modules, and the configured blockchain network.
 - Produces: `audit_trails`, `audit_trail_hashes`, and `audit_trail_blockchain_refs`.
 
 ---
 
 ### Functional Requirements
 
-- The system shall create an audit record when a procurement transaction reaches completed status.
-- The system shall capture finalized transaction details including transaction ID, supplier, amount, completion timestamp, and related metadata.
-- The system shall generate a cryptographic hash from the completed transaction data.
-- The system shall submit the generated hash to the configured blockchain network.
-- The system shall store the blockchain transaction reference after successful blockchain submission.
-- The system shall allow authorized users to verify whether completed transaction data matches the blockchain-recorded hash.
-- The system shall prevent modification of blockchain-related audit fields after successful anchoring.
+- The system shall record important user and system actions as audit trail entries.
+- The system shall capture details such as user, action performed, affected module, affected record, timestamp, and related metadata.
+- The system shall generate a hash value for each audit trail entry or grouped audit transaction.
+- The system shall submit the generated hash to the configured blockchain network for verification.
+- The system shall store the resulting blockchain transaction reference together with the related audit trail record.
+- The system shall allow authorized users to view audit trail entries and their blockchain verification status.
+- The system shall allow authorized users to verify whether an audit trail entry matches its recorded blockchain hash.
+- The system shall restrict audit trail access to authorized users only.
 
 ---
 
 ### Business Rules
 
-- Only completed procurement transactions shall be recorded for blockchain verification.
-- A transaction must reach completed status before blockchain anchoring.
-- Once blockchain anchoring succeeds, blockchain reference fields cannot be modified.
-- Any modification to completed transaction data must invalidate blockchain verification.
+- Only significant user and system actions shall be recorded in the audit trail.
 - Every audit trail entry must contain the acting user, action type, affected module, timestamp, and affected record reference when applicable.
 - An audit trail entry must not be editable or deletable through normal application functions.
 - Each audit trail entry or audit batch must generate a unique cryptographic hash before blockchain submission.
@@ -2648,53 +2801,46 @@ Audit Trail
 
 ### API Endpoints
 
+<<<<<<< HEAD
   GET /api/audit-trails/search
   GET /api/audit-trails/:auditId/verify
   
+=======
+POST
+/api/audit-trails/verify/:auditId
+/api/audit-trails/blockchain-anchor
+
+GET
+/api/audit-trails
+/api/audit-trails/:auditId
+/api/audit-trails?module=procurement
+/api/audit-trails?status=verified
+/api/audit-trails?status=pending
+
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 ---
 
 ### Validation
 
+- user_id
+- action_type
+- module_name
 - record_id
-  - Required identifier of the procurement transaction being audited.
-
 - record_type
-  - Must correspond to supported procurement records such as purchase orders.
-
-- source_module
-  - Must originate from authorized modules:
-    - Purchase Order Management
-    - Approval Workflow
-
-- event_type
-  - Must correspond to valid procurement lifecycle events:
-    - PURCHASE_ORDER_COMPLETED
-    - PAYMENT_CONFIRMED
-    - DELIVERY_CONFIRMED
-
-- purchase_order_snapshot
-  - Required finalized purchase order data used for hash generation.
-
+- action_timestamp
 - hash_value
-  - Required before blockchain anchoring.
-  - Generated from the finalized transaction snapshot.
-
-- blockchain_reference
-  - Blockchain transaction references must only be stored after successful anchoring.
-
-- verification_request
-  - Audit verification is blocked if the audit record or blockchain reference is incomplete.
-
-- integrity_check
-  - Verification compares the current procurement transaction data against the blockchain-anchored hash.
-
-- unauthorized modification
-  - Audit records and blockchain reference fields cannot be modified after successful anchoring.
+- blockchain_network
+- blockchain_tx_hash
+- Verification blocked if required audit data is incomplete
+- Blockchain anchoring blocked if hash value is missing
+- Blockchain transaction reference must be stored only after a successful submission response
+- Audit trail entry must contain valid module and action references
 
 ---
 
 ### Database Tables
 
+<<<<<<< HEAD
 - audit_trails
   - Stores immutable audit records generated from completed procurement lifecycle events.
   - Represents the finalized state of a procurement transaction at the time of auditing.
@@ -2742,6 +2888,24 @@ Audit Trail
 
   - `rfqs`, `quotations`, and other procurement tables
     - Store related business records linked to the audited transaction.
+=======
+- **audit_trails**
+  - Stores the main audit trail records for significant user and system actions.
+  - Includes user identifier, action type, module name, affected record reference, timestamp, status, and metadata.
+
+- **audit_trail_hashes**
+  - Stores the cryptographic hash generated for an audit trail entry or audit batch.
+  - Used for integrity checking and blockchain verification.
+
+- **audit_trail_blockchain_refs**
+  - Stores blockchain-related references linked to audit trail records.
+  - Includes blockchain network name, transaction hash, block number, verification status, and anchoring timestamp.
+
+- **Referenced Existing Tables**
+  - `users` — stores the user account associated with the recorded action.
+  - `companies` — stores the company or organization related to the action where applicable.
+  - `rfqs`, `quotations`, `purchase_orders`, and other transactional tables — store the business records referenced by the audit trail.
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
 ---
 
@@ -2750,64 +2914,36 @@ Audit Trail
 ```mermaid
 sequenceDiagram
     actor User
-    participant PO as Purchase Order Module
+    participant UI as Application Module
     participant API as Backend API
     participant AUD as Audit Trail Module
-    participant DB as PostgreSQL Database
-    participant HASH as Hash Service
+    participant DB as Database
     participant BC as Blockchain Service
-    participant BESU as Hyperledger Besu Network
 
-    PO->>API: Update purchase order status
-    Note over PO: Status changes to COMPLETED, PAID, or DELIVERED
+    User->>UI: Perform transaction or update record
+    UI->>API: Submit request
+    API->>AUD: Record audit event
+    AUD->>DB: Save audit trail entry
+    DB-->>AUD: Audit trail entry saved
 
-    API->>AUD: Trigger audit event
-    AUD->>DB: Store audit trail snapshot
-    DB-->>AUD: Audit record saved
+    AUD->>AUD: Generate cryptographic hash
+    AUD->>BC: Submit hash to blockchain
+    BC-->>AUD: Return blockchain transaction reference
 
-    AUD->>HASH: Generate cryptographic hash
-    HASH-->>AUD: Return generated hash
-
-    AUD->>DB: Store audit hash
-    DB-->>AUD: Hash saved
-
-    AUD->>BC: Submit hash for blockchain anchoring
-    BC->>BESU: Store transaction hash
-    BESU-->>BC: Return blockchain transaction reference
-
-    BC-->>AUD: Return blockchain reference
-
-    AUD->>DB: Store blockchain reference
+    AUD->>DB: Save hash and blockchain reference
     DB-->>AUD: Blockchain reference saved
+    AUD-->>API: Return success status
+    API-->>UI: Display transaction result
 
-
-    User->>API: Search audit record
-    API->>AUD: Request audit transaction data
-    AUD->>DB: Retrieve audit record
-    DB-->>AUD: Return audit information
-    AUD-->>API: Return audit record
-    API-->>User: Display transaction audit details
-
-
-    User->>API: Request audit verification
-    API->>AUD: Verify audit integrity
-
-    AUD->>DB: Retrieve transaction snapshot and hash
-    DB-->>AUD: Return stored audit data
-
-    AUD->>HASH: Generate current transaction hash
-    HASH-->>AUD: Return calculated hash
-
-    AUD->>BC: Retrieve blockchain anchored hash
-    BC->>BESU: Query stored hash reference
-    BESU-->>BC: Return blockchain hash
-
-    BC-->>AUD: Return blockchain hash
-
-    AUD->>AUD: Compare database hash with blockchain hash
-
-    AUD-->>API: Return verification result
-    API-->>User: Display integrity status
+    User->>UI: Request audit verification
+    UI->>API: Verify audit trail entry
+    API->>AUD: Retrieve audit record and hash
+    AUD->>DB: Query audit record and blockchain reference
+    DB-->>AUD: Return audit data
+    AUD->>BC: Validate stored hash against blockchain reference
+    BC-->>AUD: Verification result
+    AUD-->>API: Return verification status
+    API-->>UI: Display audit verification result
 ```
 
 ---
@@ -2860,14 +2996,15 @@ Blockchain service unavailable
 ---
 
 
-# Module 11
+## Module 11
 
 Organization Administration
 
 ---
 
-## Responsibilities
+### Responsibilities
 
+<<<<<<< HEAD
 - Manage organization membership within the administrator's organization.
 - Invite or add users to the organization.
 - View, update, activate, deactivate, and remove organization memberships.
@@ -2879,18 +3016,40 @@ Organization Administration
 - Monitor organization administrative activities through audit trail records.
 - Enforce organization-scoped administrative access and security policies.
 - Prevent organization administrators from accessing or modifying resources belonging to other organizations.
+=======
+- Manage user accounts within the organization.
+- Assign organization-level roles and permissions to company users.
+- Maintain organization-specific settings and administrative controls.
+- Monitor organization-level administrative actions through audit logs.
+- Restrict administrative functions to authorized users within the organization only.
+
+### Module Dependencies
+
+- Depends On: Authentication, `users`, `companies`, `roles`, `permissions`, and `audit_logs`.
+- Produces: organization user mappings, role assignments, permissions, settings, and administrative audit records.
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
 ---
 
-## Module Dependencies
+### Functional Requirements
 
+<<<<<<< HEAD
 - Depends on: Authentication, `Tenant`, `User`, `Company`, `CompanyMembership`, `Role`, `Permission`, `RolePermission`, and `AuditTrail`.
 - Produces: organization membership records, organization-scoped roles, role assignments, role-permission mappings, administrative configuration records, and audit trail entries.
+=======
+- The organization administrator shall be able to create, update, deactivate, and view user accounts within the organization.
+- The organization administrator shall be able to assign and modify roles and permissions for users within the organization.
+- The organization administrator shall be able to configure organization-specific settings required for company operations.
+- The organization administrator shall be able to view audit logs of important administrative activities within the organization.
+- The system shall restrict organization administration pages and functions to authorized users within the same organization only.
+- The system shall record significant administrative changes such as user updates, role assignments, and organization setting changes.
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
 ---
 
-## Functional Requirements
+### Business Rules
 
+<<<<<<< HEAD
 - The system shall allow authorized organization administrators to invite or add users to their organization.
 - The system shall allow authorized organization administrators to view members belonging to their organization.
 - The system shall allow authorized organization administrators to update organization membership information that they are permitted to manage.
@@ -2961,9 +3120,43 @@ PATCH
 /api/org-admin/members/:userId
 
 /api/org-admin/members/:userId/status
+=======
+- Only authorized organization administrators may access the Organization Administration module.
+- An organization administrator may create, modify, or deactivate only the user accounts belonging to the same organization.
+- A user account must be assigned an appropriate organization role before the account can access protected organization functions.
+- Administrative changes to user access, roles, and organization settings must be recorded in the audit log.
+- An organization administrator shall not access or modify users, settings, or records belonging to another organization.
+- Deactivated users shall not be allowed to log in or access protected organization features.
+- Organization settings shall not be changed without appropriate organization-level permission.
 
-DELETE
+---
 
+### API Endpoints
+
+POST
+/api/org-admin/users
+/api/org-admin/roles
+/api/org-admin/settings
+
+GET
+/api/org-admin/users
+/api/org-admin/users/:userId
+/api/org-admin/roles
+/api/org-admin/settings
+/api/org-admin/audit-logs
+
+PUT
+/api/org-admin/users/:userId
+/api/org-admin/roles/:roleId
+/api/org-admin/settings/:settingId
+
+PATCH
+/api/org-admin/users/:userId/status
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
+
+---
+
+<<<<<<< HEAD
 /api/org-admin/members/:userId
 
 ---
@@ -3108,11 +3301,30 @@ DELETE
 - Duplicate role-permission mappings are not allowed.
 - Organization settings must satisfy configured validation rules.
 - All organization administration operations must pass organization-scope authorization checks.
+=======
+### Validation
+
+- first_name
+- last_name
+- email
+- password
+- role_id
+- account_status
+- setting_key
+- setting_value
+- organization_id
+- Audit log entry required for administrative updates when applicable
+- Submission blocked if required administrative fields are incomplete
+- Email must be in valid format
+- Password must satisfy system security requirements
+- Role assignment must reference an existing valid role within the organization
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
 ---
 
-## Database Tables
+### Database Tables
 
+<<<<<<< HEAD
 ### CompanyMembership
 
 - Stores organization membership records.
@@ -3147,9 +3359,33 @@ DELETE
 - Stores administrative activities, system events, and historical records.
 - Records organization administration actions affecting memberships, roles, permissions mappings, and settings.
 - Provides organization-scoped administrative activity history.
+=======
+- **organization_users**
+  - Stores the relationship between users and the organization.
+  - Used to determine which users belong to a specific organization.
 
-### Referenced Existing Tables
+- **organization_roles**
+  - Stores organization-level roles such as company owner, chief procurement officer, procurement officer, and company administrator.
+  - Used to define access levels within a specific organization.
 
+- **organization_permissions**
+  - Stores the available permissions for organization users and modules.
+  - Used to define allowed actions within the organization scope.
+
+- **organization_role_permissions**
+  - Stores the mapping between organization roles and permissions.
+  - Used to determine what actions are allowed for each assigned organization role.
+
+- **organization_settings**
+  - Stores configurable settings for a specific organization.
+  - Used to maintain organization-level operational configurations.
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
+
+- **audit_logs**
+  - Stores records of important user and administrative actions within the organization.
+  - Includes user identifier, organization identifier, action performed, affected record, timestamp, and related details.
+
+<<<<<<< HEAD
 ### Tenant
 
 - Stores the tenant boundary used for organization isolation.
@@ -3166,19 +3402,26 @@ DELETE
 - Stores organization information.
 - Represents the organization managed by the organization administrator.
 - Provides the organization boundary for membership, roles, settings, and audit records.
+=======
+- **Referenced Existing Tables**
+  - `users` — stores authentication and account ownership data.
+  - `companies` — stores organization records.
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
 ---
 
-## Sequence Diagram
+### Sequence Diagram
 
 ```mermaid
 sequenceDiagram
-    actor Admin as Organization Administrator
-    participant UI as Organization Administration
+    actor OrgAdmin as Organization Administrator
+    participant UI as Organization Administration Page
     participant API as Backend API
+    participant AUTH as Authorization Service
     participant ORG as Organization Administration Module
     participant DB as Database
 
+<<<<<<< HEAD
     Admin->>UI: Open Organization Administration
     UI->>API: Request organization data
     API->>ORG: Authenticate and validate organization scope
@@ -3201,18 +3444,52 @@ sequenceDiagram
 
     ORG-->>API: Return success
     API-->>UI: Display confirmation
+=======
+    OrgAdmin->>UI: Open Organization Administration module
+    UI->>API: Request organization administration data
+    API->>AUTH: Verify organization administrator access
+    AUTH->>DB: Check user role, permission, and organization scope
+    DB-->>AUTH: Return authorization data
+    AUTH-->>API: Access granted
+
+    API->>ORG: Retrieve users, roles, settings, and logs
+    ORG->>DB: Query organization administrative records
+    DB-->>ORG: Return requested records
+    ORG-->>API: Send organization data
+    API-->>UI: Display Organization Administration dashboard
+
+    OrgAdmin->>UI: Create or update organization user, role, or setting
+    UI->>API: Submit organization administrative data
+    API->>AUTH: Validate permission and organization scope
+    AUTH-->>API: Permission confirmed
+    API->>ORG: Process organization administrative update
+    ORG->>DB: Save changes
+    DB-->>ORG: Update successful
+    ORG->>DB: Record audit log entry
+    DB-->>ORG: Audit log saved
+    ORG-->>API: Return success response
+    API-->>UI: Display confirmation message
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 ```
 
 ---
 
-## Classes
+### Classes
 
-### organizationAdminRouter
+#### organizationAdminRouter
+Defines the API routes for organization administration operations. It maps incoming HTTP requests to the appropriate controller functions.
 
+<<<<<<< HEAD
 Defines API routes for organization membership management, organization role management, role-permission mapping, organization settings, and administrative audit trail operations.
+=======
+#### organizationAdminController
+Handles organization administration API requests and responses. It receives validated input, calls the service layer, and returns the appropriate response to the client.
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
-### organizationAdminController
+#### organizationAdminService
+Contains the business logic for organization administration functions. It manages organization users, roles, permissions, settings, and audit log retrieval within the same organization scope.
 
+<<<<<<< HEAD
 Receives organization administration requests, validates request data, invokes the service layer, and returns appropriate responses.
 
 ### organizationAdminService
@@ -3256,12 +3533,20 @@ Responsibilities include:
 - Validating membership status.
 - Validating organization settings.
 - Enforcing input constraints before service-layer processing.
+=======
+#### organizationAdminRepository
+Handles data access and database queries related to organization administration functions. It is responsible for retrieving and storing organization users, roles, permissions, settings, and audit logs.
+
+#### organizationAdminValidator
+Validates request data for organization administration operations. It ensures required account, role, and settings data are complete and correctly formatted before processing.
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
 ---
 
-## Error Handling
+### Error Handling
 
 400
+<<<<<<< HEAD
 
 Invalid input data or malformed request.
 
@@ -3292,6 +3577,26 @@ Internal server error.
 503
 
 Organization Administration service unavailable.
+=======
+Invalid input data
+
+401
+Unauthorized access
+
+403
+Insufficient organization administrative privileges
+
+404
+User, role, or setting not found
+
+409
+Duplicate email or conflicting organization configuration
+
+500
+Internal server error
+
+---
+>>>>>>> 09dd7e1 (Revert "Merge branch 'feat/hono-cloudflare-migration' of github.com:Wiii-1/New_LINAW")
 
 ## Module 12
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { cn } from "cn";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import * as z from "zod";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -15,81 +16,57 @@ import {
 import { Input } from "@/components/ui/input";
 
 const formSchema = z.object({
-  email: z.string().email("Please enter a valid email address."),
+  email: z.email().min(1),
 });
-
-type FormValues = z.infer<typeof formSchema>;
-
-interface ApiResponse {
-  success: boolean;
-  message?: string;
-}
 
 export function ForgotPasswordForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const router = useRouter();
 
-  const form = useForm<FormValues>({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
     },
   });
 
-  async function onSubmit(values: FormValues) {
+  /*
+    async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    setError("");
-    setSuccess("");
 
-    try {
-      const response = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          email: values.email.trim(),
-        }),
-      });
+    const { success, message } = await signIn(
+      values.email,
+    );
 
-      const data = (await response.json()) as ApiResponse;
-
-      if (!response.ok || data.success !== true) {
-        setError(data.message ?? "Unable to process your request. Please try again.");
-        return;
-      }
-
-      setSuccess(
-        data.message ??
-          "If an account exists for that email, a password reset link will be sent shortly.",
+    if (success) {
+      toast.success(
+        `${message as string} Check your email to receive your password`,
       );
-    } catch {
-      setError("Unable to contact the server. Please try again.");
-    } finally {
-      setIsLoading(false);
+      router.push("/login");
+    } else {
+      toast.error(message as string);
     }
+
+    setIsLoading(false);
   }
+  */
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form
         id="forgot-password-form"
-        onSubmit={form.handleSubmit(onSubmit)}
-        noValidate
+        //onSubmit={form.handleSubmit(onSubmit)}
       >
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-xl font-bold">Recover your Account</h1>
             <FieldDescription>
-              Enter your email to receive a password reset link.
+              Provide your email to receive your password
             </FieldDescription>
           </div>
-
           <Controller
             name="email"
             control={form.control}
@@ -100,49 +77,21 @@ export function ForgotPasswordForm({
                   {...field}
                   id="email"
                   type="email"
-                  autoComplete="email"
                   required
-                  aria-invalid={fieldState.invalid}
                   className="bg-background"
-                  disabled={isLoading || Boolean(success)}
                 />
-                {fieldState.error && (
-                  <p className="text-sm text-destructive">
-                    {fieldState.error.message}
-                  </p>
-                )}
               </Field>
             )}
           />
-
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-
-          {success && (
-            <p role="status" className="text-sm text-green-600">
-              {success}
-            </p>
-          )}
-
           <Field>
             <Button
               type="submit"
-              disabled={isLoading || Boolean(success)}
+              disabled={isLoading}
               form="forgot-password-form"
             >
-              {isLoading ? "Sending..." : "Send Reset Link"}
+              Send Email
             </Button>
           </Field>
-
-          <FieldDescription className="text-center">
-            Remembered your password?{" "}
-            <a href="/login" className="underline underline-offset-4">
-              Back to login
-            </a>
-          </FieldDescription>
         </FieldGroup>
       </form>
     </div>

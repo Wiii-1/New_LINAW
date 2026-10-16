@@ -31,3 +31,4 @@ smart_contract/adapter-wallet.json
 # =====================
 
 /mail_gun_test
+node_modules

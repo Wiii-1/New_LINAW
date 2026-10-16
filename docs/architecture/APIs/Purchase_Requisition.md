@@ -2,7 +2,7 @@
 
 ---
 
-## POST /api/purchase_requisitions/create
+## POST /api/purchase-requisitions
 
 ### Description
 
@@ -106,7 +106,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## GET /api/purchase_requisitions
+## GET /api/purchase-requisitions
 
 ### Description
 
@@ -171,7 +171,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## GET /api/purchase_requisitions/:requisitionId
+## GET /api/purchase-requisitions/:requisitionId
 
 ### Description
 
@@ -239,7 +239,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## PATCH /api/purchase_requisitions/:requisitionId
+## PUT /api/purchase-requisitions/:requisitionId
 
 ### Description
 
@@ -265,10 +265,14 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-    "justification": "",
+    "requisition_number": "",
+    "requester_id": "",
+    "company_id": "",
     "request_date": "",
-    "line_items": [],
-    "total_estimated_amount": 0
+    "requisition_status": "",
+    "justification": "",
+    "total_estimated_amount": 0,
+    "line_items": []
 }
 ```
 
@@ -351,7 +355,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## PATCH /api/purchase_requisitions/:requisitionId/status
+## PUT /api/purchase-requisitions/:requisitionId/status
 
 ### Description
 
@@ -459,7 +463,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## POST /api/purchase_requisitions/:requisitionId/submit
+## POST /api/purchase-requisitions/:requisitionId/submit
 
 ### Description
 
@@ -551,7 +555,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## POST /api/purchase_requisitions/:requisitionId/cancel
+## POST /api/purchase-requisitions/:requisitionId/cancel
 
 ### Description
 
@@ -633,7 +637,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## POST /api/purchase_requisitions/:requisitionId/resubmit
+## POST /api/purchase-requisitions/:requisitionId/resubmit
 
 ### Description
 
@@ -716,7 +720,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-## DELETE /api/purchase_requisitions/:requisitionId
+## DELETE /api/purchase-requisitions/:requisitionId
 
 ### Description
 
