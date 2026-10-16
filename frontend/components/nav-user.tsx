@@ -42,37 +42,41 @@ export function NavUser({
 }>) {
   const { isMobile } = useSidebar();
   const { setTheme } = useTheme();
-  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
-  const initials =
-    user.name
-      .split(" ")
-      .map((part) => part[0])
-      .filter(Boolean)
-      .join("")
-      .toUpperCase()
-      .slice(0, 2) || "U";
+  /*
+  const router = useRouter()
+
+  const { data: session, isPending } = authClient.useSession()
 
   const handleLogout = async () => {
-    if (isLoggingOut) return;
+    await authClient.signOut()
+    router.push("/")
+  }
 
-    setIsLoggingOut(true);
+  if (isPending) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" className="animate-pulse bg-muted/50" />
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
 
-    try {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: { Accept: "application/json" },
-      });
+  if (!session?.user) {
+    return null
+  }
 
-      if (!response.ok) {
-        setIsLoggingOut(false);
-        return;
-      }
+  const { name, email, image } = session.user
 
-      window.location.assign("/login");
-    } catch {
-      setIsLoggingOut(false);
-    }
-  };
+  // displays user initials in place of profile pictures
+  const initials =
+    name
+      ?.split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "U"
+  */
   return (
     <SidebarMenu>
       <SidebarMenuItem>
