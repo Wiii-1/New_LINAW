@@ -143,13 +143,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<a href="#" />}>
+            <SidebarMenuButton
+              size="lg"
+              render={<a href="/organizations" aria-label="Organizations" />}
+            >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-[#1c63f2] text-white shadow-sm">
                 <ShieldCheckIcon className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold tracking-tight">LINAW</span>
-                <span className="truncate text-[11px] text-sidebar-foreground/55">Procurement operations</span>
+                <span className="truncate font-semibold tracking-tight">
+                  LINAW
+                </span>
+                <span className="truncate text-[11px] text-sidebar-foreground/55">
+                  Procurement operations
+                </span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

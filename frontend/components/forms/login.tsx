@@ -3,8 +3,8 @@
 import { cn } from "cn";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+//import { useRouter } from "next/navigation";
+//import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -15,18 +15,14 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-
-const formSchema = z.object({
-  email: z.email().min(1),
-  password: z.string().min(8),
-});
+import { loginSchema, type LoginFormValues } from "@/validators/auth";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  //const [isLoading, setIsLoading] = useState(false);
+  //const router = useRouter();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -37,7 +33,7 @@ export function LoginForm({
   });
 
   /*
-    async function onSubmit(values: z.infer<typeof formSchema>) {
+    async function onSubmit(values: LoginFormValues) {
     setIsLoading(true);
 
     const { success, message } = await signIn(
@@ -113,8 +109,8 @@ export function LoginForm({
             )}
           />
           <Field>
-            <Button type="submit" disabled={isLoading} form="login-form">
-              {isLoading ? "Signing in..." : "Login"}
+            <Button type="submit" /* disabled={isLoading} */ form="login-form">
+              Login
             </Button>
           </Field>
           <FieldSeparator>Or</FieldSeparator>
