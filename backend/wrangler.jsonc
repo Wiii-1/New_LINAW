@@ -4,12 +4,13 @@
   "name": "linaw-server-worker",
   "main": "src/app.ts",
 
-  "compatibility_date": "2026-08-28",  
+  "compatibility_date": "2026-08-28",
+  "compatibility_flags": ["nodejs_compat"],
 
   "workers_dev": true,
 
   "env": {
-    "local":{
+    "local": {
       "vars": {
         "NODE_ENV": "development",
 
@@ -21,7 +22,6 @@
         "DATABASE_URL": "postgresql://user:password@localhost/linaw",
 
         "REDIS_URL": "https://linaw-buff-inlet-rest.cloud.layerbase.dev",
-        "REDIS_TOKEN": "0rGgSvwKmoQK52Wc2tjEcaGO",
 
         "BLOCKCHAIN_RPC_URL": "http://localhost:8545",
         "AUDIT_CONTRACT_ADDRESS": "0x4419328A7a7a23621A3EA3E82D9145641728Daa8",
@@ -36,12 +36,12 @@
           "REDIS_TOKEN",
           "BLOCKCHAIN_PRIVATE_KEY",
           "DATABASE_URL",
-          "MAILGUN_API_KEY",
+          "MAILGUN_API_KEY"
         ]
-      },
+      }
     },
 
-    "staging":{
+    "staging": {
       "vars": {
         "NODE_ENV": "staging",
         "ALLOWED_ORIGIN": "https://your-frontend-domain.com",
@@ -55,7 +55,7 @@
           "JWT_REFRESH_SECRET",
           "REDIS_TOKEN",
           "BLOCKCHAIN_PRIVATE_KEY",
-          "DATABASE_URL",          
+          "DATABASE_URL",
           "MAILGUN_API_KEY"
         ]
       }

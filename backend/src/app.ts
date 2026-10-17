@@ -6,7 +6,11 @@ import { secureHeaders } from "hono/secure-headers";
 
 import type { AppContext } from "./shared/types/hono.js";
 import type { AppEnv } from "./config/env.js";
-import { initializePrisma } from "./config/database.js";
+import {
+    disposePrisma,
+    initializePrisma,
+    runWithPrisma,
+} from "./config/database.js";
 
 import { errorHandler } from "./shared/middleware/errorHandler.js";
 
@@ -51,39 +55,47 @@ app.get("/health", (c: Context<AppContext>) => {
 app.all("*", async (c: Context<AppContext>) => {
     const env = c.env as AppEnv;
 
-    initializePrisma(env);
+    const prisma = initializePrisma(env);
 
-    const blockchainAdapter = new BlockchainAdapter(env);
-    const repository = new AuditTrailRepository();
-    const service = new AuditTrailService(repository, blockchainAdapter);
-    registerAuditTrailEvents(service);
+    try {
+        const blockchainAdapter = new BlockchainAdapter(env);
+        const repository = new AuditTrailRepository();
+        const service = new AuditTrailService(repository, blockchainAdapter);
+        registerAuditTrailEvents(service);
 
-    const authRouter = createAuthRouter(env);
-    const auditRouter = createAuditRouter(service);
-    const approvalWorkflowRouter = createApprovalWorkflow();
-    const purchaseRequisitionRouter = createPurchaseRequistionRouter();
-    const organizationAdministrationRouter = createOrganizationAdministration();
-    const purchaseOrderManagementRouter = createPurchaseOrderManagement();
-    const supplierManagementRouter = createSupplierManagement();
-    const userManagementRouter = createUserManagementRouter();
+        const authRouter = createAuthRouter(env);
+        const auditRouter = createAuditRouter(service);
+        const approvalWorkflowRouter = createApprovalWorkflow();
+        const purchaseRequisitionRouter = createPurchaseRequistionRouter();
+        const organizationAdministrationRouter = createOrganizationAdministration();
+        const purchaseOrderManagementRouter = createPurchaseOrderManagement();
+        const supplierManagementRouter = createSupplierManagement();
+        const userManagementRouter = createUserManagementRouter();
 
-    const router = new Hono<AppContext>();
+        const router = new Hono<AppContext>();
+        router.onError(errorHandler);
 
-    router.route("/auth", authRouter);
-    router.route("/auditTrail", auditRouter);
-    router.route("/approval-workflows", approvalWorkflowRouter);
-    router.route("/PurchaseRequisition", purchaseRequisitionRouter );
-    router.route("/organizationManagement", organizationAdministrationRouter)
-    router.route("/purchase-orders", purchaseOrderManagementRouter)
-    router.route("/", supplierManagementRouter);
-    router.route("/userManagementRouter", userManagementRouter)
+        router.route("/auth", authRouter);
+        router.route("/auditTrail", auditRouter);
+        router.route("/approval-workflows", approvalWorkflowRouter);
+        router.route("/PurchaseRequisition", purchaseRequisitionRouter );
+        router.route("/organizationManagement", organizationAdministrationRouter)
+        router.route("/purchase-orders", purchaseOrderManagementRouter)
+        router.route("/", supplierManagementRouter);
+        router.route("/userManagementRouter", userManagementRouter)
 
-    const forwardedUrl = new URL(c.req.url);
-    forwardedUrl.pathname = forwardedUrl.pathname.replace(/^\/api(?=\/|$)/, "") || "/";
+        const forwardedUrl = new URL(c.req.url);
+        forwardedUrl.pathname = forwardedUrl.pathname.replace(/^\/api(?=\/|$)/, "") || "/";
 
-    const forwardedRequest = new Request(forwardedUrl, c.req.raw);
+        const forwardedRequest = new Request(forwardedUrl, c.req.raw);
 
-    return router.fetch(forwardedRequest, c.env);
+        return await runWithPrisma(
+            prisma,
+            () => router.fetch(forwardedRequest, c.env),
+        );
+    } finally {
+        await disposePrisma(prisma);
+    }
 });
 
 export default app;
