@@ -1,14 +1,6 @@
 "use client";
 
-import * as React from "react";
-import {
-  useTable,
-  type RowData,
-  type ColumnDef,
-  type ColumnFiltersState,
-  type ColumnVisibilityState,
-} from "@tanstack/react-table";
-import { Input } from "@/components/ui/input";
+import { useTable, type ColumnDef, type RowData } from "@tanstack/react-table";
 import {
   Table,
   TableBody,
@@ -17,66 +9,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DataTablePagination } from "./data-table-pagination";
-import { DataTableViewOptions } from "./data-table-view-options";
-import { features, type DataTableFeatures } from "@/types/data-table-features";
+
+import {
+  features,
+  type DataTableFeatures,
+} from "@/components/data-table-features";
 
 interface DataTableProps<TData extends RowData> {
   columns: ColumnDef<DataTableFeatures, TData>[];
   data: TData[];
-  searchKey?: string;
-  searchPlaceholder?: string;
-  toolbarActions?: React.ReactNode;
 }
 
 export function DataTable<TData extends RowData>({
   columns,
   data,
-  searchKey,
-  searchPlaceholder = "Filter...",
-  toolbarActions,
 }: Readonly<DataTableProps<TData>>) {
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<ColumnVisibilityState>({});
-
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    [],
-  );
-
   const table = useTable({
     features,
     data,
     columns,
-    onColumnVisibilityChange: setColumnVisibility,
-    onColumnFiltersChange: setColumnFilters,
-    state: {
-      columnVisibility,
-      columnFilters,
-    },
   });
 
   return (
     <div>
-      <div className="flex items-center py-4">
-        {searchKey && (
-          <Input
-            placeholder={searchPlaceholder}
-            value={
-              (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
-            }
-            onChange={(event) =>
-              table.getColumn(searchKey)?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-        )}
-
-        <div className="ml-auto flex items-center gap-2">
-          <DataTableViewOptions table={table} />
-          {toolbarActions}
-        </div>
-      </div>
-
       <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
@@ -121,7 +76,6 @@ export function DataTable<TData extends RowData>({
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination table={table} />
     </div>
   );
 }
