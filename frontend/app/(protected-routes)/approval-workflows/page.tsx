@@ -1,28 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CheckIcon,
   ChevronRightIcon,
   CircleAlertIcon,
   Clock3Icon,
   FileCheck2Icon,
+  FilterIcon,
   SearchIcon,
   XCircleIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DEFAULT_CURRENCY_CODE,
-  formatCurrency,
-} from "@/lib/currencies";
-import {
-  getApprovalRequest,
-  getApprovalRequests,
-  submitApprovalDecision,
-  type ApprovalRequest,
-  type ApprovalStatus,
-  ApprovalWorkflowApiError,
-} from "@/app/api/approval-workflow/client";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -33,6 +22,104 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+
+type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+
+type ApprovalRequest = {
+  id: string;
+  entity_id: string;
+  requester: string;
+  entity_type: string;
+  amount: number;
+  current_level: number;
+  status: ApprovalStatus;
+  submitted_at: string;
+  approver_role: string;
+  actions: { action: string; actor: string; date: string; remarks?: string }[];
+};
+
+const initialRequests: ApprovalRequest[] = [
+  {
+    id: "APR-2026-0142",
+    entity_id: "PR-2026-0048",
+    requester: "Maya Santos",
+    entity_type: "Purchase requisition",
+    amount: 184500,
+    current_level: 1,
+    status: "PENDING",
+    submitted_at: "17 Oct 2026, 09:42",
+    approver_role: "Department Manager",
+    actions: [
+      {
+        action: "SUBMITTED",
+        actor: "Maya Santos",
+        date: "17 Oct 2026, 09:42",
+      },
+    ],
+  },
+  {
+    id: "APR-2026-0139",
+    entity_id: "PR-2026-0044",
+    requester: "Jon Bell",
+    entity_type: "Purchase requisition",
+    amount: 68400,
+    current_level: 1,
+    status: "PENDING",
+    submitted_at: "16 Oct 2026, 15:18",
+    approver_role: "Department Manager",
+    actions: [
+      {
+        action: "SUBMITTED",
+        actor: "Jon Bell",
+        date: "16 Oct 2026, 15:18",
+      },
+    ],
+  },
+  {
+    id: "APR-2026-0131",
+    entity_id: "PR-2026-0036",
+    requester: "Arielle Cruz",
+    entity_type: "Purchase requisition",
+    amount: 412000,
+    current_level: 2,
+    status: "APPROVED",
+    submitted_at: "14 Oct 2026, 10:05",
+    approver_role: "CPO / Business Owner",
+    actions: [
+      {
+        action: "APPROVED",
+        actor: "Daniel Reyes",
+        date: "15 Oct 2026, 11:24",
+        remarks: "Approved for supplier sourcing.",
+      },
+    ],
+  },
+  {
+    id: "APR-2026-0126",
+    entity_id: "PR-2026-0031",
+    requester: "Maya Santos",
+    entity_type: "Purchase requisition",
+    amount: 27600,
+    current_level: 1,
+    status: "REJECTED",
+    submitted_at: "12 Oct 2026, 08:36",
+    approver_role: "Department Manager",
+    actions: [
+      {
+        action: "REJECTED",
+        actor: "Daniel Reyes",
+        date: "12 Oct 2026, 13:40",
+        remarks: "Please attach the supplier quotations.",
+      },
+    ],
+  },
+];
+
+const currency = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+  maximumFractionDigits: 0,
+});
 
 const statusLabels: Record<ApprovalStatus, string> = {
   PENDING: "Pending",
@@ -63,9 +150,7 @@ function Stat({ label, value }: Readonly<{ label: string; value: number }>) {
 }
 
 export default function ApprovalWorkflowsPage() {
-  const [requests, setRequests] = useState<ApprovalRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [requests, setRequests] = useState(initialRequests);
   const [activeFilter, setActiveFilter] = useState<"ALL" | ApprovalStatus>(
     "ALL",
   );
@@ -73,69 +158,11 @@ export default function ApprovalWorkflowsPage() {
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
     null,
   );
-  const [selectedDetails, setSelectedDetails] = useState<ApprovalRequest | null>(
-    null,
-  );
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [remarks, setRemarks] = useState("");
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const listedRequest = requests.find(
+  const selectedRequest = requests.find(
     (request) => request.id === selectedRequestId,
   );
-  const selectedRequest = selectedDetails ?? listedRequest;
-
-  async function loadRequests() {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      setRequests(await getApprovalRequests());
-    } catch (error) {
-      setLoadError(
-        error instanceof ApprovalWorkflowApiError
-          ? error.message
-          : "Unable to load approval requests.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void loadRequests();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedRequestId) {
-      setSelectedDetails(null);
-      return;
-    }
-
-    let active = true;
-    setIsLoadingDetails(true);
-    setActionError(null);
-    void getApprovalRequest(selectedRequestId)
-      .then((request) => {
-        if (active) setSelectedDetails(request);
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setActionError(
-            error instanceof ApprovalWorkflowApiError
-              ? error.message
-              : "Unable to load this approval request.",
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setIsLoadingDetails(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [selectedRequestId]);
 
   const filteredRequests = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -145,7 +172,7 @@ export default function ApprovalWorkflowsPage() {
         activeFilter === "ALL" || request.status === activeFilter;
       const matchesSearch =
         !query ||
-        [request.id, request.entityId, request.requester, request.approverRole]
+        [request.id, request.entity_id, request.requester, request.approver_role]
           .join(" ")
           .toLowerCase()
           .includes(query);
@@ -167,37 +194,29 @@ export default function ApprovalWorkflowsPage() {
     [requests],
   );
 
-  async function updateRequest(decision: "approve" | "reject") {
-    if (!selectedRequest || isSubmitting) return;
-    if (decision === "reject" && !remarks.trim()) {
-      setActionError("Rejection remarks are required.");
-      return;
-    }
+  function updateRequest(status: ApprovalStatus, action: string) {
+    if (!selectedRequest) return;
 
-    setIsSubmitting(true);
-    setActionError(null);
-    try {
-      const updated = await submitApprovalDecision(
-        selectedRequest.id,
-        decision,
-        remarks.trim() || undefined,
-      );
-      setRequests((currentRequests) =>
-        currentRequests.map((request) =>
-          request.id === updated.id ? updated : request,
-        ),
-      );
-      setSelectedDetails(updated);
-      setRemarks("");
-    } catch (error) {
-      setActionError(
-        error instanceof ApprovalWorkflowApiError
-          ? error.message
-          : "Unable to submit this decision.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    setRequests((currentRequests) =>
+      currentRequests.map((request) =>
+        request.id === selectedRequest.id
+          ? {
+              ...request,
+              status,
+              actions: [
+                ...request.actions,
+                {
+                  action,
+                  actor: "You",
+                  date: "17 Oct 2026, now",
+                  ...(remarks.trim() ? { remarks: remarks.trim() } : {}),
+                },
+              ],
+            }
+          : request,
+      ),
+    );
+    setRemarks("");
   }
 
   return (
@@ -258,6 +277,9 @@ export default function ApprovalWorkflowsPage() {
                   aria-label="Search approval requests"
                 />
               </div>
+              <Button variant="outline" size="icon" aria-label="Filter requests">
+                <FilterIcon />
+              </Button>
             </div>
           </div>
 
@@ -270,18 +292,7 @@ export default function ApprovalWorkflowsPage() {
               <span>Status</span>
               <span />
             </div>
-            {isLoading ? (
-              <div className="px-6 py-16 text-center text-sm">Loading approval requests...</div>
-            ) : loadError ? (
-              <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-                <CircleAlertIcon className="size-8" />
-                <h2 className="font-medium">Unable to load approval requests</h2>
-                <p className="text-sm">{loadError}</p>
-                <Button variant="outline" size="sm" onClick={() => void loadRequests()}>
-                  Try again
-                </Button>
-              </div>
-            ) : filteredRequests.length ? (
+            {filteredRequests.length ? (
               filteredRequests.map((request) => (
                 <button
                   key={request.id}
@@ -291,18 +302,16 @@ export default function ApprovalWorkflowsPage() {
                 >
                   <span className="flex min-w-0 flex-col gap-1">
                     <span className="truncate font-medium">{request.id}</span>
-                    <span className="text-xs">{request.entityId}</span>
+                    <span className="text-xs">{request.entity_id}</span>
                   </span>
                   <span className="flex flex-col gap-1">
                     <span>{request.requester}</span>
-                    <span className="text-xs">{request.submittedAt}</span>
+                    <span className="text-xs">{request.submitted_at}</span>
                   </span>
-                  <span className="font-medium">{formatCurrency(request.amount, request.currencyCode ?? DEFAULT_CURRENCY_CODE)}</span>
+                  <span className="font-medium">{currency.format(request.amount)}</span>
                   <span className="flex flex-col gap-1">
-                    <span>Level {request.currentLevel}</span>
-                    {request.approverRole && (
-                      <span className="text-xs">{request.approverRole}</span>
-                    )}
+                    <span>Level {request.current_level}</span>
+                    <span className="text-xs">{request.approver_role}</span>
                   </span>
                   <span>
                     <StatusPill status={request.status} />
@@ -326,9 +335,7 @@ export default function ApprovalWorkflowsPage() {
         onOpenChange={(open) => {
           if (!open) {
             setSelectedRequestId(null);
-            setSelectedDetails(null);
             setRemarks("");
-            setActionError(null);
           }
         }}
       >
@@ -340,7 +347,7 @@ export default function ApprovalWorkflowsPage() {
                   <div className="space-y-1">
                     <SheetTitle>{selectedRequest.id}</SheetTitle>
                     <SheetDescription>
-                      {selectedRequest.entityType} {selectedRequest.entityId}
+                      {selectedRequest.entity_type} {selectedRequest.entity_id}
                     </SheetDescription>
                   </div>
                   <StatusPill status={selectedRequest.status} />
@@ -355,20 +362,17 @@ export default function ApprovalWorkflowsPage() {
                   </div>
                   <div className="space-y-1">
                     <span className="text-xs uppercase tracking-wider">Amount</span>
-                    <p className="font-medium">{formatCurrency(selectedRequest.amount, selectedRequest.currencyCode ?? DEFAULT_CURRENCY_CODE)}</p>
+                    <p className="font-medium">{currency.format(selectedRequest.amount)}</p>
                   </div>
                   <div className="space-y-1">
                     <span className="text-xs uppercase tracking-wider">Current level</span>
                     <p className="font-medium">
-                      Level {selectedRequest.currentLevel}
-                      {selectedRequest.approverRole
-                        ? ` · ${selectedRequest.approverRole}`
-                        : ""}
+                      Level {selectedRequest.current_level} · {selectedRequest.approver_role}
                     </p>
                   </div>
                   <div className="space-y-1">
                     <span className="text-xs uppercase tracking-wider">Submitted</span>
-                    <p className="font-medium">{selectedRequest.submittedAt}</p>
+                    <p className="font-medium">{selectedRequest.submitted_at}</p>
                   </div>
                 </div>
 
@@ -378,10 +382,8 @@ export default function ApprovalWorkflowsPage() {
                     <span className="text-xs">{selectedRequest.actions.length} action(s)</span>
                   </div>
                   <div className="flex flex-col gap-4 border-l pl-4">
-                    {isLoadingDetails ? (
-                      <p className="text-sm">Loading history...</p>
-                    ) : selectedRequest.actions.length ? selectedRequest.actions.map((action) => (
-                      <div key={action.id} className="relative space-y-1">
+                    {selectedRequest.actions.map((action, index) => (
+                      <div key={`${action.action}-${index}`} className="relative space-y-1">
                         <span className="absolute left-[-1.35rem] top-1 size-2 rounded-full border-2" />
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-medium">{action.action}</span>
@@ -390,7 +392,7 @@ export default function ApprovalWorkflowsPage() {
                         <p className="text-sm">by {action.actor}</p>
                         {action.remarks && <p className="text-sm">{action.remarks}</p>}
                       </div>
-                    )) : <p className="text-sm">No approval history is available.</p>}
+                    ))}
                   </div>
                 </div>
 
@@ -403,9 +405,8 @@ export default function ApprovalWorkflowsPage() {
                       id="remarks"
                       value={remarks}
                       onChange={(event) => setRemarks(event.target.value)}
-                      placeholder="Required when rejecting; optional for review notes"
+                      placeholder="Add a note for this decision"
                     />
-                    {actionError && <p className="text-sm text-red-600" role="alert">{actionError}</p>}
                   </div>
                 )}
               </div>
@@ -415,15 +416,17 @@ export default function ApprovalWorkflowsPage() {
                   <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                     <Button
                       variant="destructive"
-                      disabled={isSubmitting}
-                      onClick={() => void updateRequest("reject")}
+                      onClick={() => updateRequest("REJECTED", "REJECTED")}
                     >
                       <XCircleIcon />
                       Reject
                     </Button>
-                    <Button disabled={isSubmitting} onClick={() => void updateRequest("approve")}>
+                    <Button variant="outline" onClick={() => updateRequest("CANCELLED", "CANCELLED")}>
+                      Cancel request
+                    </Button>
+                    <Button onClick={() => updateRequest("APPROVED", "APPROVED")}>
                       <CheckIcon />
-                      {isSubmitting ? "Submitting..." : "Approve"}
+                      Approve
                     </Button>
                   </div>
                 ) : (
