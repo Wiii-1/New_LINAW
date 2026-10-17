@@ -3,9 +3,8 @@
 import { cn } from "cn";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import * as z from "zod";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+//import { useRouter } from "next/navigation";
+//import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -14,27 +13,27 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-
-const formSchema = z.object({
-  email: z.email().min(1),
-});
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordFormValues,
+} from "@/validators/auth";
 
 export function ForgotPasswordForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  //const [isLoading, setIsLoading] = useState(false);
+  //const router = useRouter();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
       email: "",
     },
   });
 
   /*
-    async function onSubmit(values: z.infer<typeof formSchema>) {
+    async function onSubmit(values: ForgotPasswordFormValues) {
     setIsLoading(true);
 
     const { success, message } = await signIn(
@@ -86,7 +85,7 @@ export function ForgotPasswordForm({
           <Field>
             <Button
               type="submit"
-              disabled={isLoading}
+              /*disabled={isLoading}*/
               form="forgot-password-form"
             >
               Send Email
