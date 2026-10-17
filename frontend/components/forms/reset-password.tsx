@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { cn } from "cn";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -14,21 +13,10 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-
-const formSchema = z
-  .object({
-    password: z
-      .string()
-      .min(12, "Password must be at least 12 characters.")
-      .max(128, "Password must not exceed 128 characters."),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
-
-type FormValues = z.infer<typeof formSchema>;
+import {
+  resetPasswordSchema,
+  type ResetPasswordFormValues,
+} from "@/validators/auth";
 
 interface ApiResponse {
   success: boolean;
@@ -46,8 +34,8 @@ export function ResetPasswordForm({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
       password: "",
       confirmPassword: "",
@@ -61,9 +49,11 @@ export function ResetPasswordForm({
     setTokenChecked(true);
   }, []);
 
-  async function onSubmit(values: FormValues) {
+  async function onSubmit(values: ResetPasswordFormValues) {
     if (!resetToken) {
-      setError("Your password reset link is missing or invalid. Request a new link.");
+      setError(
+        "Your password reset link is missing or invalid. Request a new link.",
+      );
       return;
     }
 
@@ -179,32 +169,21 @@ export function ResetPasswordForm({
           />
 
           {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
+            <output className="text-sm text-destructive">{error}</output>
           )}
 
           {success && (
-            <p role="status" className="text-sm text-green-600">
-              {success}
-            </p>
+            <output className="text-sm text-green-600">{success}</output>
           )}
 
           {success ? (
-            <Button
-              type="button"
-              onClick={() => router.push("/login")}
-            >
+            <Button type="button" onClick={() => router.push("/login")}>
               Continue to Login
             </Button>
           ) : (
             <Button
               type="submit"
-              disabled={
-                !tokenChecked ||
-                !resetToken ||
-                isLoading
-              }
+              disabled={!tokenChecked || !resetToken || isLoading}
             >
               {isLoading ? "Resetting..." : "Reset Password"}
             </Button>
