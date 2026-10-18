@@ -575,7 +575,7 @@ export class PurchaseOrderManagementRepository {
             },
         });
 
-        if (!rfq || rfq.status !== RFQStatus.DRAFT) {
+        if (rfq?.status !== RFQStatus.DRAFT) {
             return null;
         }
 
@@ -600,21 +600,23 @@ export class PurchaseOrderManagementRepository {
             });
 
             if (data.items !== undefined) {
-                for (const item of data.items) {
-                    await tx.rFQItem.updateMany({
-                        where: {
-                            rfq_id: rfq.id,
-                            tenant_id: data.tenant_id,
-                            line_no: item.line_no,
-                        },
-                        data: {
-                            description: item.description,
-                            quantity: item.quantity,
-                            unit_of_measure: item.unit_of_measure,
-                            specification: item.specification,
-                        },
-                    });
-                }
+                await Promise.all(
+                    data.items.map((item) =>
+                        tx.rFQItem.updateMany({
+                            where: {
+                                rfq_id: rfq.id,
+                                tenant_id: data.tenant_id,
+                                line_no: item.line_no,
+                            },
+                            data: {
+                                description: item.description,
+                                quantity: item.quantity,
+                                unit_of_measure: item.unit_of_measure,
+                                specification: item.specification,
+                            },
+                        }),
+                    ),
+                );
             }
 
             return updatedRfq;
@@ -647,22 +649,24 @@ export class PurchaseOrderManagementRepository {
                     0,
                 );
 
-                for (const item of data.items) {
-                    await tx.purchaseOrderItem.updateMany({
-                        where: {
-                            purchase_order_id: po.id,
-                            tenant_id: data.tenant_id,
-                            line_no: item.line_no,
-                        },
-                        data: {
-                            description: item.description,
-                            quantity: item.quantity,
-                            unit_of_measure: item.unit_of_measure,
-                            unit_price: item.unit_price,
-                            total_price: item.quantity * item.unit_price,
-                        },
-                    });
-                }
+                await Promise.all(
+                    data.items.map((item) =>
+                        tx.purchaseOrderItem.updateMany({
+                            where: {
+                                purchase_order_id: po.id,
+                                tenant_id: data.tenant_id,
+                                line_no: item.line_no,
+                            },
+                            data: {
+                                description: item.description,
+                                quantity: item.quantity,
+                                unit_of_measure: item.unit_of_measure,
+                                unit_price: item.unit_price,
+                                total_price: item.quantity * item.unit_price,
+                            },
+                        }),
+                    ),
+                );
             }
 
             return tx.purchaseOrder.update({
@@ -728,7 +732,7 @@ export class PurchaseOrderManagementRepository {
             },
         });
 
-        if (!rfq || rfq.status !== RFQStatus.DRAFT) {
+        if (rfq?.status !== RFQStatus.DRAFT) {
             return null;
         }
 
