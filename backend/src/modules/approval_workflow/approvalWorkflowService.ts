@@ -631,6 +631,7 @@ export class ApprovalWorkflowService {
          tenant_id: tenantId,
          company_id: companyId,
          status: input.status,
+         approver_user_id: userId,
       }
 
       const workflowRequests = await this.repository.findApprovalWorkflowRequests(query)
@@ -638,6 +639,16 @@ export class ApprovalWorkflowService {
       return workflowRequests
 
     }
+
+      async countApprovalWorkflows (input: AuthenticatedUser) {
+         const membership = await this.checkMembership(input.userId)
+         return this.repository.countApprovalWorkflowRequests({
+             tenant_id: membership.company.tenant_id,
+             company_id: membership.company_id,
+             status: input.status,
+             approver_user_id: input.userId,
+         })
+      }
 
     async approvalRequest (input: AuthenticatedUser) {
 

@@ -23,7 +23,7 @@ import {
 import {
   ChevronsUpDownIcon,
   MoonIcon,
-  BadgeCheckIcon,
+  UserIcon,
   CreditCardIcon,
   BellIcon,
   LogOutIcon,
@@ -32,15 +32,50 @@ import { useTheme } from "next-themes";
 
 export function NavUser({
   user,
-}: {
+}: Readonly<{
   user: {
     name: string;
     email: string;
     avatar: string;
   };
-}) {
+}>) {
   const { isMobile } = useSidebar();
   const { setTheme } = useTheme();
+  /*
+  const router = useRouter()
+
+  const { data: session, isPending } = authClient.useSession()
+
+  const handleLogout = async () => {
+    await authClient.signOut()
+    router.push("/")
+  }
+
+  if (isPending) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" className="animate-pulse bg-muted/50" />
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
+
+  if (!session?.user) {
+    return null
+  }
+
+  const { name, email, image } = session.user
+
+  // displays user initials in place of profile pictures
+  const initials =
+    name
+      ?.split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "U"
+  */
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -108,8 +143,8 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <BadgeCheckIcon />
-                Account
+                <UserIcon />
+                Profile
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <CreditCardIcon />

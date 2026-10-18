@@ -652,6 +652,24 @@ export class purchaseRequisitionService {
         });
     }
 
+    async countRequisition(input: PurchaseRequisitionQuery) {
+        const { userId, tenantId, companyId, status, requesterId, pr_number } = input;
+        const membership = await this.repository.findActiveByUserId(userId, tenantId, companyId);
+
+        if (!membership) {
+            throw new Error("User has no active company membership");
+        }
+
+        return this.repository.countRequisitionsForQuery({
+            userId,
+            tenantId,
+            companyId,
+            status,
+            requesterId,
+            pr_number,
+        });
+    }
+
     async purchaseRequisitionDetail (input: PurchaseRequisitionIdParams) {
         /*
             1. It receives requisition id and user id 

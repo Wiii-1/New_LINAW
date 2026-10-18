@@ -449,6 +449,7 @@ export class PurchaseOrderManagementRepository {
 
     async getList(data: PoQueryContext) {
         return prisma.purchaseOrder.findMany({
+            take: 20,
             where: {
                 tenant_id: data.tenant_id,
                 company_id: data.company_id,
@@ -473,8 +474,22 @@ export class PurchaseOrderManagementRepository {
         });
     }
 
+    async countList(data: PoQueryContext) {
+        return prisma.purchaseOrder.count({
+            where: {
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+                ...(data.query?.status && { status: data.query.status }),
+                ...(data.query?.referenceNo && {
+                    po_number: { contains: data.query.referenceNo, mode: "insensitive" },
+                }),
+            },
+        });
+    }
+
     async getRFQS(data: RfqQueryContext) {
         return prisma.rFQ.findMany({
+            take: 20,
             where: {
                 tenant_id: data.tenant_id,
                 company_id: data.company_id,
@@ -492,6 +507,19 @@ export class PurchaseOrderManagementRepository {
             },
             include: {
                 items: true,
+            },
+        });
+    }
+
+    async countRFQS(data: RfqQueryContext) {
+        return prisma.rFQ.count({
+            where: {
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+                ...(data.query?.status && { status: data.query.status }),
+                ...(data.query?.purchase_requisition_id && {
+                    purchase_requisition_id: data.query.purchase_requisition_id,
+                }),
             },
         });
     }

@@ -142,11 +142,13 @@ export class PurchaseOrderManagementController {
         }
 
         const list = await this.service.getList(input)
+        const total = await this.service.countList(input)
 
         return c.json({
             success: true,
             message: "Success list is returned",
-            list
+            list,
+            total
         }, 200)
     }
 
@@ -193,10 +195,12 @@ export class PurchaseOrderManagementController {
         }
 
         const list = await this.service.getRFQS(input)
+        const total = await this.service.countRFQS(input)
 
         return c.json({
             success: true,
-            list
+            list,
+            total
         }, 200)
 
     }

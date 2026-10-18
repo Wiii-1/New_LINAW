@@ -109,10 +109,14 @@ export class ApprovalWorkflowController {
         const data = { userId: user_id, status: query.status }
 
         const getApprovalWorkflows = await this.service.getApprovalWorkflows(data)
+        const total = await this.service.countApprovalWorkflows(data)
 
         c.json({
             success: true,
-            data: getApprovalWorkflows
+            data: {
+                approval_requests: getApprovalWorkflows,
+                total,
+            }
         }, 200)
 
     }

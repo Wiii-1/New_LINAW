@@ -97,8 +97,21 @@ export class purchaseRequisitionRepository {
                     pr_number: data.pr_number,
                 }),
             },
+            orderBy: { updated_at: "desc" },
         });
     }    
+
+    async countRequisitionsForQuery(data: PurchaseRequisitionQueryData) {
+        return prisma.purchaseRequisition.count({
+            where: {
+                tenant_id: data.tenantId,
+                company_id: data.companyId,
+                ...(data.status && { status: data.status }),
+                ...(data.requesterId && { requested_by_user_id: data.requesterId }),
+                ...(data.pr_number && { pr_number: data.pr_number }),
+            },
+        });
+    }
 
     async findByRequisitionId (
         requisitionId: string

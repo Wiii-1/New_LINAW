@@ -383,12 +383,28 @@ export class PurchaseOrderManagementService {
         })
     }
 
+    async countList(input: ServicePoQuery) {
+        return this.repository.countList({
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+            query: input.query,
+        });
+    }
+
     async getRFQS(input: ServiceRfqsQuery) {
         return await this.repository.getRFQS({
             tenant_id: input.tenant_id,
             company_id: input.company_id,
             query: input.query,
         })
+    }
+
+    async countRFQS(input: ServiceRfqsQuery) {
+        return this.repository.countRFQS({
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+            query: input.query,
+        });
     }
 
     async getQuotationList(input: ServiceRfqIdParam) {

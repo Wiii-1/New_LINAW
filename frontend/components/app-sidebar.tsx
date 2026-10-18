@@ -3,7 +3,6 @@
 import * as React from "react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -16,138 +15,78 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  TerminalSquareIcon,
-  BotIcon,
-  BookOpenIcon,
-  Settings2Icon,
+  ArchiveIcon,
+  ClipboardCheckIcon,
+  FileCheck2Icon,
+  FileTextIcon,
+  GitBranchIcon,
+  LayoutDashboardIcon,
   LifeBuoyIcon,
-  SendIcon,
-  FrameIcon,
-  PieChartIcon,
-  MapIcon,
-  TerminalIcon,
+  ScrollTextIcon,
+  Settings2Icon,
+  ShieldCheckIcon,
+  UsersRoundIcon,
 } from "lucide-react";
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Amina Okafor",
+    email: "amina@northstar.edu",
+    avatar: "",
   },
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: <TerminalSquareIcon />,
+      title: "Overview",
+      url: "/dashboard",
+      icon: <LayoutDashboardIcon />,
       isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: <BotIcon />,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
+      title: "Purchase Requisitions",
+      url: "/purchase-requisitions",
+      icon: <FileTextIcon />,
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: <BookOpenIcon />,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
+      title: "Approval Workflows",
+      url: "/approval-workflows",
+      icon: <GitBranchIcon />,
     },
     {
-      title: "Settings",
-      url: "#",
-      icon: <Settings2Icon />,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
+      title: "Request for Quotations",
+      url: "/rfqs",
+      icon: <ClipboardCheckIcon />,
+    },
+    {
+      title: "Supplier Quotations",
+      url: "/quotations",
+      icon: <ArchiveIcon />,
+    },
+    {
+      title: "Purchase Orders",
+      url: "/purchase-orders",
+      icon: <FileCheck2Icon />,
+    },
+    {
+      title: "Audit Trail",
+      url: "/audit-trail",
+      icon: <ScrollTextIcon />,
+    },
+    {
+      title: "User & Roles",
+      url: "/users",
+      icon: <UsersRoundIcon />,
     },
   ],
   navSecondary: [
     {
-      title: "Support",
+      title: "Organization settings",
+      url: "/organizations",
+      icon: <Settings2Icon />,
+    },
+    {
+      title: "Support center",
       url: "#",
       icon: <LifeBuoyIcon />,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: <SendIcon />,
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "/organizations",
-      icon: <FrameIcon />,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: <PieChartIcon />,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: <MapIcon />,
     },
   ],
 };
@@ -160,13 +99,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<a href="#" />}>
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <TerminalIcon className="size-4" />
+            <SidebarMenuButton
+              size="lg"
+              render={<a href="/organizations" aria-label="Organizations" />}
+            >
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-[#1c63f2] text-white shadow-sm">
+                <ShieldCheckIcon className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Acme Inc</span>
-                <span className="truncate text-xs">Enterprise</span>
+                <span className="truncate font-semibold tracking-tight">
+                  LINAW
+                </span>
+                <span className="truncate text-[11px] text-sidebar-foreground/55">
+                  Procurement operations
+                </span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -174,7 +120,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
