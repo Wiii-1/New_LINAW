@@ -67,6 +67,7 @@ export async function proxy(request: NextRequest) {
     matchesRoute(pathname, route),
   );
 
+  // Do not forget to remove this
   const BYPASS_AUTH = true;
 
   if (BYPASS_AUTH) {

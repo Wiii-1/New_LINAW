@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Building2Icon,
   MailPlusIcon,
   MoreHorizontalIcon,
+  RotateCcwIcon,
   SearchIcon,
   ShieldAlertIcon,
   UserRoundIcon,
@@ -64,96 +65,53 @@ type Invitation = {
   created_at: string;
 };
 
-const initialSuppliers: Supplier[] = [
-  {
-    supplier_id: "supplier-001",
-    supplier_code: "SUP-00428",
-    legal_name: "Northstar Industrial Supply Ltd.",
-    display_name: "Northstar Industrial Supply",
-    tax_id: "GB 481 2291 84",
-    contact_email: "accounts@northstar.example",
-    contact_phone: "+44 20 7946 0182",
-    address: "18 Meridian Way, London",
-    supplier_status: "ACTIVE",
-    relationship_status: "ACTIVE",
-    created_at: "2026-08-14",
-    updated_at: "2026-10-11",
-  },
-  {
-    supplier_id: "supplier-002",
-    supplier_code: "SUP-00317",
-    legal_name: "Atlas Office Systems Inc.",
-    display_name: "Atlas Office Systems",
-    tax_id: "US 84-2195077",
-    contact_email: "hello@atlas.example",
-    contact_phone: "+1 212 555 0148",
-    address: "240 Madison Avenue, New York",
-    supplier_status: "ACTIVE",
-    relationship_status: "ACTIVE",
-    created_at: "2026-07-23",
-    updated_at: "2026-10-08",
-  },
-  {
-    supplier_id: "supplier-003",
-    supplier_code: "SUP-00294",
-    legal_name: "Clearline Network Services GmbH",
-    display_name: "Clearline Network Services",
-    tax_id: "DE 291 840 556",
-    contact_email: "service@clearline.example",
-    contact_phone: "+49 30 555 0110",
-    address: "Kronenstrasse 22, Berlin",
-    supplier_status: "ACTIVE",
-    relationship_status: "ACTIVE",
-    created_at: "2026-05-19",
-    updated_at: "2026-09-29",
-  },
-  {
-    supplier_id: "supplier-004",
-    supplier_code: "SUP-00186",
-    legal_name: "Meridian Facilities Group",
-    display_name: "Meridian Facilities",
-    tax_id: "GB 902 1174 31",
-    contact_email: "operations@meridian.example",
-    contact_phone: "+44 161 555 0197",
-    address: "7 Harbour Exchange, Manchester",
-    supplier_status: "ACTIVE",
-    relationship_status: "INACTIVE",
-    created_at: "2026-02-04",
-    updated_at: "2026-09-18",
-  },
-];
+type ListResponse<T> = {
+  success: boolean;
+  message?: string;
+  data?: {
+    suppliers?: T[];
+    invitations?: T[];
+  };
+};
 
-const initialInvitations: Invitation[] = [
-  {
-    invitation_id: "invitation-001",
-    email: "partnerships@evergreen.example",
-    invitation_status: "PENDING",
-    expires_at: "2026-10-21",
-    created_at: "2026-10-17",
-  },
-  {
-    invitation_id: "invitation-002",
-    email: "vendor@harbor.example",
-    invitation_status: "ACCEPTED",
-    expires_at: "2026-10-08",
-    created_at: "2026-10-05",
-  },
-  {
-    invitation_id: "invitation-003",
-    email: "sales@pioneer.example",
-    invitation_status: "EXPIRED",
-    expires_at: "2026-09-28",
-    created_at: "2026-09-25",
-  },
-];
+async function loadSupplierData(
+  query: string,
+  filter: "ALL" | RelationshipStatus,
+) {
+  const params = new URLSearchParams({ page: "1", limit: "100" });
+  if (query.trim()) params.set("name", query.trim());
+  if (filter !== "ALL") params.set("relationship_status", filter);
+
+  const [supplierResponse, invitationResponse] = await Promise.all([
+    fetch(`/api/suppliers?${params.toString()}`, { cache: "no-store" }),
+    fetch("/api/supplier-invitations?page=1&limit=100", {
+      cache: "no-store",
+    }),
+  ]);
+  const suppliersPayload = (await supplierResponse.json()) as ListResponse<Supplier>;
+  const invitationsPayload = (await invitationResponse.json()) as ListResponse<Invitation>;
+
+  if (!supplierResponse.ok || !suppliersPayload.success) {
+    throw new Error(suppliersPayload.message ?? "Unable to load suppliers.");
+  }
+  if (!invitationResponse.ok || !invitationsPayload.success) {
+    throw new Error(invitationsPayload.message ?? "Unable to load invitations.");
+  }
+
+  return {
+    suppliers: suppliersPayload.data?.suppliers ?? [],
+    invitations: invitationsPayload.data?.invitations ?? [],
+  };
+}
 
 function StatusBadge({ status }: Readonly<{ status: string }>) {
   const isActive = status === "ACTIVE" || status === "ACCEPTED";
-  const variant = isActive
-    ? "secondary"
-    : status === "EXPIRED"
-      ? "destructive"
-      : "outline";
+  let variant: "secondary" | "destructive" | "outline" = "outline";
+  if (isActive) {
+    variant = "secondary";
+  } else if (status === "EXPIRED") {
+    variant = "destructive";
+  }
 
   return <Badge variant={variant}>{status.toLowerCase()}</Badge>;
 }
@@ -163,17 +121,38 @@ function formatDate(value: string) {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  }).format(new Date(`${value}T00:00:00`));
+  }).format(new Date(value.includes("T") ? value : `${value}T00:00:00`));
 }
 
 export default function SuppliersPage() {
-  const [suppliers, setSuppliers] = useState(initialSuppliers);
-  const [invitations, setInvitations] = useState(initialInvitations);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"ALL" | RelationshipStatus>("ALL");
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function refreshData() {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await loadSupplierData(query, filter);
+      setSuppliers(data.suppliers);
+      setInvitations(data.invitations);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to load supplier data.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshData();
+  }, [query, filter]);
 
   const filteredSuppliers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -195,47 +174,33 @@ export default function SuppliersPage() {
     });
   }, [filter, query, suppliers]);
 
-  function deactivateSupplier() {
+  async function deactivateSupplier() {
     if (!selectedSupplier) return;
 
-    setSuppliers((current) =>
-      current.map((supplier) =>
-        supplier.supplier_id === selectedSupplier.supplier_id
-          ? {
-              ...supplier,
-              relationship_status: "INACTIVE",
-              updated_at: "2026-10-18",
-            }
-          : supplier,
-      ),
+    const response = await fetch(
+      `/api/suppliers/${selectedSupplier.supplier_id}/relationship`,
+      { method: "DELETE" },
     );
-    setSelectedSupplier((current) =>
-      current
-        ? {
-            ...current,
-            relationship_status: "INACTIVE",
-            updated_at: "2026-10-18",
-          }
-        : current,
-    );
+    if (!response.ok) return;
+
+    setSelectedSupplier(null);
+    await refreshData();
   }
 
-  function createInvitation() {
+  async function createInvitation() {
     const email = inviteEmail.trim().toLowerCase();
     if (!email) return;
 
-    setInvitations((current) => [
-      {
-        invitation_id: `invitation-${current.length + 1}`,
-        email,
-        invitation_status: "PENDING",
-        expires_at: "2026-10-21",
-        created_at: "2026-10-18",
-      },
-      ...current,
-    ]);
+    const response = await fetch("/api/supplier-invitations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) return;
+
     setInviteEmail("");
     setInviteOpen(false);
+    await refreshData();
   }
 
   const activeCount = suppliers.filter(
@@ -244,6 +209,7 @@ export default function SuppliersPage() {
   const pendingCount = invitations.filter(
     (invitation) => invitation.invitation_status === "PENDING",
   ).length;
+  const hasSupplierFilters = query.trim().length > 0 || filter !== "ALL";
 
   return (
     <main className="min-h-[calc(100svh-var(--header-height))]">
@@ -264,6 +230,12 @@ export default function SuppliersPage() {
             Invite supplier
           </Button>
         </header>
+
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
 
         <div className="grid gap-3 sm:grid-cols-3">
           <Card size="sm">
@@ -345,7 +317,14 @@ export default function SuppliersPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredSuppliers.map((supplier) => (
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                            Loading suppliers...
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredSuppliers.length ? (
+                        filteredSuppliers.map((supplier) => (
                         <TableRow key={supplier.supplier_id} className="group">
                           <TableCell>
                             <button
@@ -385,14 +364,46 @@ export default function SuppliersPage() {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
-                      {!filteredSuppliers.length && (
+                        ))
+                      ) : (
                         <TableRow>
                           <TableCell
                             colSpan={6}
-                            className="h-24 text-center text-muted-foreground"
+                            className="h-52"
                           >
-                            No suppliers match this view.
+                            <div className="flex flex-col items-center justify-center gap-2 text-center">
+                              <Building2Icon className="size-8 text-muted-foreground" />
+                              <div>
+                                <p className="font-medium">
+                                  {hasSupplierFilters
+                                    ? "No suppliers match this view"
+                                    : "No suppliers yet"}
+                                </p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  {hasSupplierFilters
+                                    ? "Try another search or reset the filters."
+                                    : "Invite a supplier to start building your directory."}
+                                </p>
+                              </div>
+                              {hasSupplierFilters ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setQuery("");
+                                    setFilter("ALL");
+                                  }}
+                                >
+                                  <RotateCcwIcon />
+                                  Reset filters
+                                </Button>
+                              ) : (
+                                <Button size="sm" onClick={() => setInviteOpen(true)}>
+                                  <MailPlusIcon />
+                                  Invite supplier
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       )}
@@ -433,31 +444,57 @@ export default function SuppliersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {invitations.map((invitation) => (
-                      <TableRow key={invitation.invitation_id}>
-                        <TableCell className="font-medium">
-                          {invitation.email}
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={invitation.invitation_status} />
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(invitation.created_at)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(invitation.expires_at)}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            aria-label={`More actions for ${invitation.email}`}
-                          >
-                            <MoreHorizontalIcon />
-                          </Button>
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                          Loading invitations...
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : invitations.length ? (
+                      invitations.map((invitation) => (
+                        <TableRow key={invitation.invitation_id}>
+                          <TableCell className="font-medium">
+                            {invitation.email}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={invitation.invitation_status} />
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(invitation.created_at)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(invitation.expires_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              aria-label={`More actions for ${invitation.email}`}
+                            >
+                              <MoreHorizontalIcon />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-52">
+                          <div className="flex flex-col items-center justify-center gap-2 text-center">
+                            <MailPlusIcon className="size-8 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">No invitations yet</p>
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                Invite a supplier to send your first invitation.
+                              </p>
+                            </div>
+                            <Button size="sm" onClick={() => setInviteOpen(true)}>
+                              <MailPlusIcon />
+                              Invite supplier
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
