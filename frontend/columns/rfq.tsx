@@ -1,7 +1,7 @@
 "use client";
 
 import { createColumnHelper } from "@tanstack/react-table";
-import { type DataTableFeatures } from "../components/data-table-features";
+import { type DataTableFeatures } from "../types/data-table-features";
 
 export type RFQ = {
   id: string;
