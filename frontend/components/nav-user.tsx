@@ -29,6 +29,7 @@ import {
   LogOutIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import * as React from "react";
 
 export function NavUser({
   user,
@@ -41,6 +42,37 @@ export function NavUser({
 }>) {
   const { isMobile } = useSidebar();
   const { setTheme } = useTheme();
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const initials =
+    user.name
+      .split(" ")
+      .map((part) => part[0])
+      .filter(Boolean)
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "U";
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        setIsLoggingOut(false);
+        return;
+      }
+
+      window.location.assign("/login");
+    } catch {
+      setIsLoggingOut(false);
+    }
+  };
   /*
   const router = useRouter()
 
@@ -90,7 +122,7 @@ export function NavUser({
           >
             <Avatar>
               <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback>CN</AvatarFallback>
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.name}</span>
@@ -109,7 +141,7 @@ export function NavUser({
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar>
                     <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback>CN</AvatarFallback>
+                    <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
@@ -157,7 +189,11 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem variant="destructive">
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={isLoggingOut}
+                onClick={() => void handleLogout()}
+              >
                 <LogOutIcon />
                 Log out
               </DropdownMenuItem>
