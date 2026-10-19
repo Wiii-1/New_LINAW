@@ -23,6 +23,7 @@ import {
   type DashboardData,
   type DashboardTransaction,
 } from "@/lib/dashboard-data";
+import { formatCurrency } from "@/lib/currencies";
 
 const toneClasses: Record<string, string> = {
   blue: "ring-1 ring-blue-100 dark:ring-blue-700/50",
@@ -35,11 +36,7 @@ const toneClasses: Record<string, string> = {
 function formatAmount(transaction: DashboardTransaction): string {
   if (transaction.amount === null || !transaction.currency) return "Unavailable";
 
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: transaction.currency,
-    maximumFractionDigits: 2,
-  }).format(transaction.amount);
+  return formatCurrency(transaction.amount, transaction.currency);
 }
 
 function formatDate(value: string | null): string {
@@ -226,12 +223,18 @@ export default function Page() {
               ["Requisitions", dashboard?.requisitionTotal ?? dashboard?.requisitions.length ?? 0],
               ["Approvals", dashboard?.approvalTotal ?? dashboard?.approvals.length ?? 0],
               ["RFQs", dashboard?.rfqTotal ?? dashboard?.rfqs.length ?? 0],
-              ["Quotations", "Unavailable"],
+              ["Quotations", dashboard?.quotationTotal ?? 0],
               ["Purchase orders", dashboard?.purchaseOrderTotal ?? dashboard?.purchaseOrders.length ?? 0],
             ].map(([label, value], index) => (
               <div
                 key={label}
                 className="relative flex items-center gap-3 rounded-lg px-3 py-3 md:block md:px-0 md:py-0"
+                onClick={label === "Quotations" ? () => window.location.assign("/quotations") : undefined}
+                onKeyDown={label === "Quotations" ? (event) => {
+                  if (event.key === "Enter" || event.key === " ") window.location.assign("/quotations");
+                } : undefined}
+                role={label === "Quotations" ? "link" : undefined}
+                tabIndex={label === "Quotations" ? 0 : undefined}
               >
                 <div className="flex items-center gap-2 md:mb-3">
                   <span className="text-xs font-medium">

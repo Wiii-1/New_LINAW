@@ -19,7 +19,6 @@
 
         "APP_URL": "http://localhost:5173",
         "ALLOWED_ORIGIN": "http://localhost:5173",
-        "DATABASE_URL": "postgresql://user:password@localhost/linaw",
 
         "REDIS_URL": "https://linaw-buff-inlet-rest.cloud.layerbase.dev",
 

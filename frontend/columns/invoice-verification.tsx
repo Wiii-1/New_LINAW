@@ -2,6 +2,7 @@
 
 import { createColumnHelper } from "@tanstack/react-table";
 import { type DataTableFeatures } from "../components/data-table-features";
+import { formatCurrency } from "../lib/currencies";
 
 export type InvoiceVerification = {
   id: string;
@@ -43,10 +44,7 @@ export const invoiceVerificationColumns = columnHelper.columns([
     header: () => <div className="text-right">Total Amount</div>,
     cell: ({ row }) => {
       const amount = Number(row.getValue("total_amount"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: row.original.currency_code || "USD",
-      }).format(amount);
+      const formatted = formatCurrency(amount, row.original.currency_code);
       return <div className="text-right font-medium">{formatted}</div>;
     },
   }),

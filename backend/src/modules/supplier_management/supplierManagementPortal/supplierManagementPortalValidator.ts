@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+    currencyCodeSchema,
+    DEFAULT_CURRENCY_CODE,
+    hasCurrencyPrecision,
+} from "../../../shared/currency.js";
 
 // ====================
 // RFQ Parameters
@@ -46,8 +51,8 @@ export const SupplierQuotationItemSchema = z.object({
         .positive("Unit price must be greater than zero.")
         .refine(
             (value) => Number.isFinite(value) &&
-                Number(value.toFixed(2)) === value,
-            "Unit price supports up to 2 decimal places.",
+                Number(value.toFixed(4)) === value,
+            "Unit price supports up to 4 decimal places.",
         ),
 
     lead_time_days: z
@@ -68,19 +73,25 @@ export const SupplierQuotationItemSchema = z.object({
 // ====================
 
 export const SubmitSupplierQuotationSchema = z.object({
-    currency_code: z
-        .string()
-        .trim()
-        .regex(
-            /^[A-Z]{3}$/,
-            "Currency code must be a three-letter uppercase code.",
-        ),
+    currency_code: currencyCodeSchema
+        .optional()
+        .default(DEFAULT_CURRENCY_CODE),
 
     valid_until: z.coerce.date().optional(),
 
     items: z
         .array(SupplierQuotationItemSchema)
         .min(1, "A quotation must contain at least one item."),
+}).superRefine((value, context) => {
+    value.items.forEach((item, index) => {
+        if (!hasCurrencyPrecision(item.unit_price, value.currency_code)) {
+            context.addIssue({
+                code: "custom",
+                path: ["items", index, "unit_price"],
+                message: `Unit price does not match ${value.currency_code} minor-unit precision.`,
+            });
+        }
+    });
 });
 
 // ====================

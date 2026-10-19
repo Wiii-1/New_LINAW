@@ -29,8 +29,8 @@ export interface PurchaseRequisitionItemCreateData {
     specification: string;
     quantity: number;
     unit_of_measure: string;
-    estimated_unit_cost: number;
-    estimated_total_cost: number;
+    estimated_unit_cost: Prisma.Decimal;
+    estimated_total_cost: Prisma.Decimal;
     category_id: string | null ;
     needed_by_date: string | null;
     status: PurchaseRequisitionStatus;

@@ -81,7 +81,7 @@ app.all("*", async (c: Context<AppContext>) => {
         router.route("/PurchaseRequisition", purchaseRequisitionRouter );
         router.route("/organizationManagement", organizationAdministrationRouter)
         router.route("/purchase-orders", purchaseOrderManagementRouter)
-        router.route("/", supplierManagementRouter);
+        router.route("/suppliers", supplierManagementRouter);
         router.route("/userManagementRouter", userManagementRouter)
 
         const forwardedUrl = new URL(c.req.url);

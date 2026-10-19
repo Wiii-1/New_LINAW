@@ -4,11 +4,14 @@
 # Backend
 # =====================
 
+.wrangler/
 node_modules/
 generated/
 dist
 
+# =====================
 # Environment
+# =====================
 .env
 
 # =====================

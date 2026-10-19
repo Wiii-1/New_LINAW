@@ -425,6 +425,15 @@ export class PurchaseOrderManagementService {
         })
     }
 
+    async getAllQuotations(input: { tenant_id: string; company_id: string }) {
+        const [list, total] = await Promise.all([
+            this.repository.getAllQuotations(input),
+            this.repository.countQuotations(input),
+        ]);
+
+        return { list, total };
+    }
+
     async getQuotation(input: ServiceQuotationParam) {
         const quotation = await this.repository.getQuotation({
             tenant_id: input.tenant_id,

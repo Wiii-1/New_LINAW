@@ -560,6 +560,30 @@ export class PurchaseOrderManagementRepository {
         });
     }
 
+    async getAllQuotations(data: { tenant_id: string; company_id: string }) {
+        return prisma.supplierQuotation.findMany({
+            where: {
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+            },
+            orderBy: { created_at: "desc" },
+            include: {
+                items: true,
+                rfq: { select: { id: true, rfq_number: true, title: true } },
+                supplier: { select: { id: true, supplier_code: true } },
+            },
+        });
+    }
+
+    async countQuotations(data: { tenant_id: string; company_id: string }) {
+        return prisma.supplierQuotation.count({
+            where: {
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+            },
+        });
+    }
+
     async getQuotation(data: GetQuotationContext) {
         return prisma.supplierQuotation.findFirst({
             where: {

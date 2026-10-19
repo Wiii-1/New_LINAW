@@ -55,19 +55,19 @@ export function createSupplierManagement() {
 
     // GET
     router.get(
-        "/suppliers",
+        "/suppliers-governance",
         Authorize(systemPermissions.supplierManagement.read),
         governanceController.getSuppliers,
     );
     router.get(
-        "/suppliers/:supplierId",
+        "/suppliers-governce/:supplierId",
         Authorize(systemPermissions.supplierManagement.readSupplier),
         governanceController.getSupplier,
     );
 
     // DELETE
     router.delete(
-        "/suppliers/:supplierId/relationship",
+        "/suppliers-governance/:supplierId/relationship",
         Authorize(systemPermissions.supplierManagement.removeSupplier),
         governanceController.removeSupplierRelationship
     );

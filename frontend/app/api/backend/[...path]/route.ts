@@ -1,7 +1,4 @@
-import { env } from "cloudflare:workers";
-
-const ACCESS_TOKEN_MAX_AGE = 60 * 60;
-const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
+import { forwardBackendRequest } from "@/lib/backend-request";
 
 const allowedPrefixes = [
   "userManagementRouter/profile",
@@ -10,81 +7,10 @@ const allowedPrefixes = [
   "purchase-orders",
 ];
 
-type AuthResponse = {
-  success?: boolean;
-  message?: string;
-  result?: {
-    accessToken?: string;
-    refreshToken?: string;
-  };
-};
-
-function getApiUrl(): string | undefined {
-  return (env as typeof env & { LINAW_API_URL?: string }).LINAW_API_URL;
-}
-
-function getCookie(request: Request, name: string): string | undefined {
-  return request.headers
-    .get("Cookie")
-    ?.split(";")
-    .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith(`${name}=`))
-    ?.slice(name.length + 1);
-}
-
 function isAllowedPath(path: string): boolean {
-  // Normalize path to prevent traversal and encoding tricks
-  const normalized = path.replace(/\/+/g, "/").replace(/\/\.\//g, "/");
-  if (normalized !== path) return false;
-  if (normalized.includes("..")) return false;
-  if (normalized.includes("%")) return false;
-
   return allowedPrefixes.some(
-    (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`),
+    (prefix) => path === prefix || path.startsWith(`${prefix}/`),
   );
-}
-
-function sessionCookies(request: Request, accessToken: string, refreshToken: string) {
-  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  return [
-    `accessToken=${encodeURIComponent(accessToken)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${ACCESS_TOKEN_MAX_AGE}${secure}`,
-    `refreshToken=${encodeURIComponent(refreshToken)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${REFRESH_TOKEN_MAX_AGE}${secure}`,
-  ];
-}
-
-async function refreshSession(
-  request: Request,
-  baseUrl: string,
-): Promise<{ accessToken: string; refreshToken: string } | null> {
-  const refreshToken = getCookie(request, "refreshToken");
-
-  if (!refreshToken) {
-    return null;
-  }
-
-  const response = await fetch(`${baseUrl}/api/auth/refresh`, {
-    method: "POST",
-    headers: { Cookie: `refreshToken=${refreshToken}` },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const data = (await response.json()) as AuthResponse;
-  const accessToken = data.result?.accessToken;
-  const newRefreshToken = data.result?.refreshToken;
-
-  if (
-    data.success !== true ||
-    typeof accessToken !== "string" ||
-    typeof newRefreshToken !== "string"
-  ) {
-    return null;
-  }
-
-  return { accessToken, refreshToken: newRefreshToken };
 }
 
 export async function GET(
@@ -92,76 +18,13 @@ export async function GET(
   context: { params: Promise<{ path?: string[] }> },
 ): Promise<Response> {
   const path = (await context.params).path?.join("/") ?? "";
+  return forwardBackendRequest(request, path, "GET", isAllowedPath);
+}
 
-  if (!isAllowedPath(path)) {
-    return Response.json({ success: false, message: "Route is not available." }, { status: 404 });
-  }
-
-  const apiUrl = getApiUrl();
-
-  if (!apiUrl) {
-    return Response.json(
-      { success: false, message: "Backend service is not configured." },
-      { status: 500 },
-    );
-  }
-
-  const baseUrl = apiUrl.replace(/\/+$/, "");
-  const targetUrl = `${baseUrl}/api/${path}${new URL(request.url).search}`;
-  let accessToken = getCookie(request, "accessToken");
-  let refreshedSession: { accessToken: string; refreshToken: string } | null = null;
-
-  if (!accessToken) {
-    refreshedSession = await refreshSession(request, baseUrl);
-    accessToken = refreshedSession?.accessToken;
-  }
-
-  if (!accessToken) {
-    return Response.json(
-      { success: false, message: "Your session has expired. Please sign in again." },
-      { status: 401, headers: { "Cache-Control": "no-store" } },
-    );
-  }
-
-  let upstream = await fetch(targetUrl, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: "application/json",
-    },
-    cache: "no-store",
-  });
-
-  if (upstream.status === 401 && !refreshedSession) {
-    refreshedSession = await refreshSession(request, baseUrl);
-
-    if (refreshedSession) {
-      upstream = await fetch(targetUrl, {
-        headers: {
-          Authorization: `Bearer ${refreshedSession.accessToken}`,
-          Accept: "application/json",
-        },
-        cache: "no-store",
-      });
-    }
-  }
-
-  const headers = new Headers({
-    "Content-Type": upstream.headers.get("Content-Type") ?? "application/json",
-    "Cache-Control": "no-store",
-  });
-
-  if (refreshedSession) {
-    for (const cookie of sessionCookies(
-      request,
-      refreshedSession.accessToken,
-      refreshedSession.refreshToken,
-    )) {
-      headers.append("Set-Cookie", cookie);
-    }
-  }
-
-  return new Response(await upstream.arrayBuffer(), {
-    status: upstream.status,
-    headers,
-  });
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ path?: string[] }> },
+): Promise<Response> {
+  const path = (await context.params).path?.join("/") ?? "";
+  return forwardBackendRequest(request, path, "POST", isAllowedPath);
 }

@@ -62,8 +62,8 @@ export interface PurchaseRequisitionItemCreateData {
     specification: string;
     quantity: number;
     unit_of_measure: string;
-    estimated_unit_cost: number;
-    estimated_total_cost: number;
+    estimated_unit_cost: Prisma.Decimal;
+    estimated_total_cost: Prisma.Decimal;
     category_id: string | null ;
     needed_by_date: string | null;
     status: PurchaseRequisitionStatus;
@@ -133,9 +133,12 @@ export class purchaseRequisitionService {
         }
 
         const total_amount = items.reduce(
-            (total: number, item: { quantity: number; estimated_unit_cost: number }) =>
-                total + item.quantity * item.estimated_unit_cost,
-            0
+            (total, item) => total.add(
+                new Prisma.Decimal(item.quantity).mul(
+                    new Prisma.Decimal(item.estimated_unit_cost),
+                ),
+            ),
+            new Prisma.Decimal(0),
         );
 
         const dataCreate: purchaseRequisitionData = {
@@ -151,7 +154,7 @@ export class purchaseRequisitionService {
             status: PurchaseRequisitionStatus.DRAFT,
             priority,
             currency_code,
-            total_amount: new Prisma.Decimal(total_amount),
+            total_amount,
             needed_by_date: needed_by_date ? new Date(needed_by_date): null,
             created_at
         };
@@ -171,8 +174,10 @@ export class purchaseRequisitionService {
                 specification: item.specification,
                 quantity: item.quantity,
                 unit_of_measure: item.unit_of_measure,
-                estimated_unit_cost: item.estimated_unit_cost,
-                estimated_total_cost: item.quantity * item.estimated_unit_cost,
+                estimated_unit_cost: new Prisma.Decimal(item.estimated_unit_cost),
+                estimated_total_cost: new Prisma.Decimal(item.quantity).mul(
+                    new Prisma.Decimal(item.estimated_unit_cost),
+                ),
                 category_id: item.category_id ?? null,
                 needed_by_date: item.needed_by_date ?? null,
                 status: PurchaseRequisitionStatus.DRAFT                
@@ -516,9 +521,12 @@ export class purchaseRequisitionService {
         const pr_number = this.prNumberGenerator(created_at, requisition.root_id, generation )
 
         const total_amount = items.reduce(
-            (total: number, item: { quantity: number; estimated_unit_cost: number }) =>
-                total + item.quantity * item.estimated_unit_cost,
-            0
+            (total, item) => total.add(
+                new Prisma.Decimal(item.quantity).mul(
+                    new Prisma.Decimal(item.estimated_unit_cost),
+                ),
+            ),
+            new Prisma.Decimal(0),
         );
 
         const requested_by_user_id =  userId
@@ -544,7 +552,7 @@ export class purchaseRequisitionService {
             status: PurchaseRequisitionStatus.DRAFT,
             priority,
             currency_code,
-            total_amount: new Prisma.Decimal(total_amount),
+            total_amount,
             needed_by_date: needed_by_date ? new Date(needed_by_date): null,
             created_at
         };
@@ -564,8 +572,10 @@ export class purchaseRequisitionService {
                 specification: item.specification,
                 quantity: item.quantity,
                 unit_of_measure: item.unit_of_measure,
-                estimated_unit_cost: item.estimated_unit_cost,
-                estimated_total_cost: item.quantity * item.estimated_unit_cost,
+                estimated_unit_cost: new Prisma.Decimal(item.estimated_unit_cost),
+                estimated_total_cost: new Prisma.Decimal(item.quantity).mul(
+                    new Prisma.Decimal(item.estimated_unit_cost),
+                ),
                 category_id: item.category_id ?? null,
                 needed_by_date: item.needed_by_date ?? null,
                 status: PurchaseRequisitionStatus.DRAFT                
@@ -811,8 +821,10 @@ export class purchaseRequisitionService {
                         specification: item.specification,
                         quantity: item.quantity,
                         unit_of_measure: item.unit_of_measure,
-                        estimated_unit_cost: item.estimated_unit_cost,
-                        estimated_total_cost: item.quantity * item.estimated_unit_cost,
+                        estimated_unit_cost: new Prisma.Decimal(item.estimated_unit_cost),
+                        estimated_total_cost: new Prisma.Decimal(item.quantity).mul(
+                            new Prisma.Decimal(item.estimated_unit_cost),
+                        ),
                         category_id: item.category_id ?? null,
                         needed_by_date: item.needed_by_date ?? null,
                         status: PurchaseRequisitionStatus.DRAFT

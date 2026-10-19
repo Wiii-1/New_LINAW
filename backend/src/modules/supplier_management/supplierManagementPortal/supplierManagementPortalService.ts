@@ -5,6 +5,8 @@ import type {
 } from "./supplierManagementPortalValidator";
 import { SupplierManagementPortalRepository } from "./supplierManagementPortalRepository";
 import { SUPPLIER_QUOTATION_SUBMITTED_EVENT } from "./supplierManagementPortalEventHandler";
+import Decimal from "decimal.js";
+import { currencyDecimalPlaces } from "../../../shared/currency.js";
 
 interface SupplierPortalContext {
     user_id: string;
@@ -68,39 +70,23 @@ export class SupplierManagementPortalService {
         return `${uniqueIdentifier}-${date}-${revision}`;
     }
 
-    /**
-     * Convert a monetary amount into integer cents.
-     */
-    private toCents(amount: number): number {
-        return Math.round(amount * 100);
-    }
-
-    /**
-     * Format integer cents as a decimal string suitable for Prisma Decimal.
-     */
-    private formatCents(cents: number): string {
-        return (cents / 100).toFixed(2);
-    }
-
-    /**
-     * Convert a quantity with up to four decimal places into an integer.
-     */
-    private toQuantityUnits(quantity: number): number {
-        return Math.round(quantity * 10_000);
+    private formatAmount(amount: Decimal, currencyCode: string): string {
+        const digits = currencyDecimalPlaces(currencyCode);
+        return amount.toDecimalPlaces(digits).toFixed(digits);
     }
 
     /**
      * Calculate the line total without directly summing floating-point
      * monetary values.
      */
-    private calculateLineTotalCents(
+    private calculateLineTotal(
         quantity: number,
         unitPrice: number,
-    ): number {
-        const quantityUnits = this.toQuantityUnits(quantity);
-        const unitPriceCents = this.toCents(unitPrice);
-
-        return Math.round((quantityUnits * unitPriceCents) / 10_000);
+        currencyCode: string,
+    ): Decimal {
+        return new Decimal(quantity)
+            .mul(unitPrice)
+            .toDecimalPlaces(currencyDecimalPlaces(currencyCode));
     }
 
     /**
@@ -206,7 +192,7 @@ export class SupplierManagementPortalService {
 
         const submittedItemIds = new Set<string>();
 
-        let totalAmountCents = 0;
+        let totalAmount = new Decimal(0);
 
         const quotationItems = input.body.items.map((item, index) => {
             const rfqItem = rfqItemsById.get(item.rfq_item_id);
@@ -225,12 +211,13 @@ export class SupplierManagementPortalService {
 
             submittedItemIds.add(item.rfq_item_id);
 
-            const lineTotalCents = this.calculateLineTotalCents(
+            const lineTotal = this.calculateLineTotal(
                 item.quoted_quantity,
                 item.unit_price,
+                input.body.currency_code,
             );
 
-            totalAmountCents += lineTotalCents;
+            totalAmount = totalAmount.add(lineTotal);
 
             return {
                 tenant_id: rfq.tenant_id,
@@ -238,8 +225,14 @@ export class SupplierManagementPortalService {
                 rfq_item_id: rfqItem.id,
                 line_no: index + 1,
                 quoted_quantity: item.quoted_quantity.toFixed(4),
-                unit_price: item.unit_price.toFixed(2),
-                total_price: this.formatCents(lineTotalCents),
+                unit_price: this.formatAmount(
+                    new Decimal(item.unit_price),
+                    input.body.currency_code,
+                ),
+                total_price: this.formatAmount(
+                    lineTotal,
+                    input.body.currency_code,
+                ),
                 ...(item.lead_time_days !== undefined
                     ? { lead_time_days: item.lead_time_days }
                     : {}),
@@ -267,7 +260,10 @@ export class SupplierManagementPortalService {
             rfq_id: rfq.id,
             quotation_number: quotationNumber,
             currency_code: input.body.currency_code,
-            total_amount: this.formatCents(totalAmountCents),
+            total_amount: this.formatAmount(
+                totalAmount,
+                input.body.currency_code,
+            ),
             submitted_at: submittedAt,
             valid_until: input.body.valid_until ?? null,
             items: quotationItems,

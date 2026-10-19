@@ -12,6 +12,10 @@ import {
   XCircleIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DEFAULT_CURRENCY_CODE,
+  formatCurrency,
+} from "@/lib/currencies";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -31,6 +35,7 @@ type ApprovalRequest = {
   requester: string;
   entity_type: string;
   amount: number;
+  currency_code?: string;
   current_level: number;
   status: ApprovalStatus;
   submitted_at: string;
@@ -114,12 +119,6 @@ const initialRequests: ApprovalRequest[] = [
     ],
   },
 ];
-
-const currency = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  maximumFractionDigits: 0,
-});
 
 const statusLabels: Record<ApprovalStatus, string> = {
   PENDING: "Pending",
@@ -308,7 +307,7 @@ export default function ApprovalWorkflowsPage() {
                     <span>{request.requester}</span>
                     <span className="text-xs">{request.submitted_at}</span>
                   </span>
-                  <span className="font-medium">{currency.format(request.amount)}</span>
+                  <span className="font-medium">{formatCurrency(request.amount, request.currency_code ?? DEFAULT_CURRENCY_CODE)}</span>
                   <span className="flex flex-col gap-1">
                     <span>Level {request.current_level}</span>
                     <span className="text-xs">{request.approver_role}</span>
@@ -362,7 +361,7 @@ export default function ApprovalWorkflowsPage() {
                   </div>
                   <div className="space-y-1">
                     <span className="text-xs uppercase tracking-wider">Amount</span>
-                    <p className="font-medium">{currency.format(selectedRequest.amount)}</p>
+                    <p className="font-medium">{formatCurrency(selectedRequest.amount, selectedRequest.currency_code ?? DEFAULT_CURRENCY_CODE)}</p>
                   </div>
                   <div className="space-y-1">
                     <span className="text-xs uppercase tracking-wider">Current level</span>

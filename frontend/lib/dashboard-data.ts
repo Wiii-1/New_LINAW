@@ -52,6 +52,16 @@ const rfqSchema = z.object({
   updated_at: z.string().optional(),
 });
 
+const quotationSchema = z.object({
+  id: z.string(),
+  quotation_number: z.string(),
+  currency_code: z.string(),
+  total_amount: numberLike,
+  status: z.string(),
+  rfq: z.object({ id: z.string(), rfq_number: z.string(), title: z.string() }),
+  supplier: z.object({ id: z.string(), supplier_code: z.string() }),
+});
+
 type ApiResponse = { success?: boolean; message?: string; data?: unknown; list?: unknown; total?: unknown };
 
 export type DashboardTransaction = {
@@ -85,6 +95,7 @@ export type DashboardData = {
   requisitionTotal: number | null;
   approvalTotal: number | null;
   rfqTotal: number | null;
+  quotationTotal: number | null;
   purchaseOrderTotal: number | null;
   approvals: DashboardApproval[];
   errors: string[];
@@ -129,6 +140,7 @@ export async function fetchDashboardData(signal: AbortSignal): Promise<Dashboard
     getJson("approval-workflows?status=PENDING", signal),
     getJson("purchase-orders/rfqs?status=PUBLISHED", signal),
     getJson("purchase-orders", signal),
+    getJson("purchase-orders/quotations", signal),
   ]);
 
   const errors: string[] = [];
@@ -155,6 +167,7 @@ export async function fetchDashboardData(signal: AbortSignal): Promise<Dashboard
   const approvals = z.array(approvalSchema).safeParse(approvalList);
   const rfqs = z.array(rfqSchema).safeParse(values[3]?.list);
   const purchaseOrders = z.array(purchaseOrderSchema).safeParse(values[4]?.list);
+  const quotations = z.array(quotationSchema).safeParse(values[5]?.list);
 
   return {
     profile: profile.success
@@ -171,6 +184,7 @@ export async function fetchDashboardData(signal: AbortSignal): Promise<Dashboard
       ? (approvalData as { total?: unknown }).total
       : null),
     rfqTotal: totalValue(values[3]?.total),
+    quotationTotal: quotations.success ? totalValue(values[5]?.total) : null,
     purchaseOrderTotal: totalValue(values[4]?.total),
     requisitions: requisitions.success
       ? requisitions.data.map((item) => ({

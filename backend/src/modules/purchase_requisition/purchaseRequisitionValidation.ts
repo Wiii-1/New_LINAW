@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+    currencyCodeSchema,
+    DEFAULT_CURRENCY_CODE,
+    hasCurrencyPrecision,
+} from "../../shared/currency.js";
 
 // ===========================
 // Shared Schemas
@@ -51,16 +56,13 @@ const quantitySchema = z
         "Quantity cannot have more than 4 decimal places."
     );
 
-// Prisma:
-// Decimal(18, 2)
-// Allows up to 2 decimal places.
 const estimatedUnitCostSchema = z
     .number()
     .finite("Estimated unit cost must be a valid number.")
     .nonnegative("Estimated unit cost cannot be negative.")
     .refine(
-        (value: number) => Number.isInteger(value * 100),
-        "Estimated unit cost cannot have more than 2 decimal places."
+        (value: number) => Number.isInteger(value * 10_000),
+        "Estimated unit cost cannot have more than 4 decimal places."
     );
 
 // ===========================
@@ -145,16 +147,9 @@ export const purchaseRequisitionInputSchema = z
             .optional()
             .default("NORMAL"),
 
-        currency_code: z
-            .string()
-            .trim()
-            .length(
-                3,
-                "Currency code must be 3 characters."
-            )
-            .toUpperCase()
+        currency_code: currencyCodeSchema
             .optional()
-            .default("PHP"),
+            .default(DEFAULT_CURRENCY_CODE),
 
         needed_by_date: z
             .string()
@@ -189,6 +184,17 @@ export const purchaseRequisitionInputSchema = z
     .refine((value) => value.items.length > 0, {
         message: "At least one line item is required.",
         path: ["line_items"],
+    })
+    .superRefine((value, context) => {
+        value.items.forEach((item, index) => {
+            if (!hasCurrencyPrecision(item.estimated_unit_cost, value.currency_code)) {
+                context.addIssue({
+                    code: "custom",
+                    path: ["items", index, "estimated_unit_cost"],
+                    message: `Estimated unit cost does not match ${value.currency_code} minor-unit precision.`,
+                });
+            }
+        });
     });
 
 // ===========================

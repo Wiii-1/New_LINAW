@@ -232,6 +232,18 @@ export class PurchaseOrderManagementController {
         }, 200)
     }
 
+    getAllQuotations = async (c: Context<AppContext>) => {
+        const { tenant_id, company_id } = c.var.user;
+
+        if (!company_id) {
+            throw new NotFoundError("User does not belong to a company");
+        }
+
+        const quotations = await this.service.getAllQuotations({ tenant_id, company_id });
+
+        return c.json({ success: true, ...quotations }, 200);
+    }
+
     getQuotation = async (
         c: Context<AppContext>
     ) => {

@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { z } from "zod";
 import {
   CalendarDaysIcon,
   FileTextIcon,
@@ -25,6 +27,11 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  formatCurrency,
+  getCurrency,
+  supportedCurrencies,
+} from "@/lib/currencies";
 
 type RequisitionItem = {
   id: number;
@@ -41,7 +48,7 @@ type RequisitionItem = {
 function createItem(id: number): RequisitionItem {
   return {
     id,
-    item_type: "Goods",
+    item_type: "GOODS",
     description: "",
     specification: "",
     quantity: "1",
@@ -52,7 +59,83 @@ function createItem(id: number): RequisitionItem {
   };
 }
 
-const initialItems: RequisitionItem[] = [createItem(1)];
+const initialHeader = {
+  purpose: "",
+  priority: "NORMAL" as const,
+  currency_code: "PHP",
+  needed_by_date: "",
+  justification: "",
+};
+
+const numericInput = (message: string, positive = false) =>
+  z
+    .string()
+    .trim()
+    .min(1, message)
+    .refine((value) => Number.isFinite(Number(value)), message)
+    .transform(Number)
+    .refine(
+      (value) => (positive ? value > 0 : value >= 0),
+      positive ? "Quantity must be greater than zero." : "Value cannot be negative.",
+    );
+
+const requisitionFormSchema = z.object({
+  purpose: z.string().trim().max(500, "Purpose cannot exceed 500 characters."),
+  justification: z
+    .string()
+    .trim()
+    .min(10, "Justification must be at least 10 characters.")
+    .max(500, "Justification cannot exceed 500 characters."),
+  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]),
+  currency_code: z
+    .string()
+    .trim()
+    .length(3)
+    .toUpperCase()
+    .refine((value) => getCurrency(value) !== undefined, "Unsupported currency code."),
+  needed_by_date: z.string().date("Invalid needed-by date format.").optional(),
+  items: z
+    .array(
+      z.object({
+        item_type: z.enum(["GOODS", "SERVICE", "ASSET"]),
+        description: z.string().trim().min(1, "Item description is required.").max(255),
+        specification: z.string().trim().max(1000),
+        quantity: numericInput("Quantity is required.", true).refine(
+          (value) => Number.isInteger(value * 10_000),
+          "Quantity cannot have more than 4 decimal places.",
+        ),
+        unit_of_measure: z.string().trim().min(1, "Unit of measure is required.").max(50),
+        estimated_unit_cost: numericInput("Estimated unit cost is required.").refine(
+          (value) => Number.isInteger(value * 10_000),
+          "Estimated unit cost cannot have more than 4 decimal places.",
+        ),
+        category_id: z.string().uuid("Invalid category ID format.").optional(),
+        needed_by_date: z.string().date("Invalid needed-by date format.").optional(),
+      }),
+    )
+    .min(1, "At least one line item is required."),
+}).superRefine((value, context) => {
+  const currency = getCurrency(value.currency_code);
+  if (!currency) return;
+
+  value.items.forEach((item, index) => {
+    const scale = 10 ** currency.digits;
+    if (!Number.isInteger(item.estimated_unit_cost * scale)) {
+      context.addIssue({
+        code: "custom",
+        path: ["items", index, "estimated_unit_cost"],
+        message: `Unit cost supports ${currency.digits} decimal places for ${currency.code}.`,
+      });
+    }
+  });
+});
+
+type RequisitionForm = z.input<typeof requisitionFormSchema>;
+type RequisitionHeader = Omit<RequisitionForm, "items">;
+
+function createInitialItems() {
+  return [createItem(1)];
+}
 
 const selectClassName =
   "h-9 w-full rounded-md border border-input px-2.5 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -79,8 +162,12 @@ function FormField({
 }
 
 export default function PurchaseRequisitionsPage() {
-  const [items, setItems] = useState(initialItems);
-  const [saved, setSaved] = useState(false);
+  const router = useRouter();
+  const [items, setItems] = useState(createInitialItems);
+  const [header, setHeader] = useState<RequisitionHeader>(initialHeader);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedNumber, setSavedNumber] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const total = useMemo(
     () =>
@@ -104,7 +191,7 @@ export default function PurchaseRequisitionsPage() {
         item.id === id ? { ...item, [field]: value } : item,
       ),
     );
-    setSaved(false);
+    setSavedNumber(null);
   }
 
   function addItem() {
@@ -116,6 +203,64 @@ export default function PurchaseRequisitionsPage() {
 
   function removeItem(id: number) {
     setItems((currentItems) => currentItems.filter((item) => item.id !== id));
+    setSavedNumber(null);
+  }
+
+  function updateHeader(field: keyof RequisitionHeader, value: string) {
+    setHeader((currentHeader) => ({ ...currentHeader, [field]: value }));
+    setSavedNumber(null);
+  }
+
+  function resetForm() {
+    setHeader(initialHeader);
+    setItems(createInitialItems());
+    setSavedNumber(null);
+    setFormError(null);
+  }
+
+  async function saveDraft() {
+    setFormError(null);
+
+    const parsed = requisitionFormSchema.safeParse({
+      ...header,
+      needed_by_date: header.needed_by_date || undefined,
+      items: items.map(({ id: _id, ...item }) => ({
+        ...item,
+        category_id: item.category_id || undefined,
+        needed_by_date: item.needed_by_date || undefined,
+      })),
+    });
+
+    if (!parsed.success) {
+      setFormError(parsed.error.issues[0]?.message ?? "Please review the form.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await fetch("/api/purchase-requisition/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsed.data),
+      });
+      const data = (await response.json().catch(() => null)) as {
+        success?: boolean;
+        message?: string;
+        data?: { requisition_number?: string };
+      } | null;
+
+      if (!response.ok || data?.success !== true) {
+        setFormError(data?.message ?? "Unable to save the requisition.");
+        return;
+      }
+
+      setSavedNumber(data.data?.requisition_number ?? "saved");
+    } catch {
+      setFormError("Unable to reach the requisition service. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -138,7 +283,7 @@ export default function PurchaseRequisitionsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setSaved(false)}>
+            <Button variant="outline" onClick={() => router.back()}>
               Cancel
             </Button>
             <DropdownMenu>
@@ -154,16 +299,22 @@ export default function PurchaseRequisitionsPage() {
                 <MoreHorizontalIcon />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>Save as template</DropdownMenuItem>
-                <DropdownMenuItem>Discard draft</DropdownMenuItem>
+                <DropdownMenuItem disabled>Save as template</DropdownMenuItem>
+                <DropdownMenuItem disabled>Discard draft</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button onClick={() => setSaved(true)}>
+            <Button onClick={saveDraft} disabled={isSaving}>
               <FileTextIcon />
-              {saved ? "Saved" : "Save draft"}
+              {isSaving ? "Saving..." : savedNumber ? `Saved ${savedNumber}` : "Save draft"}
             </Button>
           </div>
         </header>
+
+        {formError && (
+          <p className="text-sm text-destructive" role="alert">
+            {formError}
+          </p>
+        )}
 
         <section className="overflow-hidden rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:border-slate-800">
           <div className="border-b border-slate-200/80 px-5 py-4 dark:border-slate-800">
@@ -185,24 +336,27 @@ export default function PurchaseRequisitionsPage() {
           <FieldSet className="gap-6 p-5 sm:p-6">
             <FieldGroup className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
               <FormField label="Purpose" required>
-                <Input placeholder="What is this purchase for?" />
+                <Input
+                  value={header.purpose}
+                  onChange={(event) => updateHeader("purpose", event.target.value)}
+                  placeholder="What is this purchase for?"
+                />
               </FormField>
               <FormField label="Request type">
                 <select
                   className={selectClassName}
-                  defaultValue="Other"
+                  value="Not supported"
+                  disabled
                   aria-label="Request type"
                 >
-                  <option>Other</option>
-                  <option>Goods</option>
-                  <option>Services</option>
-                  <option>Software</option>
+                  <option>Not supported by backend</option>
                 </select>
               </FormField>
               <FormField label="Priority">
                 <select
                   className={selectClassName}
-                  defaultValue="NORMAL"
+                  value={header.priority}
+                  onChange={(event) => updateHeader("priority", event.target.value)}
                   aria-label="Priority"
                 >
                   <option value="LOW">Low</option>
@@ -214,13 +368,15 @@ export default function PurchaseRequisitionsPage() {
               <FormField label="Currency">
                 <select
                   className={selectClassName}
-                  defaultValue="USD"
+                  value={header.currency_code}
+                  onChange={(event) => updateHeader("currency_code", event.target.value)}
                   aria-label="Currency"
                 >
-                  <option>USD</option>
-                  <option>EUR</option>
-                  <option>GBP</option>
-                  <option>NGN</option>
+                  {supportedCurrencies.map((currency) => (
+                    <option key={currency.code} value={currency.code}>
+                      {currency.code} - {currency.currency}
+                    </option>
+                  ))}
                 </select>
               </FormField>
             </FieldGroup>
@@ -228,37 +384,40 @@ export default function PurchaseRequisitionsPage() {
             <FieldGroup className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
               <FormField label="Needed by">
                 <div className="relative">
-                  <Input type="date" className="pr-10" />
+                  <Input
+                    type="date"
+                    className="pr-10"
+                    value={header.needed_by_date}
+                    onChange={(event) => updateHeader("needed_by_date", event.target.value)}
+                  />
                   <CalendarDaysIcon className="pointer-events-none absolute right-3 top-2.5 size-4" />
                 </div>
               </FormField>
               <FormField label="Department">
                 <select
                   className={selectClassName}
-                  defaultValue="Purchase"
+                  value="Not supported"
+                  disabled
                   aria-label="Department"
                 >
-                  <option>Purchase</option>
-                  <option>Finance</option>
-                  <option>Operations</option>
-                  <option>Information technology</option>
+                  <option>Not supported by backend</option>
                 </select>
               </FormField>
               <FormField label="Branch">
                 <select
                   className={selectClassName}
-                  defaultValue="Main branch"
+                  value="Not supported"
+                  disabled
                   aria-label="Branch"
                 >
-                  <option>Main branch</option>
-                  <option>North campus</option>
-                  <option>South campus</option>
+                  <option>Not supported by backend</option>
                 </select>
               </FormField>
               <FormField label="Attachments">
                 <Button
                   variant="outline"
                   className="w-full justify-start"
+                  disabled
                 >
                   <PaperclipIcon />
                   Add files
@@ -269,6 +428,8 @@ export default function PurchaseRequisitionsPage() {
             <FormField label="Justification">
               <textarea
                 className="min-h-24 w-full resize-y rounded-md border border-input px-2.5 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                value={header.justification}
+                onChange={(event) => updateHeader("justification", event.target.value)}
                 placeholder="Explain the business need for this requisition"
               />
             </FormField>
@@ -309,6 +470,18 @@ export default function PurchaseRequisitionsPage() {
                   <tr key={item.id} className="align-top">
                     <td className="min-w-80 px-5 py-4">
                       <div className="grid gap-2">
+                        <select
+                          className={selectClassName}
+                          value={item.item_type}
+                          onChange={(event) =>
+                            updateItem(item.id, "item_type", event.target.value)
+                          }
+                          aria-label="Item type"
+                        >
+                          <option value="GOODS">Goods</option>
+                          <option value="SERVICE">Service</option>
+                          <option value="ASSET">Asset</option>
+                        </select>
                         <Input
                           value={item.description}
                           onChange={(event) =>
@@ -321,6 +494,18 @@ export default function PurchaseRequisitionsPage() {
                           placeholder="Item or service description"
                           aria-label="Item description"
                         />
+                        <select
+                          className={selectClassName}
+                          value={item.item_type}
+                          onChange={(event) =>
+                            updateItem(item.id, "item_type", event.target.value)
+                          }
+                          aria-label="Item type"
+                        >
+                          <option value="GOODS">Goods</option>
+                          <option value="SERVICE">Service</option>
+                          <option value="ASSET">Asset</option>
+                        </select>
                         <Input
                           value={item.specification}
                           onChange={(event) =>
@@ -397,7 +582,11 @@ export default function PurchaseRequisitionsPage() {
                       />
                     </td>
                     <td className="px-3 py-6 text-right font-medium">
-                      ${((Number.parseFloat(item.quantity) || 0) * (Number.parseFloat(item.estimated_unit_cost) || 0)).toFixed(2)}
+                      {formatCurrency(
+                        (Number.parseFloat(item.quantity) || 0) *
+                          (Number.parseFloat(item.estimated_unit_cost) || 0),
+                        header.currency_code,
+                      )}
                     </td>
                     <td className="px-3 py-5">
                       <Button
@@ -539,18 +728,18 @@ export default function PurchaseRequisitionsPage() {
             <div className="flex items-center justify-between gap-8 sm:justify-end">
               <span className="text-sm">Estimated total</span>
               <span className="text-xl font-semibold">
-                ${total.toFixed(2)}
+                {formatCurrency(total, header.currency_code)}
               </span>
             </div>
           </div>
         </section>
 
         <div className="flex items-center justify-between gap-4 pb-2 text-xs">
-          <p>Drafts are kept locally in this page for preview purposes.</p>
+            <p>Drafts are saved to the LINAW backend after validation.</p>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setItems(initialItems)}
+            onClick={resetForm}
           >
             <XIcon />
             Reset form
