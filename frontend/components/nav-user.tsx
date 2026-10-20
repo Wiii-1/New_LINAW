@@ -73,41 +73,6 @@ export function NavUser({
       setIsLoggingOut(false);
     }
   };
-  /*
-  const router = useRouter()
-
-  const { data: session, isPending } = authClient.useSession()
-
-  const handleLogout = async () => {
-    await authClient.signOut()
-    router.push("/")
-  }
-
-  if (isPending) {
-    return (
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton size="lg" className="animate-pulse bg-muted/50" />
-        </SidebarMenuItem>
-      </SidebarMenu>
-    )
-  }
-
-  if (!session?.user) {
-    return null
-  }
-
-  const { name, email, image } = session.user
-
-  // displays user initials in place of profile pictures
-  const initials =
-    name
-      ?.split(" ")
-      .map((n: string) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2) || "U"
-  */
   return (
     <SidebarMenu>
       <SidebarMenuItem>
