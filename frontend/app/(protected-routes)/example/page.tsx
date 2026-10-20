@@ -1,5 +1,9 @@
-import { columns, type Payment } from "@/columns/example";
+import {
+  columns,
+  type Payment,
+} from "@/app/(protected-routes)/example/column-definitions";
 import { DataTable } from "@/components/data-table";
+import { modal } from "./modal-definitions";
 
 async function getData(): Promise<Payment[]> {
   // Fetch data from your API here.
@@ -84,12 +88,13 @@ export default async function ExamplePage() {
   const data = await getData();
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <DataTable
         columns={columns}
         data={data}
         searchKey="productName"
         searchPlaceholder="Filter products..."
+        toolbarActions={modal}
       />
     </div>
   );
