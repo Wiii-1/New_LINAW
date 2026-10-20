@@ -18,11 +18,13 @@ import {
 interface DataTableProps<TData extends RowData> {
   columns: ColumnDef<DataTableFeatures, TData>[];
   data: TData[];
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData extends RowData>({
   columns,
   data,
+  onRowClick,
 }: Readonly<DataTableProps<TData>>) {
   const table = useTable({
     features,
@@ -55,6 +57,8 @@ export function DataTable<TData extends RowData>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className={onRowClick ? "cursor-pointer" : undefined}
+                  onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

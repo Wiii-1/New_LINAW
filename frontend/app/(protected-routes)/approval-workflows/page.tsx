@@ -15,6 +15,8 @@ import {
   DEFAULT_CURRENCY_CODE,
   formatCurrency,
 } from "@/lib/currencies";
+import { createApprovalColumns } from "@/app/(protected-routes)/approval-workflows/column-definitions";
+import { DataTable } from "@/components/data-table";
 import {
   getApprovalRequest,
   getApprovalRequests,
@@ -154,6 +156,11 @@ export default function ApprovalWorkflowsPage() {
     });
   }, [activeFilter, requests, search]);
 
+  const approvalColumns = useMemo(
+    () => createApprovalColumns((request) => setSelectedRequestId(request.id)),
+    [],
+  );
+
   const counts = useMemo(
     () => ({
       pending: requests.filter((request) => request.status === "PENDING")
@@ -261,63 +268,26 @@ export default function ApprovalWorkflowsPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-lg border">
-            <div className="hidden grid-cols-[1.15fr_1fr_0.8fr_0.8fr_0.7fr_auto] gap-4 border-b px-5 py-3 text-xs font-medium uppercase tracking-wider md:grid">
-              <span>Request</span>
-              <span>Requester</span>
-              <span>Amount</span>
-              <span>Approval level</span>
-              <span>Status</span>
-              <span />
+          {isLoading ? (
+            <div className="overflow-hidden rounded-lg border px-6 py-16 text-center text-sm">
+              Loading approval requests...
             </div>
-            {isLoading ? (
-              <div className="px-6 py-16 text-center text-sm">Loading approval requests...</div>
-            ) : loadError ? (
-              <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-                <CircleAlertIcon className="size-8" />
-                <h2 className="font-medium">Unable to load approval requests</h2>
-                <p className="text-sm">{loadError}</p>
-                <Button variant="outline" size="sm" onClick={() => void loadRequests()}>
-                  Try again
-                </Button>
-              </div>
-            ) : filteredRequests.length ? (
-              filteredRequests.map((request) => (
-                <button
-                  key={request.id}
-                  type="button"
-                  className="grid w-full gap-3 border-b p-4 text-left transition-colors last:border-b-0 md:grid-cols-[1.15fr_1fr_0.8fr_0.8fr_0.7fr_auto] md:items-center md:gap-4 md:px-5"
-                  onClick={() => setSelectedRequestId(request.id)}
-                >
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span className="truncate font-medium">{request.id}</span>
-                    <span className="text-xs">{request.entityId}</span>
-                  </span>
-                  <span className="flex flex-col gap-1">
-                    <span>{request.requester}</span>
-                    <span className="text-xs">{request.submittedAt}</span>
-                  </span>
-                  <span className="font-medium">{formatCurrency(request.amount, request.currencyCode ?? DEFAULT_CURRENCY_CODE)}</span>
-                  <span className="flex flex-col gap-1">
-                    <span>Level {request.currentLevel}</span>
-                    {request.approverRole && (
-                      <span className="text-xs">{request.approverRole}</span>
-                    )}
-                  </span>
-                  <span>
-                    <StatusPill status={request.status} />
-                  </span>
-                  <ChevronRightIcon className="hidden size-4 md:block" />
-                </button>
-              ))
-            ) : (
-              <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
-                <FileCheck2Icon className="size-8" />
-                <h2 className="font-medium">No approval requests found</h2>
-                <p className="text-sm">Try another status or search term.</p>
-              </div>
-            )}
-          </div>
+          ) : loadError ? (
+            <div className="flex flex-col items-center gap-3 rounded-lg border px-6 py-16 text-center">
+              <CircleAlertIcon className="size-8" />
+              <h2 className="font-medium">Unable to load approval requests</h2>
+              <p className="text-sm">{loadError}</p>
+              <Button variant="outline" size="sm" onClick={() => void loadRequests()}>
+                Try again
+              </Button>
+            </div>
+          ) : (
+            <DataTable
+              columns={approvalColumns}
+              data={filteredRequests}
+              onRowClick={(request) => setSelectedRequestId(request.id)}
+            />
+          )}
         </section>
       </div>
 
