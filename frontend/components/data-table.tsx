@@ -4,19 +4,11 @@ import * as React from "react";
 import {
   useTable,
   type RowData,
-  type SortingState,
   type ColumnDef,
   type ColumnFiltersState,
   type ColumnVisibilityState,
 } from "@tanstack/react-table";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -25,15 +17,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { features, type DataTableFeatures } from "@/types/data-table-features";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableViewOptions } from "./data-table-view-options";
+import { features, type DataTableFeatures } from "@/types/data-table-features";
 
 interface DataTableProps<TData extends RowData> {
   columns: ColumnDef<DataTableFeatures, TData>[];
   data: TData[];
   searchKey?: string;
   searchPlaceholder?: string;
+  toolbarActions?: React.ReactNode;
 }
 
 export function DataTable<TData extends RowData>({
@@ -41,32 +34,31 @@ export function DataTable<TData extends RowData>({
   data,
   searchKey,
   searchPlaceholder = "Filter...",
+  toolbarActions,
 }: Readonly<DataTableProps<TData>>) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<ColumnVisibilityState>({});
+
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<ColumnVisibilityState>({});
 
   const table = useTable({
     features,
     data,
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnFiltersChange: setColumnFilters,
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
+      columnFilters,
     },
   });
 
   return (
     <div>
-      {searchKey && (
-        <div className="flex items-center py-4">
+      <div className="flex items-center py-4">
+        {searchKey && (
           <Input
             placeholder={searchPlaceholder}
             value={
@@ -77,35 +69,14 @@ export function DataTable<TData extends RowData>({
             }
             className="max-w-sm"
           />
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="outline" className="ml-auto" />}
-            >
-              Columns
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        )}
+
+        <div className="ml-auto flex items-center gap-2">
           <DataTableViewOptions table={table} />
+          {toolbarActions}
         </div>
-      )}
+      </div>
+
       <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
