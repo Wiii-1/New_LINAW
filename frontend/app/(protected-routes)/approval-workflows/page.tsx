@@ -118,7 +118,7 @@ export default async function ApprovalWorkflowsPage() {
         columns={columns}
         data={data}
         searchKey="request"
-        searchPlaceholder="Filter request..."
+        searchPlaceholder="Search request..."
         toolbarActions={modal}
       />
     </main>
