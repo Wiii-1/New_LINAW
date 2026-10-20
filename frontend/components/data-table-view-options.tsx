@@ -1,14 +1,13 @@
 "use client";
 
 import { type ReactTable, type RowData } from "@tanstack/react-table";
-import { Settings2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuGroup, // 1. Added this import
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -32,11 +31,9 @@ export function DataTableViewOptions<TData extends RowData>({
           />
         }
       >
-        <Settings2 className="mr-2 h-4 w-4" />
-        View
+        Columns
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[150px]">
-        {/* 2. Wrap the Label and Items inside a DropdownMenuGroup */}
         <DropdownMenuGroup>
           <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
           <DropdownMenuSeparator />
