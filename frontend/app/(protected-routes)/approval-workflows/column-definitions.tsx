@@ -1,99 +1,134 @@
 "use client";
 
 import { createColumnHelper } from "@tanstack/react-table";
-import { ChevronRightIcon } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
+import { type DataTableFeatures } from "@/types/data-table-features";
 import { Button } from "@/components/ui/button";
 import { DataTableColumnHeader } from "@/components/data-table-column-header";
-import { type ApprovalRequest, type ApprovalStatus } from "@/app/api/approval-workflow/client";
 import {
-  DEFAULT_CURRENCY_CODE,
-  formatCurrency,
-} from "@/lib/currencies";
-import { type DataTableFeatures } from "@/types/data-table-features";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-const statusLabels: Record<ApprovalStatus, string> = {
-  PENDING: "Pending",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-  CANCELLED: "Cancelled",
+export type ApprovalWorkflow = {
+  id: string;
+  request: string;
+  requester: string;
+  approvalLevel: number;
+  price: number;
+  date: string | number | Date;
+  status: "Pending" | "Approved" | "Rejected" | "Cancelled";
 };
 
-function StatusPill({ status }: Readonly<{ status: ApprovalStatus }>) {
-  return (
-    <span className="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium">
-      {statusLabels[status]}
-    </span>
-  );
-}
+const columnHelper = createColumnHelper<DataTableFeatures, ApprovalWorkflow>();
 
-const columnHelper = createColumnHelper<DataTableFeatures, ApprovalRequest>();
+export const columns = columnHelper.columns([
+  columnHelper.accessor("id", {
+    header: "ID",
+  }),
 
-export function createApprovalColumns(
-  onSelect: (request: ApprovalRequest) => void,
-) {
-  return columnHelper.columns([
-    columnHelper.accessor("id", {
-      header: "Request",
-      cell: ({ row }) => (
-        <div className="flex min-w-0 flex-col gap-1">
-          <span className="truncate font-medium">{row.original.id}</span>
-          <span className="text-xs">{row.original.entityId}</span>
-        </div>
-      ),
-    }),
-    columnHelper.accessor("requester", {
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Requester" />
-      ),
-      cell: ({ row }) => (
-        <div className="flex flex-col gap-1">
-          <span>{row.original.requester}</span>
-          <span className="text-xs">{row.original.submittedAt}</span>
-        </div>
-      ),
-    }),
-    columnHelper.accessor("amount", {
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Amount" />
-      ),
-      cell: ({ row }) =>
-        formatCurrency(
-          row.original.amount,
-          row.original.currencyCode ?? DEFAULT_CURRENCY_CODE,
-        ),
-    }),
-    columnHelper.accessor("currentLevel", {
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Level" />
-      ),
-      cell: ({ row }) => (
-        <div className="flex flex-col gap-1">
-          <span>Level {row.original.currentLevel}</span>
-          {row.original.approverRole && (
-            <span className="text-xs">{row.original.approverRole}</span>
-          )}
-        </div>
-      ),
-    }),
-    columnHelper.accessor("status", {
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
-      ),
-      cell: ({ row }) => <StatusPill status={row.original.status} />,
-    }),
-    columnHelper.display({
-      id: "open",
-      enableHiding: false,
-      cell: ({ row }) => (
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Open ${row.original.id}`}
-          onClick={() => onSelect(row.original)}
-        >
-          <ChevronRightIcon className="size-4" />
-        </Button>
-      ),
-    }),
-  ]);
-}
+  columnHelper.accessor("request", {
+    meta: {
+      isSearchable: true,
+      searchPlaceholder: "Filter requests...",
+    },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Request" />
+    ),
+  }),
+
+  columnHelper.accessor("requester", {
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Requester" />
+    ),
+  }),
+
+  columnHelper.accessor("approvalLevel", {
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Level" />
+    ),
+    cell: ({ row }) => (
+      <div className="text-center font-medium">
+        L{row.getValue("approvalLevel")}
+      </div>
+    ),
+  }),
+
+  columnHelper.accessor("price", {
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Price" />
+    ),
+    cell: ({ row }) => {
+      const price = Number.parseFloat(row.getValue("price"));
+      return new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+      }).format(price);
+    },
+  }),
+
+  columnHelper.accessor("date", {
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Date" />
+    ),
+    cell: ({ row }) => {
+      const rawDate = row.original.date;
+
+      return new Date(rawDate).toLocaleDateString("en-PH", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    },
+  }),
+
+  columnHelper.accessor("status", {
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Status" />
+    ),
+    cell: ({ row }) => {
+      const status = row.getValue("status") as ApprovalWorkflow["status"];
+      return <span className="font-medium">{status}</span>;
+    },
+  }),
+
+  columnHelper.display({
+    id: "actions",
+    cell: ({ row }) => {
+      const workflow = row.original;
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={<Button variant="ghost" className="h-8 w-8 p-0" />}
+          >
+            <span className="sr-only">Open menu</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => navigator.clipboard.writeText(workflow.id)}
+              >
+                Copy ID
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuGroup>
+              <DropdownMenuItem>Update</DropdownMenuItem>
+              <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
+  }),
+]);

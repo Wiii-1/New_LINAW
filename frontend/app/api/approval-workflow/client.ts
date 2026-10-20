@@ -12,6 +12,7 @@ export type ApprovalAction = {
 export type ApprovalRequest = {
   id: string;
   entityId: string;
+  request: string;
   requester: string;
   entityType: string;
   amount: number;
@@ -34,6 +35,7 @@ type RawApprovalRequest = {
   requester_user?: { first_name?: unknown; last_name?: unknown } | null;
   purchase_requisition?: {
     pr_number?: unknown;
+    purpose?: unknown;
     currency_code?: unknown;
     total_amount?: unknown;
   } | null;
@@ -135,6 +137,10 @@ function mapRequest(raw: RawApprovalRequest): ApprovalRequest {
   return {
     id,
     entityId: stringValue(raw.purchase_requisition?.pr_number ?? raw.entity_id, String(raw.entity_id)),
+    request: stringValue(
+      raw.purchase_requisition?.purpose,
+      stringValue(raw.purchase_requisition?.pr_number ?? raw.entity_id, String(raw.entity_id)),
+    ),
     requester: requester || "Unknown requester",
     entityType: stringValue(raw.entity_type, "Approval request"),
     amount: numberValue(raw.purchase_requisition?.total_amount),
