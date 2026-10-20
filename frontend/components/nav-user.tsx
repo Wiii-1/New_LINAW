@@ -29,6 +29,7 @@ import {
   LogOutIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
 
 export function NavUser({
   user,
@@ -41,8 +42,8 @@ export function NavUser({
 }>) {
   const { isMobile } = useSidebar();
   const { setTheme } = useTheme();
+  const router = useRouter();
   /*
-  const router = useRouter()
 
   const { data: session, isPending } = authClient.useSession()
 
@@ -142,17 +143,9 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/profile")}>
                 <UserIcon />
                 Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCardIcon />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon />
-                Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
