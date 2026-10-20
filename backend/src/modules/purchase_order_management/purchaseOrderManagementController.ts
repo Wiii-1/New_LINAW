@@ -1,8 +1,8 @@
-import type { AppContext } from "../../shared/types/hono";
+import type { AppContext } from "../../shared/types/hono.js";
 import { Context } from "hono"
 import { PurchaseOrderManagementService } from "./purchaseOrderManagementService"
 import { CreateRFQSchema, ListPurchaseOrdersQuerySchema, ListRFQsQuerySchema, ProcurementQueueQuerySchema, PurchaseOrderIdParamsSchema, QuotationParamsSchema, RFQIdParamsSchema, UpdatePurchaseOrderSchema, UpdateRFQSchema } from "./purchaseOrderManagementValidator";
-import { NotFoundError } from "../../shared/errors";
+import { NotFoundError } from "../../shared/errors/appError.js";
 
 
 export class PurchaseOrderManagementController {
@@ -142,11 +142,13 @@ export class PurchaseOrderManagementController {
         }
 
         const list = await this.service.getList(input)
+        const total = await this.service.countList(input)
 
         return c.json({
             success: true,
             message: "Success list is returned",
-            list
+            list,
+            total
         }, 200)
     }
 
@@ -193,10 +195,12 @@ export class PurchaseOrderManagementController {
         }
 
         const list = await this.service.getRFQS(input)
+        const total = await this.service.countRFQS(input)
 
         return c.json({
             success: true,
-            list
+            list,
+            total
         }, 200)
 
     }
@@ -226,6 +230,18 @@ export class PurchaseOrderManagementController {
             success: true,
             QuotationList
         }, 200)
+    }
+
+    getAllQuotations = async (c: Context<AppContext>) => {
+        const { tenant_id, company_id } = c.var.user;
+
+        if (!company_id) {
+            throw new NotFoundError("User does not belong to a company");
+        }
+
+        const quotations = await this.service.getAllQuotations({ tenant_id, company_id });
+
+        return c.json({ success: true, ...quotations }, 200);
     }
 
     getQuotation = async (

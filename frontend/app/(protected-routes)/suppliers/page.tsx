@@ -88,14 +88,18 @@ async function loadSupplierData(
       cache: "no-store",
     }),
   ]);
-  const suppliersPayload = (await supplierResponse.json()) as ListResponse<Supplier>;
-  const invitationsPayload = (await invitationResponse.json()) as ListResponse<Invitation>;
+  const suppliersPayload =
+    (await supplierResponse.json()) as ListResponse<Supplier>;
+  const invitationsPayload =
+    (await invitationResponse.json()) as ListResponse<Invitation>;
 
   if (!supplierResponse.ok || !suppliersPayload.success) {
     throw new Error(suppliersPayload.message ?? "Unable to load suppliers.");
   }
   if (!invitationResponse.ok || !invitationsPayload.success) {
-    throw new Error(invitationsPayload.message ?? "Unable to load invitations.");
+    throw new Error(
+      invitationsPayload.message ?? "Unable to load invitations.",
+    );
   }
 
   return {
@@ -129,7 +133,9 @@ export default function SuppliersPage() {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"ALL" | RelationshipStatus>("ALL");
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
+    null,
+  );
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -144,7 +150,11 @@ export default function SuppliersPage() {
       setSuppliers(data.suppliers);
       setInvitations(data.invitations);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to load supplier data.");
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to load supplier data.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -267,7 +277,8 @@ export default function SuppliersPage() {
               Suppliers <span className="ml-1 text-xs">{suppliers.length}</span>
             </TabsTrigger>
             <TabsTrigger value="invitations" className="flex-none px-1 pb-3">
-              Invitations <span className="ml-1 text-xs">{invitations.length}</span>
+              Invitations{" "}
+              <span className="ml-1 text-xs">{invitations.length}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -300,7 +311,8 @@ export default function SuppliersPage() {
               <CardHeader className="border-b py-4">
                 <CardTitle>Supplier directory</CardTitle>
                 <CardDescription>
-                  {filteredSuppliers.length} of {suppliers.length} suppliers shown
+                  {filteredSuppliers.length} of {suppliers.length} suppliers
+                  shown
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
@@ -319,58 +331,63 @@ export default function SuppliersPage() {
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                          <TableCell
+                            colSpan={6}
+                            className="h-24 text-center text-muted-foreground"
+                          >
                             Loading suppliers...
                           </TableCell>
                         </TableRow>
                       ) : filteredSuppliers.length ? (
                         filteredSuppliers.map((supplier) => (
-                        <TableRow key={supplier.supplier_id} className="group">
-                          <TableCell>
-                            <button
-                              type="button"
-                              className="text-left font-medium hover:underline"
-                              onClick={() => setSelectedSupplier(supplier)}
-                            >
-                              {supplier.display_name}
-                              <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                                {supplier.legal_name}
+                          <TableRow
+                            key={supplier.supplier_id}
+                            className="group"
+                          >
+                            <TableCell>
+                              <button
+                                type="button"
+                                className="text-left font-medium hover:underline"
+                                onClick={() => setSelectedSupplier(supplier)}
+                              >
+                                {supplier.display_name}
+                                <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                                  {supplier.legal_name}
+                                </span>
+                              </button>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {supplier.supplier_code}
+                            </TableCell>
+                            <TableCell>
+                              <span>{supplier.contact_email}</span>
+                              <span className="mt-0.5 block text-xs text-muted-foreground">
+                                {supplier.contact_phone}
                               </span>
-                            </button>
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {supplier.supplier_code}
-                          </TableCell>
-                          <TableCell>
-                            <span>{supplier.contact_email}</span>
-                            <span className="mt-0.5 block text-xs text-muted-foreground">
-                              {supplier.contact_phone}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <StatusBadge status={supplier.relationship_status} />
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {formatDate(supplier.updated_at)}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              aria-label={`Open ${supplier.display_name}`}
-                              onClick={() => setSelectedSupplier(supplier)}
-                            >
-                              <MoreHorizontalIcon />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge
+                                status={supplier.relationship_status}
+                              />
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatDate(supplier.updated_at)}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                aria-label={`Open ${supplier.display_name}`}
+                                onClick={() => setSelectedSupplier(supplier)}
+                              >
+                                <MoreHorizontalIcon />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell
-                            colSpan={6}
-                            className="h-52"
-                          >
+                          <TableCell colSpan={6} className="h-52">
                             <div className="flex flex-col items-center justify-center gap-2 text-center">
                               <Building2Icon className="size-8 text-muted-foreground" />
                               <div>
@@ -398,7 +415,10 @@ export default function SuppliersPage() {
                                   Reset filters
                                 </Button>
                               ) : (
-                                <Button size="sm" onClick={() => setInviteOpen(true)}>
+                                <Button
+                                  size="sm"
+                                  onClick={() => setInviteOpen(true)}
+                                >
                                   <MailPlusIcon />
                                   Invite supplier
                                 </Button>
@@ -446,7 +466,10 @@ export default function SuppliersPage() {
                   <TableBody>
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                        <TableCell
+                          colSpan={5}
+                          className="h-24 text-center text-muted-foreground"
+                        >
                           Loading invitations...
                         </TableCell>
                       </TableRow>
@@ -457,7 +480,9 @@ export default function SuppliersPage() {
                             {invitation.email}
                           </TableCell>
                           <TableCell>
-                            <StatusBadge status={invitation.invitation_status} />
+                            <StatusBadge
+                              status={invitation.invitation_status}
+                            />
                           </TableCell>
                           <TableCell className="text-muted-foreground">
                             {formatDate(invitation.created_at)}
@@ -487,7 +512,10 @@ export default function SuppliersPage() {
                                 Invite a supplier to send your first invitation.
                               </p>
                             </div>
-                            <Button size="sm" onClick={() => setInviteOpen(true)}>
+                            <Button
+                              size="sm"
+                              onClick={() => setInviteOpen(true)}
+                            >
                               <MailPlusIcon />
                               Invite supplier
                             </Button>
@@ -513,7 +541,8 @@ export default function SuppliersPage() {
               <SheetHeader>
                 <SheetTitle>{selectedSupplier.display_name}</SheetTitle>
                 <SheetDescription>
-                  {selectedSupplier.legal_name} · {selectedSupplier.supplier_code}
+                  {selectedSupplier.legal_name} ·{" "}
+                  {selectedSupplier.supplier_code}
                 </SheetDescription>
               </SheetHeader>
 
@@ -542,7 +571,8 @@ export default function SuppliersPage() {
                   </div>
                 </div>
                 <div className="border-t pt-4 text-xs text-muted-foreground">
-                  Added {formatDate(selectedSupplier.created_at)} · Updated {formatDate(selectedSupplier.updated_at)}
+                  Added {formatDate(selectedSupplier.created_at)} · Updated{" "}
+                  {formatDate(selectedSupplier.updated_at)}
                 </div>
               </div>
 
@@ -555,7 +585,9 @@ export default function SuppliersPage() {
                   <ShieldAlertIcon />
                   Deactivate relationship
                 </Button>
-                <SheetClose render={<Button variant="outline" />}>Close</SheetClose>
+                <SheetClose render={<Button variant="outline" />}>
+                  Close
+                </SheetClose>
               </SheetFooter>
             </>
           )}
@@ -567,7 +599,8 @@ export default function SuppliersPage() {
           <SheetHeader>
             <SheetTitle>Invite a supplier</SheetTitle>
             <SheetDescription>
-              Send an invitation to a supplier contact. This mock form does not send email.
+              Send an invitation to a supplier contact. This mock form does not
+              send email.
             </SheetDescription>
           </SheetHeader>
 
@@ -590,7 +623,9 @@ export default function SuppliersPage() {
               <UserRoundIcon />
               Create invitation
             </Button>
-            <SheetClose render={<Button variant="outline" />}>Cancel</SheetClose>
+            <SheetClose render={<Button variant="outline" />}>
+              Cancel
+            </SheetClose>
           </SheetFooter>
         </SheetContent>
       </Sheet>

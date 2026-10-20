@@ -114,7 +114,8 @@ export interface ApprovalWorkflowDefinitionData {
 export interface GetData {
     tenant_id: string,
     company_id: string,
-    status?: ApprovalRequestStatus
+    status?: ApprovalRequestStatus,
+    approver_user_id?: string
 }
 
 export interface ApprovalRequest {
@@ -147,12 +148,52 @@ export class ApprovalWorkflowRepository {
     async findApprovalWorkflowRequests (
         data: GetData
     ) {
+        let approverLevels: { entity_type: string; level_no: number }[] = [];
+
+        if (data.approver_user_id) {
+            const userRole = await prisma.userRole.findFirst({
+                where: {
+                    user_id: data.approver_user_id,
+                    tenant_id: data.tenant_id,
+                    company_id: data.company_id,
+                },
+                select: { role_id: true },
+            });
+
+            if (!userRole) return [];
+
+            approverLevels = await prisma.approvalWorkflowLevel.findMany({
+                where: {
+                    tenant_id: data.tenant_id,
+                    role_id: userRole.role_id,
+                    company_id: data.company_id,
+                },
+                select: {
+                    level_no: true,
+                    workflow: { select: { entity_type: true } },
+                },
+            }).then((levels) => levels.map((level) => ({
+                level_no: level.level_no,
+                entity_type: level.workflow.entity_type,
+            })));
+
+            if (approverLevels.length === 0) return [];
+        }
+
         return prisma.approvalRequest.findMany({
             take: 20,
             where: {
                 tenant_id: data.tenant_id,
                 company_id: data.company_id,
                 ...(data.status ? { status: data.status } : {}),
+                ...(data.approver_user_id
+                    ? {
+                        OR: approverLevels.map((level) => ({
+                            entity_type: level.entity_type,
+                            current_level: level.level_no,
+                        })),
+                    }
+                    : {}),
             },
             select: {
                 id: true,
@@ -165,9 +206,60 @@ export class ApprovalWorkflowRepository {
                 status: true,
                 submitted_at: true,
                 resolved_at: true,
-                created_at: true
+                created_at: true,
+                updated_at: true,
+                requester_user: {
+                    select: { first_name: true, last_name: true },
+                },
+                purchase_requisition: {
+                    select: {
+                        pr_number: true,
+                        purpose: true,
+                        currency_code: true,
+                        total_amount: true,
+                    },
+                },
             }
         })
+    }
+
+    async countApprovalWorkflowRequests(data: GetData) {
+        if (!data.approver_user_id) return 0;
+
+        const userRole = await prisma.userRole.findFirst({
+            where: {
+                user_id: data.approver_user_id,
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+            },
+            select: { role_id: true },
+        });
+
+        if (!userRole) return 0;
+
+        const levels = await prisma.approvalWorkflowLevel.findMany({
+            where: {
+                tenant_id: data.tenant_id,
+                role_id: userRole.role_id,
+                company_id: data.company_id,
+            },
+            select: {
+                level_no: true,
+                workflow: { select: { entity_type: true } },
+            },
+        });
+
+        return prisma.approvalRequest.count({
+            where: {
+                tenant_id: data.tenant_id,
+                company_id: data.company_id,
+                ...(data.status ? { status: data.status } : {}),
+                OR: levels.map((level) => ({
+                    entity_type: level.workflow.entity_type,
+                    current_level: level.level_no,
+                })),
+            },
+        });
     }
 
     async findApprovalRequestByStatus (
@@ -488,6 +580,32 @@ export class ApprovalWorkflowRepository {
                 resolved_at: true,
                 created_at: true,
                 updated_at: true,
+                requester_user: {
+                    select: { first_name: true, last_name: true },
+                },
+                purchase_requisition: {
+                    select: {
+                        pr_number: true,
+                        purpose: true,
+                        currency_code: true,
+                        total_amount: true,
+                    },
+                },
+                actions: {
+                    orderBy: { acted_at: "asc" },
+                    select: {
+                        id: true,
+                        action: true,
+                        remarks: true,
+                        acted_at: true,
+                        acted_by_user: {
+                            select: { first_name: true, last_name: true },
+                        },
+                        level: {
+                            select: { level_no: true },
+                        },
+                    },
+                },
             },
         });
     }    

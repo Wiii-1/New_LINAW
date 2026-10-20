@@ -1,5 +1,5 @@
-import type { AppContext } from "../../shared/types/hono";
-import { NotFoundError, RequestDataError } from "../../shared/errors/appError"
+import type { AppContext } from "../../shared/types/hono.js";
+import { NotFoundError, RequestDataError } from "../../shared/errors/appError.js";
 import { Context } from "hono"
 import { OrganizationAdministrationService } from "./organizationAdministrationService";
 import { assignPermissionsSchema, updateRoleSchema, assignRoleSchema, createRoleSchema, memberEmailSchema, updateMemberSchema, updateSettingsSchema } from "./organizationAdministrationValidator";

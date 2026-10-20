@@ -24,12 +24,11 @@ import {
   ChevronsUpDownIcon,
   MoonIcon,
   UserIcon,
-  CreditCardIcon,
-  BellIcon,
   LogOutIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
+import * as React from "react";
 
 export function NavUser({
   user,
@@ -43,40 +42,37 @@ export function NavUser({
   const { isMobile } = useSidebar();
   const { setTheme } = useTheme();
   const router = useRouter();
-  /*
-
-  const { data: session, isPending } = authClient.useSession()
-
-  const handleLogout = async () => {
-    await authClient.signOut()
-    router.push("/")
-  }
-
-  if (isPending) {
-    return (
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton size="lg" className="animate-pulse bg-muted/50" />
-        </SidebarMenuItem>
-      </SidebarMenu>
-    )
-  }
-
-  if (!session?.user) {
-    return null
-  }
-
-  const { name, email, image } = session.user
-
-  // displays user initials in place of profile pictures
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const initials =
-    name
-      ?.split(" ")
-      .map((n: string) => n[0])
+    user.name
+      .split(" ")
+      .map((part) => part[0])
+      .filter(Boolean)
       .join("")
       .toUpperCase()
-      .slice(0, 2) || "U"
-  */
+      .slice(0, 2) || "U";
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        setIsLoggingOut(false);
+        return;
+      }
+
+      window.location.assign("/login");
+    } catch {
+      setIsLoggingOut(false);
+    }
+  };
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -91,7 +87,7 @@ export function NavUser({
           >
             <Avatar>
               <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback>CN</AvatarFallback>
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.name}</span>
@@ -110,7 +106,7 @@ export function NavUser({
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar>
                     <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback>CN</AvatarFallback>
+                    <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
@@ -150,7 +146,11 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem variant="destructive">
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={isLoggingOut}
+                onClick={() => void handleLogout()}
+              >
                 <LogOutIcon />
                 Log out
               </DropdownMenuItem>

@@ -1,5 +1,5 @@
 import { AuthRepository  } from "./authRepository.js";
-import { hashPassword, verifyPassword } from "./authPassword.js"
+import { hashPassword, verifyPassword } from "./authPassword.js";
 import type { forgotPasswordInput, loginInput, resetPasswordInput, signupInput, findById } from "./authValidator.js";
 import { ConflictError, NotFoundError, UnauthorizedAccessError } from "../../shared/errors/appError.js";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -10,6 +10,7 @@ import {
 } from "./authJWT.js";
 import type { RefreshTokenPayload } from "./authJWT.js";
 import type { AppEnv } from "../../config/env.js";
+import { resolveAppUrl } from "../../config/env.js";
 import type { AuthNotifier } from "./authNotifications.js";
 import { NoopAuthNotifier } from "./authNotifications.js"
 
@@ -334,7 +335,10 @@ export class AuthService {
             expires_at: expiresAt
         })
 
-        const resetUrl = new URL("/reset-password", this.env.APP_URL)
+        const resetUrl = new URL(
+            "/reset-password",
+            resolveAppUrl(this.env.APP_URL),
+        )
         resetUrl.searchParams.set("token", resetToken)
 
         await this.notifier.sendPasswordResetEmail({

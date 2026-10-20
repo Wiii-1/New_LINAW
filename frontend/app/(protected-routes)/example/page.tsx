@@ -88,7 +88,7 @@ export default async function ExamplePage() {
   const data = await getData();
 
   return (
-    <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
+    <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <DataTable
         columns={columns}
         data={data}
@@ -96,6 +96,6 @@ export default async function ExamplePage() {
         searchPlaceholder="Filter products..."
         toolbarActions={modal}
       />
-    </main>
+    </div>
   );
 }

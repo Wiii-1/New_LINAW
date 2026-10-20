@@ -14,21 +14,14 @@ const protectedRoutes = [
   "/users",
 ];
 
-const authRoutes = [
-  "/forgot-password",
-  "/login",
-  "/reset-password",
-  "/signup",
-];
+const authRoutes = ["/forgot-password", "/login", "/reset-password", "/signup"];
 
 function matchesRoute(pathname: string, route: string): boolean {
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
 async function hasValidSession(accessToken: string): Promise<boolean> {
-  const apiUrl = (
-    env as typeof env & { LINAW_API_URL?: string }
-  ).LINAW_API_URL;
+  const apiUrl = (env as typeof env & { LINAW_API_URL?: string }).LINAW_API_URL;
 
   if (!apiUrl) {
     return false;
@@ -63,11 +56,8 @@ export async function proxy(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some((route) =>
     matchesRoute(pathname, route),
   );
-  const isAuthRoute = authRoutes.some((route) =>
-    matchesRoute(pathname, route),
-  );
+  const isAuthRoute = authRoutes.some((route) => matchesRoute(pathname, route));
 
-  // Do not forget to remove this
   const BYPASS_AUTH = true;
 
   if (BYPASS_AUTH) {
@@ -79,9 +69,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const accessToken = request.cookies.get("accessToken")?.value;
-  const hasSession = accessToken
-    ? await hasValidSession(accessToken)
-    : false;
+  const hasSession = accessToken ? await hasValidSession(accessToken) : false;
 
   if (isProtectedRoute && !hasSession) {
     return NextResponse.redirect(new URL("/login", request.url));

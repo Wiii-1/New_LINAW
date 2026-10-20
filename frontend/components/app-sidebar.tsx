@@ -91,6 +91,50 @@ const data = {
   ],
 };
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = React.useState({
+    name: "User",
+    email: "",
+    avatar: "",
+  });
+
+  React.useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadProfile() {
+      try {
+        const response = await fetch("/api/backend/userManagementRouter/profile", {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+
+        if (!response.ok) return;
+
+        const result = (await response.json()) as {
+          data?: {
+            first_name?: string;
+            last_name?: string;
+            email?: string;
+          };
+        };
+        const firstName = result.data?.first_name?.trim() ?? "";
+        const lastName = result.data?.last_name?.trim() ?? "";
+        const name = [firstName, lastName].filter(Boolean).join(" ");
+
+        setUser({
+          name: name || "User",
+          email: result.data?.email?.trim() ?? "",
+          avatar: "",
+        });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    void loadProfile();
+
+    return () => controller.abort();
+  }, []);
+
   return (
     <Sidebar
       className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
@@ -123,7 +167,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   );

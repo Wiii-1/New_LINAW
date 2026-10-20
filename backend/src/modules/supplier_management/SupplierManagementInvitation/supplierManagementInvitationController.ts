@@ -9,7 +9,7 @@ import {
     InvitationTokenSchema
 } from "./supplierManagementInvitationValidator.js";
 import type { SupplierManagementInvitationService } from "./supplierManagementInvitationService.js";
-import { NotFoundError } from "../../../shared/errors/appError.js";
+import { NotFoundError } from "../../../shared/errors/";
 
 export class SupplierManagementInvitationController {
 

@@ -29,8 +29,8 @@ export interface PurchaseRequisitionItemCreateData {
     specification: string;
     quantity: number;
     unit_of_measure: string;
-    estimated_unit_cost: number;
-    estimated_total_cost: number;
+    estimated_unit_cost: Prisma.Decimal;
+    estimated_total_cost: Prisma.Decimal;
     category_id: string | null ;
     needed_by_date: string | null;
     status: PurchaseRequisitionStatus;
@@ -97,8 +97,21 @@ export class purchaseRequisitionRepository {
                     pr_number: data.pr_number,
                 }),
             },
+            orderBy: { updated_at: "desc" },
         });
     }    
+
+    async countRequisitionsForQuery(data: PurchaseRequisitionQueryData) {
+        return prisma.purchaseRequisition.count({
+            where: {
+                tenant_id: data.tenantId,
+                company_id: data.companyId,
+                ...(data.status && { status: data.status }),
+                ...(data.requesterId && { requested_by_user_id: data.requesterId }),
+                ...(data.pr_number && { pr_number: data.pr_number }),
+            },
+        });
+    }
 
     async findByRequisitionId (
         requisitionId: string

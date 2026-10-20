@@ -1,4 +1,4 @@
-import type { AppContext } from "../../shared/types/hono.js"
+import type { AppContext } from "../../shared/types/hono.js";
 import { Context } from "hono" 
 import { purchaseRequisitionService } from "./purchaseRequisitionService.js"
 import type { 
@@ -22,12 +22,18 @@ function requisitionSummary(requisition: {
     pr_number: string;
     status: string;
     total_amount: unknown;
+    currency_code: string;
+    created_at: Date;
+    updated_at: Date;
 }) {
     return {
         requisition_id: requisition.id,
         requisition_number: requisition.pr_number,
         requisition_status: requisition.status,
         total_estimated_amount: requisition.total_amount,
+        currency_code: requisition.currency_code,
+        created_at: requisition.created_at,
+        updated_at: requisition.updated_at,
     };
 }
 
@@ -182,12 +188,14 @@ export class PurchaseRequisitionController {
         };
 
         const requisition = await this.service.getRequisition(data);
+        const total = await this.service.countRequisition(data);
 
         c.json({
             success: true,
             message: "Purchase requisitions retrieved successfully.",
             data: {
-                purchase_requisitions: requisition.map(requisitionSummary)
+                purchase_requisitions: requisition.map(requisitionSummary),
+                total,
             }
         },200);
 

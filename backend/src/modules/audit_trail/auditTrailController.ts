@@ -1,4 +1,4 @@
-import type { AppContext } from "../../shared/types/hono.js"
+import type { AppContext } from "../../shared/types/hono.js";
 import { Context } from "hono"
 import { AuditTrailService } from "./auditTrailService.js"
 import { listAuditSchema, searchAuditSchema, auditIntegritySchema} from "./auditTrailValidator.js"

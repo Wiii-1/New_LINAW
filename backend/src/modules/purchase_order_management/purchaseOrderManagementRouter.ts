@@ -47,6 +47,7 @@ export function createPurchaseOrderManagement() {
     router.get("/procurement-queue", Authorize(systemPermissions.purchaseOrderManagement.read), controller.getApprovedPurchaseRequisition);
     router.get("/", Authorize(systemPermissions.purchaseOrderManagement.read), controller.getList);
     router.get("/rfqs", Authorize(systemPermissions.purchaseOrderManagement.read), controller.getRfqs);
+    router.get("/quotations", Authorize(systemPermissions.purchaseOrderManagement.read), controller.getAllQuotations);
     router.get("/rfqs/:rfqId/quotations", Authorize(systemPermissions.purchaseOrderManagement.read), controller.getQuotationList);
     router.get(
         "/rfqs/:rfqId/quotations/:quotationId",

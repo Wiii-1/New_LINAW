@@ -8,7 +8,7 @@ import {
     ConflictError,
     NotFoundError,
     ServiceUnavailableError,
-} from "../../../shared/errors/appError.js";
+} from "../../../shared/errors/";
 
 interface CreateInvitationContext {
     user_id: string;

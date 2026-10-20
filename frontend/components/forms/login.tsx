@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
@@ -65,6 +66,7 @@ export function LoginForm({
             <FieldDescription>
               Don&apos;t have an account? <a href="/signup">Sign up</a>
             </FieldDescription>
+            <FieldError>{form.formState.errors.root?.message}</FieldError>
           </div>
           <Controller
             name="email"

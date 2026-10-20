@@ -84,7 +84,14 @@ export class UserManagementRepository {
             where: {
                 id: userId,
                 tenant_id: tenantId,
-            }
+            },
+            include: {
+                company_memberships: {
+                    where: { employment_status: "ACTIVE" },
+                    take: 1,
+                    include: { company: { select: { display_name: true } } },
+                },
+            },
         });
     }
 

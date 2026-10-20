@@ -1,5 +1,5 @@
-import { NotFoundError } from "../../shared/errors";
-import type { EventBus } from "../../shared/events/eventBus";
+import { NotFoundError } from "../../shared/errors/appError.js";
+import type { EventBus } from "../../shared/events/eventBus.js";
 import type { SupplierQuotationSubmittedEvent } from "../../shared/events/supplierQuotationSubmittedEvent";
 import { PurchaseOrderManagementRepository } from "./purchaseOrderManagementRepository";
 import type { 
@@ -14,7 +14,7 @@ import type {
     UpdateRFQ
  } from "./purchaseOrderManagementValidator";
 
-import { ConflictError } from "../../shared/errors";
+import { ConflictError } from "../../shared/errors/appError.js";
 
 interface OrderPurchaseOrderContext {
     user_id: string;
@@ -383,12 +383,28 @@ export class PurchaseOrderManagementService {
         })
     }
 
+    async countList(input: ServicePoQuery) {
+        return this.repository.countList({
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+            query: input.query,
+        });
+    }
+
     async getRFQS(input: ServiceRfqsQuery) {
         return await this.repository.getRFQS({
             tenant_id: input.tenant_id,
             company_id: input.company_id,
             query: input.query,
         })
+    }
+
+    async countRFQS(input: ServiceRfqsQuery) {
+        return this.repository.countRFQS({
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+            query: input.query,
+        });
     }
 
     async getQuotationList(input: ServiceRfqIdParam) {
@@ -407,6 +423,15 @@ export class PurchaseOrderManagementService {
             company_id: input.company_id,
             rfq_id: input.params.rfqId,
         })
+    }
+
+    async getAllQuotations(input: { tenant_id: string; company_id: string }) {
+        const [list, total] = await Promise.all([
+            this.repository.getAllQuotations(input),
+            this.repository.countQuotations(input),
+        ]);
+
+        return { list, total };
     }
 
     async getQuotation(input: ServiceQuotationParam) {

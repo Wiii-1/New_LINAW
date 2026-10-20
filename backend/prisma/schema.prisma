@@ -140,7 +140,7 @@ model CompanyMembership {
   company_id        String   @db.Uuid
   user_id           String   @db.Uuid
   job_title         String?
-  role_id           String?
+  role_id           String?  @db.Uuid
   employment_status String?
   department        String?
   created_at        DateTime @default(now()) @db.Timestamptz(6)
@@ -311,7 +311,7 @@ model PurchaseRequisition {
   status               PurchaseRequisitionStatus
   priority             PurchaseRequisitionPriority?
   currency_code        String
-  total_amount         Decimal                        @db.Decimal(18, 2)
+  total_amount         Decimal                        @db.Decimal(18, 4)
   needed_by_date       DateTime?                      @db.Date
   submitted_at         DateTime?                      @db.Timestamptz(6)
   approved_at          DateTime?                      @db.Timestamptz(6)
@@ -345,8 +345,8 @@ model PurchaseRequisitionItem {
   specification           String
   quantity                Decimal             @db.Decimal(18, 4)
   unit_of_measure         String
-  estimated_unit_cost     Decimal             @db.Decimal(18, 2)
-  estimated_total_cost    Decimal             @db.Decimal(18, 2)
+  estimated_unit_cost     Decimal             @db.Decimal(18, 4)
+  estimated_total_cost    Decimal             @db.Decimal(18, 4)
   category_id             String?             @db.Uuid
   needed_by_date          DateTime?           @db.Date
   status                  String
@@ -633,7 +633,7 @@ model SupplierQuotation {
   supplier_id      String    @db.Uuid
   quotation_number String
   currency_code    String
-  total_amount     Decimal   @db.Decimal(18, 2)
+  total_amount     Decimal   @db.Decimal(18, 4)
   status           String
   submitted_at     DateTime? @db.Timestamptz(6)
   valid_until      DateTime? @db.Date
@@ -663,8 +663,8 @@ model SupplierQuotationItem {
   rfq_item_id           String   @db.Uuid
   line_no               Int
   quoted_quantity       Decimal  @db.Decimal(18, 4)
-  unit_price            Decimal  @db.Decimal(18, 2)
-  total_price           Decimal  @db.Decimal(18, 2)
+  unit_price            Decimal  @db.Decimal(18, 4)
+  total_price           Decimal  @db.Decimal(18, 4)
   lead_time_days        Int?
   remarks               String?
   created_at            DateTime @default(now()) @db.Timestamptz(6)
@@ -696,7 +696,7 @@ model PurchaseOrder {
   issued_by_user_id       String                 @db.Uuid
   status                  String
   currency_code           String
-  total_amount            Decimal                @db.Decimal(18, 2)
+  total_amount            Decimal                @db.Decimal(18, 4)
   order_date              DateTime               @db.Date
   expected_delivery_date  DateTime?              @db.Date
   approved_at             DateTime?              @db.Timestamptz(6)
@@ -731,8 +731,8 @@ model PurchaseOrderItem {
   description       String
   quantity          Decimal                   @db.Decimal(18, 4)
   unit_of_measure   String
-  unit_price        Decimal                   @db.Decimal(18, 2)
-  total_price       Decimal                   @db.Decimal(18, 2)
+  unit_price        Decimal                   @db.Decimal(18, 4)
+  total_price       Decimal                   @db.Decimal(18, 4)
   status            String
   created_at        DateTime                  @default(now()) @db.Timestamptz(6)
   updated_at        DateTime                  @updatedAt @db.Timestamptz(6)
@@ -832,7 +832,7 @@ model InvoiceVerification {
   invoice_number      String
   invoice_date        DateTime                        @db.Date
   currency_code       String
-  total_amount        Decimal                         @db.Decimal(18, 2)
+  total_amount        Decimal                         @db.Decimal(18, 4)
   match_status        String
   verification_status String
   verified_by_user_id String?                         @db.Uuid
@@ -865,9 +865,9 @@ model InvoiceVerificationItem {
   goods_receipt_item_id   String?             @db.Uuid
   line_no                 Int
   invoiced_quantity       Decimal             @db.Decimal(18, 4)
-  invoiced_unit_price     Decimal             @db.Decimal(18, 2)
-  invoiced_total          Decimal             @db.Decimal(18, 2)
-  variance_amount         Decimal?            @db.Decimal(18, 2)
+  invoiced_unit_price     Decimal             @db.Decimal(18, 4)
+  invoiced_total          Decimal             @db.Decimal(18, 4)
+  variance_amount         Decimal?            @db.Decimal(18, 4)
   variance_reason         String?
   created_at              DateTime            @default(now()) @db.Timestamptz(6)
   updated_at              DateTime            @updatedAt @db.Timestamptz(6)

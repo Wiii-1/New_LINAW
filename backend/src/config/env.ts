@@ -23,6 +23,22 @@ export type AppEnv = {
     MAILGUN_FROM: string
 };
 
+export function resolveAppUrl(appUrl?: string): string {
+    const value = appUrl ?? "http://localhost:3000";
+
+    try {
+        const parsedAppUrl = new URL(value);
+
+        if (!["http:", "https:"].includes(parsedAppUrl.protocol)) {
+            throw new Error();
+        }
+    } catch {
+        throw new Error("APP_URL must be an absolute HTTP(S) URL");
+    }
+
+    return value;
+}
+
 export function createEnv(bindings: CloudflareBindings): AppEnv {
 
     if (!bindings.ALLOWED_ORIGIN) {
@@ -79,8 +95,7 @@ export function createEnv(bindings: CloudflareBindings): AppEnv {
     const jwtRefreshExpires =
         bindings.JWT_REFRESH_EXPIRES ?? "7d";
 
-    const appUrl =
-        bindings.APP_URL ?? "http://localhost:3000";
+    const appUrl = resolveAppUrl(bindings.APP_URL);
 
     return {
         JWT_ACCESS_SECRET: bindings.JWT_ACCESS_SECRET,

@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError } from "../../shared/errors/appError.js";
+import { ConflictError, NotFoundError } from "../../shared/errors/";
 import { EventBus } from "../../shared/events/eventBus.js";
 import { UserManagementRepository } from "./userManagementRepository.js";
 import type {
@@ -147,6 +147,7 @@ export class UserManagementService {
         email: string;
         job_title?: string | null;
         status: string;
+        company_memberships?: { company: { display_name: string } }[];
     }) {
         return {
             user_id: user.id,
@@ -155,6 +156,7 @@ export class UserManagementService {
             email: user.email,
             job_title: user.job_title ?? null,
             status: user.status,
+            company_name: user.company_memberships?.[0]?.company.display_name ?? null,
         };
     }
 }

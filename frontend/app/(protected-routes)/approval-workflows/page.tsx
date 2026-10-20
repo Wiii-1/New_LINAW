@@ -108,10 +108,10 @@ export default async function ApprovalWorkflowsPage() {
     <main className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">
-          Approval workflows
+          Approval Workflows
         </h1>
         <p className="mt-1 max-w-2xl text-sm">
-          Review purchase requisitions routed to your approval level.
+          Review purchase requisitions routed to your approval level
         </p>
       </div>
       <DataTable

@@ -1,4 +1,9 @@
 import { z } from "zod"
+import {
+    currencyCodeSchema,
+    DEFAULT_CURRENCY_CODE,
+    hasCurrencyPrecision,
+} from "../../shared/currency.js";
 
 export const RFQStatus = {
     DRAFT: "DRAFT",
@@ -121,7 +126,9 @@ export const CreatePurchaseOrderSchema = z.object({
     rfq_id: z.uuid().optional(),
     supplier_quotation_id: z.uuid().optional(),
 
-    currency_code: z.string().trim().length(3),
+    currency_code: currencyCodeSchema
+        .optional()
+        .default(DEFAULT_CURRENCY_CODE),
 
     total_amount: z.number().nonnegative(),
 
@@ -138,11 +145,30 @@ export const CreatePurchaseOrderSchema = z.object({
             total_price: z.number().nonnegative(),
         }),
     ).min(1),
+}).superRefine((value, context) => {
+    if (!hasCurrencyPrecision(value.total_amount, value.currency_code)) {
+        context.addIssue({
+            code: "custom",
+            path: ["total_amount"],
+            message: `Amount does not match ${value.currency_code} minor-unit precision.`,
+        });
+    }
+
+    value.items.forEach((item, index) => {
+        if (!hasCurrencyPrecision(item.unit_price, value.currency_code) ||
+            !hasCurrencyPrecision(item.total_price, value.currency_code)) {
+            context.addIssue({
+                code: "custom",
+                path: ["items", index],
+                message: `Amounts must match ${value.currency_code} minor-unit precision.`,
+            });
+        }
+    });
 });
 
 export const UpdatePurchaseOrderSchema = z.object({
     expected_delivery_date: z.coerce.date().optional(),
-    currency_code: z.string().trim().length(3).optional(),
+    currency_code: currencyCodeSchema.optional(),
 
     items: z.array(
         z.object({

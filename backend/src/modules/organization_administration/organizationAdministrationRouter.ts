@@ -1,4 +1,4 @@
-import type { AppContext } from "../../shared/types/hono";
+import type { AppContext } from "../../shared/types/hono.js";
 import { Hono } from "hono";
 import { authenticate } from "../../shared/middleware/authenticate";
 import { Authorize } from "../../shared/Authorization/authorize";
