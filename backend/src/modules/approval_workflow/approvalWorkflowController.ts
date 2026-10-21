@@ -111,7 +111,7 @@ export class ApprovalWorkflowController {
         const getApprovalWorkflows = await this.service.getApprovalWorkflows(data)
         const total = await this.service.countApprovalWorkflows(data)
 
-        c.json({
+        return c.json({
             success: true,
             data: {
                 approval_requests: getApprovalWorkflows,

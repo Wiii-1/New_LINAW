@@ -190,7 +190,7 @@ export class PurchaseRequisitionController {
         const requisition = await this.service.getRequisition(data);
         const total = await this.service.countRequisition(data);
 
-        c.json({
+        return c.json({
             success: true,
             message: "Purchase requisitions retrieved successfully.",
             data: {

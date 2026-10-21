@@ -8,6 +8,8 @@
     "dev:express": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
+    "db:seed": "prisma db seed",
+    "predb:seed": "pnpm exec prisma generate",
     "start": "wrangler dev",
     "deploy": "wrangler deploy"
   },

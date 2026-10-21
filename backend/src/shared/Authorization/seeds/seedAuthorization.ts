@@ -8,7 +8,7 @@ import {
     upsertRolePermission,
 } from "../repository/authorizationRepository.js";
 
-export async function seedAuthorization(tenantId: string) {
+export async function seedAuthorization() {
     const permissionMap = new Map<string, string>();
 
     // 1. Create permissions
@@ -26,7 +26,6 @@ export async function seedAuthorization(tenantId: string) {
 
     for (const role of systemRoles) {
         const result = await upsertSystemRole(
-            tenantId,
             role,
         );
 
