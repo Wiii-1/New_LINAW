@@ -580,32 +580,6 @@ export class ApprovalWorkflowRepository {
                 resolved_at: true,
                 created_at: true,
                 updated_at: true,
-                requester_user: {
-                    select: { first_name: true, last_name: true },
-                },
-                purchase_requisition: {
-                    select: {
-                        pr_number: true,
-                        purpose: true,
-                        currency_code: true,
-                        total_amount: true,
-                    },
-                },
-                actions: {
-                    orderBy: { acted_at: "asc" },
-                    select: {
-                        id: true,
-                        action: true,
-                        remarks: true,
-                        acted_at: true,
-                        acted_by_user: {
-                            select: { first_name: true, last_name: true },
-                        },
-                        level: {
-                            select: { level_no: true },
-                        },
-                    },
-                },
             },
         });
     }    
