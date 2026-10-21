@@ -8,7 +8,7 @@ import {
   type ColumnFiltersState,
   type ColumnVisibilityState,
 } from "@tanstack/react-table";
-import { Search, X, DownloadIcon } from "lucide-react";
+import { Search, X, DownloadIcon, SearchX, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -51,15 +51,19 @@ export function DataTable<TData extends RowData>({
     [],
   );
 
+  const [rowSelection, setRowSelection] = React.useState({});
+
   const table = useTable({
     features,
     data,
     columns,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnFiltersChange: setColumnFilters,
+    onRowSelectionChange: setRowSelection,
     state: {
       columnVisibility,
       columnFilters,
+      rowSelection,
     },
   });
 
@@ -158,9 +162,50 @@ export function DataTable<TData extends RowData>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-[400px] text-center"
                 >
-                  No results.
+                  <div className="flex flex-col items-center justify-center text-center">
+                    {searchValue ? (
+                      // 1. Search Empty State
+                      <>
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted/50 mb-4">
+                          <SearchX className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold">
+                          No results found
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                          We couldn't find anything matching "{searchValue}".{" "}
+                          <br />
+                          Try adjusting your search or filters.
+                        </p>
+                        <Button
+                          variant="outline"
+                          className="mt-4"
+                          onClick={() =>
+                            table.getColumn(searchKey!)?.setFilterValue("")
+                          }
+                        >
+                          Clear search
+                        </Button>
+                      </>
+                    ) : (
+                      // 2. Database Empty State
+                      <>
+                        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted/50 mb-4">
+                          <Inbox className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold">
+                          No data available
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                          There are no records to display here yet. <br />
+                          Get started by creating a new one.
+                        </p>
+                        {/* Optional: You can render a "Create" button here if you pass an onClick handler via props */}
+                      </>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             )}

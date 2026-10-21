@@ -4,6 +4,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
 import { type DataTableFeatures } from "@/types/data-table-features";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableColumnHeader } from "@/components/data-table-column-header";
 import {
   DropdownMenu,
@@ -28,6 +29,35 @@ export type ApprovalWorkflow = {
 const columnHelper = createColumnHelper<DataTableFeatures, ApprovalWorkflow>();
 
 export const columns = columnHelper.columns([
+  // 1. Moved the select column to the very top so it renders on the far left
+  columnHelper.display({
+    id: "select",
+    header: ({ table }) => {
+      const allSelected = table.getIsAllPageRowsSelected();
+      const someSelected = table.getIsSomePageRowsSelected() && !allSelected;
+
+      return (
+        <Checkbox
+          checked={allSelected}
+          aria-checked={someSelected ? "mixed" : allSelected}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+          className="translate-y-0.5"
+        />
+      );
+    },
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        className="translate-y-0.5"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  }),
+
   columnHelper.accessor("id", {
     header: "ID",
   }),
