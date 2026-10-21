@@ -2,8 +2,8 @@
 import { cn } from "cn";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-//import { useRouter } from "next/navigation";
-//import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -20,47 +20,62 @@ export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  //const [isLoading, setIsLoading] = useState(false);
-  //const router = useRouter();
-
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      username: "",
+      firstName: "",
+      lastName: "",
       email: "",
       password: "",
       confirmPassword: "",
     },
   });
 
-  /*
-    async function onSubmit(values: SignUpFormValues ) {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  async function onSubmit(values: SignUpFormValues) {
     setIsLoading(true);
 
-    const { success, message } = await signUp(
-      values.username,
-      values.email,
-      values.password,
-    );
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: values.firstName,
+          last_name: values.lastName,
+          email: values.email,
+          password: values.password,
+          confirmPassword: values.confirmPassword,
+        }),
+      });
+      const data = (await response.json()) as {
+        success?: boolean;
+        message?: string;
+      };
 
-    if (success) {
-      toast.success(
-        `${message as string} Please check your email for verification.`,
-      );
+      if (!response.ok || data.success !== true) {
+        form.setError("root", {
+          message: data.message ?? "Unable to create your account.",
+        });
+        return;
+      }
+
       router.push("/dashboard");
-    } else {
-      toast.error(message as string);
+    } catch {
+      form.setError("root", {
+        message: "Unable to reach the signup service. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   }
-  */
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form
         id="signup-form"
-        //onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(onSubmit)}
       >
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
@@ -68,20 +83,39 @@ export function SignupForm({
             <FieldDescription>
               Already have an account? <a href="/login">Login</a>
             </FieldDescription>
+            <FieldError>{form.formState.errors.root?.message}</FieldError>
           </div>
           <Controller
-            name="username"
+            name="firstName"
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="name">Username</FieldLabel>
+                <FieldLabel htmlFor="first-name">First Name</FieldLabel>
                 <Input
                   {...field}
-                  id="name"
+                  id="first-name"
                   type="text"
                   required
                   className="bg-background"
                 />
+                <FieldError>{fieldState.error?.message}</FieldError>
+              </Field>
+            )}
+          />
+          <Controller
+            name="lastName"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="last-name">Last Name</FieldLabel>
+                <Input
+                  {...field}
+                  id="last-name"
+                  type="text"
+                  required
+                  className="bg-background"
+                />
+                <FieldError>{fieldState.error?.message}</FieldError>
               </Field>
             )}
           />
@@ -106,10 +140,10 @@ export function SignupForm({
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="name">Password</FieldLabel>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
                 <Input
                   {...field}
-                  id="name"
+                  id="password"
                   type="password"
                   required
                   className="bg-background"
@@ -117,6 +151,7 @@ export function SignupForm({
                 <FieldDescription>
                   Must be at least 8 characters long
                 </FieldDescription>
+                <FieldError>{fieldState.error?.message}</FieldError>
               </Field>
             )}
           />
@@ -140,8 +175,8 @@ export function SignupForm({
             )}
           />
           <Field>
-            <Button type="submit" /*disabled={isLoading}*/ form="signup-form">
-              Create Account
+            <Button type="submit" disabled={isLoading} form="signup-form">
+              {isLoading ? "Creating account..." : "Create Account"}
             </Button>
           </Field>
           <FieldSeparator>Or</FieldSeparator>

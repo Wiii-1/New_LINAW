@@ -58,12 +58,17 @@ export class AuthService {
         const password_hash = await hashPassword(data.password);
         const tenant_id = randomUUID();
 
-        return this.repository.registerUser({
+        await this.repository.registerUser({
             tenant_id,
             first_name: data.first_name,
             last_name: data.last_name,
             email: data.email,
             password_hash,
+        });
+
+        return this.login({
+            email: data.email,
+            password: data.password,
         });
     }
 
