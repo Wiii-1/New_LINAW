@@ -30,103 +30,44 @@ import {
 
 const data = {
   navMain: [
-    {
-      title: "Overview",
-      url: "/dashboard",
-      icon: <LayoutDashboardIcon />,
-      isActive: true,
-    },
-    {
-      title: "Purchase Requisitions",
-      url: "/purchase-requisitions",
-      icon: <FileTextIcon />,
-    },
-    {
-      title: "Approval Workflows",
-      url: "/approval-workflows",
-      icon: <GitBranchIcon />,
-    },
-    {
-      title: "Request for Quotations",
-      url: "/rfqs",
-      icon: <ClipboardCheckIcon />,
-    },
-    {
-      title: "Supplier Quotations",
-      url: "/quotations",
-      icon: <ArchiveIcon />,
-    },
-    {
-      title: "Purchase Orders",
-      url: "/purchase-orders",
-      icon: <FileCheck2Icon />,
-    },
-    {
-      title: "Audit Trail",
-      url: "/audit-trail",
-      icon: <ScrollTextIcon />,
-    },
-    {
-      title: "User & Roles",
-      url: "/users",
-      icon: <UsersRoundIcon />,
-    },
+    { title: "Overview", url: "/dashboard", icon: <LayoutDashboardIcon />, isActive: true },
+    { title: "Purchase Requisitions", url: "/purchase-requisitions", icon: <FileTextIcon /> },
+    { title: "Approval Workflows", url: "/approval-workflows", icon: <GitBranchIcon /> },
+    { title: "Request for Quotations", url: "/rfqs", icon: <ClipboardCheckIcon /> },
+    { title: "Supplier Quotations", url: "/quotations", icon: <ArchiveIcon /> },
+    { title: "Purchase Orders", url: "/purchase-orders", icon: <FileCheck2Icon /> },
+    { title: "Audit Trail", url: "/audit-trail", icon: <ScrollTextIcon /> },
+    { title: "User & Roles", url: "/users", icon: <UsersRoundIcon /> },
   ],
   navSecondary: [
-    {
-      title: "Organization settings",
-      url: "/organizations",
-      icon: <Settings2Icon />,
-    },
-    {
-      title: "Support center",
-      url: "#",
-      icon: <LifeBuoyIcon />,
-    },
+    { title: "Organization settings", url: "/organizations", icon: <Settings2Icon /> },
+    { title: "Support center", url: "#", icon: <LifeBuoyIcon /> },
   ],
 };
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [user, setUser] = React.useState({
-    name: "User",
-    email: "",
-    avatar: "",
-  });
+  const [user, setUser] = React.useState({ name: "User", email: "", avatar: "" });
 
   React.useEffect(() => {
     const controller = new AbortController();
-
     async function loadProfile() {
       try {
         const response = await fetch("/api/backend/userManagementRouter/profile", {
           signal: controller.signal,
           cache: "no-store",
         });
-
         if (!response.ok) return;
-
         const result = (await response.json()) as {
-          data?: {
-            first_name?: string;
-            last_name?: string;
-            email?: string;
-          };
+          data?: { first_name?: string; last_name?: string; email?: string };
         };
-        const firstName = result.data?.first_name?.trim() ?? "";
-        const lastName = result.data?.last_name?.trim() ?? "";
-        const name = [firstName, lastName].filter(Boolean).join(" ");
-
-        setUser({
-          name: name || "User",
-          email: result.data?.email?.trim() ?? "",
-          avatar: "",
-        });
+        const name = [result.data?.first_name?.trim(), result.data?.last_name?.trim()]
+          .filter(Boolean)
+          .join(" ");
+        setUser({ name: name || "User", email: result.data?.email?.trim() ?? "", avatar: "" });
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
       }
     }
-
     void loadProfile();
-
     return () => controller.abort();
   }, []);
 
@@ -138,20 +79,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              render={<a href="/organizations" aria-label="Organizations" />}
-            >
+            <SidebarMenuButton size="lg" render={<a href="/organizations" aria-label="Organizations" />}>
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-[#1c63f2] text-white shadow-sm">
                 <ShieldCheckIcon className="size-4" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold tracking-tight">
-                  LINAW
-                </span>
-                <span className="truncate text-[11px] text-sidebar-foreground/55">
-                  Procurement operations
-                </span>
+                <span className="truncate font-semibold tracking-tight">LINAW</span>
+                <span className="truncate text-[11px] text-sidebar-foreground/55">Procurement operations</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

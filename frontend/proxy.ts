@@ -14,25 +14,15 @@ const protectedRoutes = [
   "/users",
 ];
 
-const authRoutes = [
-  "/forgot-password",
-  "/login",
-  "/reset-password",
-  "/signup",
-];
+const authRoutes = ["/forgot-password", "/login", "/reset-password", "/signup"];
 
 function matchesRoute(pathname: string, route: string): boolean {
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
 async function hasValidSession(accessToken: string): Promise<boolean> {
-  const apiUrl = (
-    env as typeof env & { LINAW_API_URL?: string }
-  ).LINAW_API_URL;
-
-  if (!apiUrl) {
-    return false;
-  }
+  const apiUrl = (env as typeof env & { LINAW_API_URL?: string }).LINAW_API_URL;
+  if (!apiUrl) return false;
 
   try {
     const response = await fetch(
@@ -47,10 +37,7 @@ async function hasValidSession(accessToken: string): Promise<boolean> {
       },
     );
 
-    if (!response.ok) {
-      return false;
-    }
-
+    if (!response.ok) return false;
     const data = (await response.json()) as { success?: boolean };
     return data.success === true;
   } catch {
@@ -63,18 +50,12 @@ export async function proxy(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some((route) =>
     matchesRoute(pathname, route),
   );
-  const isAuthRoute = authRoutes.some((route) =>
-    matchesRoute(pathname, route),
-  );
+  const isAuthRoute = authRoutes.some((route) => matchesRoute(pathname, route));
 
-  if (!isProtectedRoute && !isAuthRoute) {
-    return NextResponse.next();
-  }
+  if (!isProtectedRoute && !isAuthRoute) return NextResponse.next();
 
   const accessToken = request.cookies.get("accessToken")?.value;
-  const hasSession = accessToken
-    ? await hasValidSession(accessToken)
-    : false;
+  const hasSession = accessToken ? await hasValidSession(accessToken) : false;
 
   if (isProtectedRoute && !hasSession) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -86,9 +67,6 @@ export async function proxy(request: NextRequest) {
 
   return NextResponse.next();
 }
-
-// Alternatively, you can use a default export:
-// export default function proxy(request: NextRequest) { ... }
 
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|.*\\.png$).*)"],

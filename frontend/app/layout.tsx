@@ -17,16 +17,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={cn("font-sans", inter.variable)}
-      suppressHydrationWarning
-    >
+    <html lang="en" className={cn("font-sans", inter.variable)}>
       <body>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
-          enableSystem={true}
+          enableSystem
           disableTransitionOnChange
         >
           <Tooltip>{children}</Tooltip>

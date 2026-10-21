@@ -17,11 +17,6 @@ import {
   type ForgotPasswordFormValues,
 } from "@/validators/auth";
 
-interface ApiResponse {
-  success: boolean;
-  message?: string;
-}
-
 export function ForgotPasswordForm({
   className,
   ...props
@@ -41,30 +36,18 @@ export function ForgotPasswordForm({
     setIsLoading(true);
     setError("");
     setSuccess("");
-
     try {
       const response = await fetch("/api/auth/forgot-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          email: values.email.trim(),
-        }),
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ email: values.email.trim() }),
       });
-
-      const data = (await response.json()) as ApiResponse;
-
+      const data = (await response.json()) as { success?: boolean; message?: string };
       if (!response.ok || data.success !== true) {
         setError(data.message ?? "Unable to process your request. Please try again.");
         return;
       }
-
-      setSuccess(
-        data.message ??
-          "If an account exists for that email, a password reset link will be sent shortly.",
-      );
+      setSuccess(data.message ?? "If an account exists for that email, a password reset link will be sent shortly.");
     } catch {
       setError("Unable to contact the server. Please try again.");
     } finally {
@@ -77,7 +60,6 @@ export function ForgotPasswordForm({
       <form
         id="forgot-password-form"
         onSubmit={form.handleSubmit(onSubmit)}
-        noValidate
       >
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
@@ -96,40 +78,29 @@ export function ForgotPasswordForm({
                   {...field}
                   id="email"
                   type="email"
-                  autoComplete="email"
                   required
-                  aria-invalid={fieldState.invalid}
                   className="bg-background"
-                  disabled={isLoading || Boolean(success)}
                 />
-                {fieldState.error && (
-                  <p className="text-sm text-destructive">
-                    {fieldState.error.message}
-                  </p>
-                )}
               </Field>
             )}
           />
-
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           )}
-
           {success && (
             <p role="status" className="text-sm text-green-600">
               {success}
             </p>
           )}
-
           <Field>
             <Button
               type="submit"
-              disabled={isLoading || Boolean(success)}
+              disabled={isLoading}
               form="forgot-password-form"
             >
-              {isLoading ? "Sending..." : "Send Email"}
+              Send Email
             </Button>
           </Field>
         </FieldGroup>

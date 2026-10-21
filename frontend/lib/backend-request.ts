@@ -71,7 +71,7 @@ async function refreshSession(
 export async function forwardBackendRequest(
   request: Request,
   backendPath: string,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   allowedPath: (path: string) => boolean = isSafePath,
 ): Promise<Response> {
   if (!isSafePath(backendPath) || !allowedPath(backendPath)) {
@@ -92,7 +92,9 @@ export async function forwardBackendRequest(
 
   const baseUrl = apiUrl.replace(/\/+$/, "");
   const targetUrl = `${baseUrl}/api/${backendPath}${new URL(request.url).search}`;
-  const requestBody = method === "GET" ? undefined : await request.arrayBuffer();
+  const requestBody = method === "GET" || method === "DELETE"
+    ? undefined
+    : await request.arrayBuffer();
   const contentType = request.headers.get("Content-Type");
   let accessToken = getCookie(request, "accessToken");
   let refreshedSession: { accessToken: string; refreshToken: string } | null = null;
