@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavSecondary } from "@/components/nav-secondary";
+//import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -19,7 +19,7 @@ import {
   ClipboardCheckIcon,
   FileCheck2Icon,
   FileTextIcon,
-  GitBranchIcon,
+  FilePenIcon,
   LayoutDashboardIcon,
   LifeBuoyIcon,
   ScrollTextIcon,
@@ -36,7 +36,7 @@ const data = {
   },
   navMain: [
     {
-      title: "Overview",
+      title: "Dashboard",
       url: "/dashboard",
       icon: <LayoutDashboardIcon />,
       isActive: true,
@@ -49,7 +49,7 @@ const data = {
     {
       title: "Approval Workflows",
       url: "/approval-workflows",
-      icon: <GitBranchIcon />,
+      icon: <FilePenIcon />,
     },
     {
       title: "Request for Quotations",
@@ -72,8 +72,8 @@ const data = {
       icon: <ScrollTextIcon />,
     },
     {
-      title: "User & Roles",
-      url: "/users",
+      title: "User Management",
+      url: "/user-management",
       icon: <UsersRoundIcon />,
     },
   ],
@@ -102,10 +102,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     async function loadProfile() {
       try {
-        const response = await fetch("/api/backend/userManagementRouter/profile", {
-          signal: controller.signal,
-          cache: "no-store",
-        });
+        const response = await fetch(
+          "/api/backend/userManagementRouter/profile",
+          {
+            signal: controller.signal,
+            cache: "no-store",
+          },
+        );
 
         if (!response.ok) return;
 
@@ -126,7 +129,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           avatar: "",
         });
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
       }
     }
 
@@ -155,7 +159,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   LINAW
                 </span>
                 <span className="truncate text-[11px] text-sidebar-foreground/55">
-                  Procurement operations
+                  Procurement Operations
                 </span>
               </div>
             </SidebarMenuButton>
@@ -164,7 +168,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />
