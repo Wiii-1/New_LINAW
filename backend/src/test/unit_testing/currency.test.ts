@@ -19,6 +19,7 @@ const item = {
 describe("currency contracts", () => {
     it("uses PHP when a requisition currency is omitted", () => {
         const result = purchaseRequisitionInputSchema.parse({
+            workflow_code: "PURCHASE_REQUISITION",
             justification: "A sufficiently detailed business justification.",
             items: [item],
         });

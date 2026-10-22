@@ -10,8 +10,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -20,16 +18,27 @@ export type ApprovalWorkflow = {
   request: string;
   requester: string;
   approvalLevel: number;
-  price: number;
+  price: number | null;
+  currencyCode?: string;
   date: string | number | Date;
   status: "Pending" | "Approved" | "Rejected" | "Cancelled";
 };
 
 const columnHelper = createColumnHelper<DataTableFeatures, ApprovalWorkflow>();
 
-export const columns = columnHelper.columns([
+export function createColumns(actions: {
+  onView: (workflow: ApprovalWorkflow) => void;
+  onApprove: (workflow: ApprovalWorkflow) => void;
+  onReject: (workflow: ApprovalWorkflow) => void;
+}) {
+  return columnHelper.columns([
   columnHelper.accessor("id", {
     header: "ID",
+    cell: ({ row }) => (
+      <span className="block max-w-40 truncate font-mono text-xs" title={row.original.id}>
+        {row.original.id}
+      </span>
+    ),
   }),
 
   columnHelper.accessor("request", {
@@ -64,10 +73,14 @@ export const columns = columnHelper.columns([
       <DataTableColumnHeader column={column} title="Price" />
     ),
     cell: ({ row }) => {
-      const price = Number.parseFloat(row.getValue("price"));
+      const price = row.original.price;
+      if (price === null || !row.original.currencyCode) {
+        return <span>Unavailable</span>;
+      }
+
       return new Intl.NumberFormat("en-PH", {
         style: "currency",
-        currency: "PHP",
+        currency: row.original.currencyCode,
       }).format(price);
     },
   }),
@@ -104,31 +117,30 @@ export const columns = columnHelper.columns([
 
       return (
         <DropdownMenu>
-          <DropdownMenuTrigger
-            render={<Button variant="ghost" className="h-8 w-8 p-0" />}
-          >
+          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
             <span className="sr-only">Open menu</span>
             <MoreHorizontal className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuGroup>
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(workflow.id)}
-              >
-                Copy ID
+              <DropdownMenuItem onClick={() => actions.onView(workflow)}>
+                View details
               </DropdownMenuItem>
-            </DropdownMenuGroup>
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuGroup>
-              <DropdownMenuItem>Update</DropdownMenuItem>
-              <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+              {workflow.status === "Pending" && (
+                <>
+                  <DropdownMenuItem onClick={() => actions.onApprove(workflow)}>
+                    Approve
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => actions.onReject(workflow)}>
+                    Reject
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       );
     },
   }),
-]);
+  ]);
+}

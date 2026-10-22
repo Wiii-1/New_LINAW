@@ -3,6 +3,7 @@ export type purchaseRequisitionSubmittedEvent = {
     tenantId: string;
     companyId: string;
     userId: string;
+    workflowCode: string;
     entityType: string;    
     submittedAt: Date;
 }

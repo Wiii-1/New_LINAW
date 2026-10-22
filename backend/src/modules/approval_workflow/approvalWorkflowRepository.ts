@@ -214,6 +214,7 @@ export class ApprovalWorkflowRepository {
                 purchase_requisition: {
                     select: {
                         pr_number: true,
+                        workflow_code: true,
                         purpose: true,
                         currency_code: true,
                         total_amount: true,
@@ -586,6 +587,7 @@ export class ApprovalWorkflowRepository {
                 purchase_requisition: {
                     select: {
                         pr_number: true,
+                        workflow_code: true,
                         purpose: true,
                         currency_code: true,
                         total_amount: true,
@@ -650,16 +652,14 @@ export class ApprovalWorkflowRepository {
     async getCurrentLevel(
         data: ApprovalRequest,
         currentLevel: number,
-        entityType: string,
+        workflowId: string,
     ) {
         return prisma.approvalWorkflowLevel.findFirst({
             where: {
                 tenant_id: data.tenant_id,
                 company_id: data.company_id,
                 level_no: currentLevel,
-                workflow: {
-                    entity_type: entityType,
-                },
+                workflow_id: workflowId,
             },
             select: {
                 id: true,

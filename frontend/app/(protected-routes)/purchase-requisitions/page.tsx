@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import {
@@ -27,6 +27,11 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  ApprovalWorkflowApiError,
+  getWorkflowDefinitions,
+  type WorkflowDefinition,
+} from "@/app/api/approval-workflow/client";
 import {
   formatCurrency,
   getCurrency,
@@ -60,6 +65,7 @@ function createItem(id: number): RequisitionItem {
 }
 
 const initialHeader = {
+  workflow_code: "",
   purpose: "",
   priority: "NORMAL" as const,
   currency_code: "PHP",
@@ -80,6 +86,7 @@ const numericInput = (message: string, positive = false) =>
     );
 
 const requisitionFormSchema = z.object({
+  workflow_code: z.string().trim().min(1, "Approval workflow is required."),
   purpose: z.string().trim().max(500, "Purpose cannot exceed 500 characters."),
   justification: z
     .string()
@@ -168,6 +175,9 @@ export default function PurchaseRequisitionsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [savedNumber, setSavedNumber] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [workflowDefinitions, setWorkflowDefinitions] = useState<WorkflowDefinition[]>([]);
+  const [workflowLoading, setWorkflowLoading] = useState(true);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
 
   const total = useMemo(
     () =>
@@ -180,6 +190,31 @@ export default function PurchaseRequisitionsPage() {
       ),
     [items],
   );
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    getWorkflowDefinitions()
+      .then((definitions) => {
+        if (!isCurrent) return;
+        setWorkflowDefinitions(definitions.filter((definition) => definition.is_active && definition.workflow_code));
+      })
+      .catch((requestError: unknown) => {
+        if (!isCurrent) return;
+        setWorkflowError(
+          requestError instanceof ApprovalWorkflowApiError && requestError.status === 401
+            ? "Your session has expired. Please sign in again."
+            : "Unable to load approval workflows. Please try again.",
+        );
+      })
+      .finally(() => {
+        if (isCurrent) setWorkflowLoading(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   function updateItem(
     id: number,
@@ -220,6 +255,19 @@ export default function PurchaseRequisitionsPage() {
 
   async function saveDraft() {
     setFormError(null);
+
+    const selectedWorkflow = workflowDefinitions.find(
+      (definition) => definition.workflow_code === header.workflow_code,
+    );
+
+    if (workflowLoading || workflowError || !selectedWorkflow) {
+      setFormError(
+        workflowLoading
+          ? "Approval workflows are still loading."
+          : workflowError ?? "Select an available approval workflow before saving.",
+      );
+      return;
+    }
 
     const parsed = requisitionFormSchema.safeParse({
       ...header,
@@ -345,12 +393,25 @@ export default function PurchaseRequisitionsPage() {
               <FormField label="Request type">
                 <select
                   className={selectClassName}
-                  value="Not supported"
-                  disabled
+                  value={header.workflow_code}
+                  disabled={workflowLoading || Boolean(workflowError) || workflowDefinitions.length === 0}
+                  onChange={(event) => updateHeader("workflow_code", event.target.value)}
                   aria-label="Request type"
                 >
-                  <option>Not supported by backend</option>
+                  <option value="">
+                    {workflowLoading ? "Loading workflows..." : "Select a workflow"}
+                  </option>
+                  {workflowDefinitions.map((definition) => (
+                    <option key={definition.workflow_code} value={definition.workflow_code}>
+                      {definition.name}
+                    </option>
+                  ))}
                 </select>
+                {workflowError ? (
+                  <p className="mt-1 text-xs text-destructive" role="alert">{workflowError}</p>
+                ) : !workflowLoading && workflowDefinitions.length === 0 ? (
+                  <p className="mt-1 text-xs">No approval workflows available. Create an approval workflow first.</p>
+                ) : null}
               </FormField>
               <FormField label="Priority">
                 <select

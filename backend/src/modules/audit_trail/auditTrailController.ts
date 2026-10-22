@@ -33,7 +33,7 @@ export class auditTrailController {
 
     searchAuditRecord = async (
         c: Context<AppContext>
-    ): Promise <void> => {
+    ): Promise<Response> => {
 
         const { user_id, tenant_id, company_id } = c.var.user
 
@@ -50,7 +50,7 @@ export class auditTrailController {
         const validatedSearch = searchAuditSchema.parse(search)
         const id = await this.service.searchAudit(validatedSearch)
 
-        c.json({
+        return c.json({
             success: true,
             message: "Purchase Order Found",
             data:id
@@ -60,7 +60,7 @@ export class auditTrailController {
 
     verifyAuditIntegrity = async (
         c: Context<AppContext>
-    ) => {
+    ): Promise<Response> => {
         
         const { user_id, tenant_id, company_id } = c.get("user")
 
@@ -77,7 +77,7 @@ export class auditTrailController {
 
         const data = await this.service.auditIntegrity(verify)
 
-        c.json({
+        return c.json({
             success:true,
             data:data
         }, 200)

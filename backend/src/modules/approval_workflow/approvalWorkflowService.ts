@@ -28,6 +28,7 @@ interface CreateApprovalWorkflowRequest {
    tenantId: string
    companyId: string
    userId: string
+   workflowCode: string
    entityType: string
    submitted_At: Date
 }
@@ -211,10 +212,8 @@ export class ApprovalWorkflowService {
             8. Returns the created approval request.
         */
 
-      const entityType = event.entityType
-
-      const workflow = await this.repository.findWorkflowByEntityType(
-         entityType,
+      const workflow = await this.repository.findApprovalWorkflowDefinition(
+         event.workflowCode,
          event.tenantId,
          event.companyId,
       )
@@ -243,7 +242,7 @@ export class ApprovalWorkflowService {
       const approvalRequest: ApprovalRequestData = {
          tenant_id: event.tenantId,
          company_id: event.companyId,
-         entity_type: entityType,
+         entity_type: workflow.entity_type,
          entity_id: event.purchaseRequisitionId,
          requester_user_id: event.userId,
          current_level: currentLevel,
@@ -303,8 +302,12 @@ export class ApprovalWorkflowService {
 
       const currentLevel = request.current_level      
 
-      const workflow = await this.repository.findWorkflowByEntityType(
-         request.entity_type,
+      if (!request.purchase_requisition.workflow_code) {
+         throw new ConflictError("Approval request has no selected workflow")
+      }
+
+      const workflow = await this.repository.findApprovalWorkflowDefinition(
+         request.purchase_requisition.workflow_code,
          tenantId,
          company_id,
       )
@@ -322,7 +325,7 @@ export class ApprovalWorkflowService {
       const level = await this.repository.getCurrentLevel(
          data,
          currentLevel,
-         request.entity_type,
+         workflow.id,
       )
 
       if (!level) {
@@ -437,14 +440,18 @@ export class ApprovalWorkflowService {
 
       const currentLevel = request.current_level
 
+      if (!request.purchase_requisition.workflow_code) {
+         throw new ConflictError("Approval request has no selected workflow")
+      }
+
       const data:ApprovalRequest = { 
          approvalWorkflow_id: input.approvalWorkflow_id,
          tenant_id:tenantId,
          company_id: company_id
       }
 
-      const workflow = await this.repository.findWorkflowByEntityType(
-         request.entity_type,
+      const workflow = await this.repository.findApprovalWorkflowDefinition(
+         request.purchase_requisition.workflow_code,
          tenantId,
          company_id,
       )
@@ -456,7 +463,7 @@ export class ApprovalWorkflowService {
       const level = await this.repository.getCurrentLevel(
          data,
          currentLevel,
-         request.entity_type,
+         workflow.id,
       )
 
       if (!level) {
@@ -543,8 +550,12 @@ export class ApprovalWorkflowService {
 
       const currentLevel = request.current_level
 
-      const workflow = await this.repository.findWorkflowByEntityType(
-         request.entity_type,
+      if (!request.purchase_requisition.workflow_code) {
+         throw new ConflictError("Approval request has no selected workflow")
+      }
+
+      const workflow = await this.repository.findApprovalWorkflowDefinition(
+         request.purchase_requisition.workflow_code,
          tenantId,
          company_id,
       )
@@ -556,7 +567,7 @@ export class ApprovalWorkflowService {
       const level = await this.repository.getCurrentLevel(
          data,
          currentLevel,
-         request.entity_type,
+         workflow.id,
       )
 
       if (!level) {

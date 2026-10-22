@@ -121,6 +121,11 @@ export const purchaseRequisitionItemSchema = z
 
 export const purchaseRequisitionInputSchema = z
     .object({
+        workflow_code: z
+            .string()
+            .trim()
+            .min(1, "Approval workflow is required.")
+            .max(100),
         purpose: z
             .string()
             .trim()

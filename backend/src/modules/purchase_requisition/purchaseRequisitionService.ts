@@ -34,6 +34,7 @@ import { Prisma,
 
 import type { PurchaseRequisition } from "../../generated/prisma/client.js"
 import { EventBus } from "../../shared/events/eventBus.js"
+import { ApprovalWorkflowRepository } from "../approval_workflow/approvalWorkflowRepository.js"
 
 export interface purchaseRequisitionData {
     id: string;
@@ -43,6 +44,7 @@ export interface purchaseRequisitionData {
     pr_number: string;
     generation: number;
     requested_by_user_id: string;
+    workflow_code: string;
     purpose: string;
     justification: string;
     status: PurchaseRequisitionStatus;
@@ -84,7 +86,8 @@ export interface purchaseRequisitionStatusLogData {
 export class purchaseRequisitionService {
     constructor (
         private repository: purchaseRequisitionRepository,
-        private eventBus: EventBus
+        private eventBus: EventBus,
+        private approvalWorkflowRepository = new ApprovalWorkflowRepository(),
     ) {}
 
     async createRequisition (input: PurchaseRequisitionInput) {
@@ -100,6 +103,7 @@ export class purchaseRequisitionService {
 
         const { 
             purpose,
+            workflow_code,
             justification,
             priority,
             currency_code,
@@ -132,6 +136,16 @@ export class purchaseRequisitionService {
             throw new Error("User has no active company membership");
         }
 
+        const workflow = await this.approvalWorkflowRepository.findApprovalWorkflowDefinition(
+            workflow_code,
+            tenantId,
+            companyId,
+        );
+
+        if (!workflow) {
+            throw new NotFoundError("Approval workflow does not exist or is not eligible for this company");
+        }
+
         const total_amount = items.reduce(
             (total, item) => total.add(
                 new Prisma.Decimal(item.quantity).mul(
@@ -150,6 +164,7 @@ export class purchaseRequisitionService {
             generation: 1,
             requested_by_user_id,
             purpose,
+            workflow_code,
             justification,
             status: PurchaseRequisitionStatus.DRAFT,
             priority,
@@ -259,6 +274,20 @@ export class purchaseRequisitionService {
             throw new ConflictError ("Only draft requisitions can be submitted")
         }
 
+        if (!requisition.workflow_code) {
+            throw new ConflictError("Purchase requisition has no approval workflow selected")
+        }
+
+        const workflow = await this.approvalWorkflowRepository.findApprovalWorkflowDefinition(
+            requisition.workflow_code,
+            tenantId,
+            companyId,
+        );
+
+        if (!workflow) {
+            throw new ConflictError("Selected approval workflow is no longer eligible")
+        }
+
         const submitted_at = new Date()
 
         const acted_at = new Date()
@@ -292,7 +321,8 @@ export class purchaseRequisitionService {
                 tenantId: submission.tenant_id,
                 companyId: submission.company_id,
                 userId: submission.requested_by_user_id,
-                entityType: submission.purpose,
+                workflowCode: submission.workflow_code,
+                entityType: workflow.entity_type,
                 submittedAt: submission.submitted_at,
             }
         )
@@ -454,6 +484,7 @@ export class purchaseRequisitionService {
 
         const {
             purpose,
+            workflow_code,
             justification,
             priority,
             currency_code,
@@ -539,6 +570,16 @@ export class purchaseRequisitionService {
 
         const tenant_id = tenant.tenant_id        
 
+        const workflow = await this.approvalWorkflowRepository.findApprovalWorkflowDefinition(
+            workflow_code,
+            tenantId,
+            companyId,
+        );
+
+        if (!workflow) {
+            throw new NotFoundError("Approval workflow does not exist or is not eligible for this company");
+        }
+
         const dataCreate: purchaseRequisitionData = {
             id,
             root_id: requisition.root_id,
@@ -547,6 +588,7 @@ export class purchaseRequisitionService {
             pr_number,
             generation,
             requested_by_user_id,
+            workflow_code,
             purpose,
             justification,
             status: PurchaseRequisitionStatus.DRAFT,

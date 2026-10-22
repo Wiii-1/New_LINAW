@@ -100,6 +100,8 @@ Permission failures return an unwrapped `403` response `{ "message": "Forbidden"
 
 `justification` is required, trimmed, 10-500 characters. `purpose` is optional with default `""`, `priority` defaults to `NORMAL`, and `currency_code` defaults to the shared default currency. Dates must be `YYYY-MM-DD`. Items may be supplied as `items` or `line_items`; at least one item is required and input is transformed to `items`. Item type is `GOODS`, `SERVICE`, or `ASSET`; quantity is finite, positive, and has at most four decimal places; estimated unit cost is finite, nonnegative, and has at most four decimal places. Descriptions/specifications/units have schema length limits. Unknown fields are rejected. Several compatibility fields (`requisition_number`, `requester_id`, `company_id`, `request_date`, `requisition_status`, `total_estimated_amount`, `created_by`, `submitted_at`, `remarks`) are accepted by the schema but are not used to set the persisted record.
 
+`workflow_code` is required and must identify an active workflow definition eligible for the authenticated tenant and company. The selected code is persisted on the requisition and is revalidated when the requisition is submitted.
+
 **Success Response:** `201`:
 
 ```json
@@ -222,6 +224,7 @@ The response is a controller summary, not the full Prisma record. Total is calcu
       {
         "requisition_id": "requisition-uuid",
         "requisition_number": "PR-requisition-uuid-20261021-1",
+        "workflow_code": "PURCHASE_REQUISITION",
         "requisition_status": "DRAFT",
         "total_estimated_amount": "2500",
         "currency_code": "USD",
@@ -230,9 +233,11 @@ The response is a controller summary, not the full Prisma record. Total is calcu
       }
     ],
     "total": 1
-  }
+        "workflow_code": "PURCHASE_REQUISITION",
+      {
 }
 ```
+        "workflow_code": "PURCHASE_REQUISITION",
 
 The repository returns at most 10 rows ordered by `updated_at` descending; `total` is an unbounded count matching the filters. The controller maps each row to the summary fields above.
 

@@ -20,6 +20,7 @@ export function purchaseRequisitionEvent (
                     tenantId: event.tenantId,
                     companyId: event.companyId,
                     userId: event.userId,
+                    workflowCode: event.workflowCode,
                     entityType: event.entityType,
                     submitted_At: event.submittedAt
             })

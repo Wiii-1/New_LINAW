@@ -1,5 +1,39 @@
 export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 
+export type CreateWorkflowInput = {
+  workflow_code: string;
+  name: string;
+  description?: string;
+  entity_type: string;
+};
+
+export type CreateLevelInput = {
+  workflow_code: string;
+  level_no: number;
+  role_code: string;
+  min_amount: number;
+  max_amount: number;
+  is_required: boolean;
+};
+
+export type WorkflowDefinition = {
+  id?: string;
+  workflow_code: string;
+  name: string;
+  description: string | null;
+  entity_type: string;
+  is_active: boolean;
+};
+
+type RawWorkflowDefinition = {
+  id?: unknown;
+  workflow_code?: unknown;
+  name?: unknown;
+  description?: unknown;
+  entity_type?: unknown;
+  is_active?: unknown;
+};
+
 export type ApprovalAction = {
   id: string;
   action: string;
@@ -15,7 +49,7 @@ export type ApprovalRequest = {
   request: string;
   requester: string;
   entityType: string;
-  amount: number;
+  amount: number | null;
   currencyCode?: string;
   currentLevel: number;
   status: ApprovalStatus;
@@ -87,15 +121,16 @@ function stringValue(value: unknown, fallback: string): string {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
 
-function numberValue(value: unknown, fallback = 0): number {
+function numberValue(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
   const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function mapRequest(raw: RawApprovalRequest): ApprovalRequest {
   const id = stringValue(raw.id, "");
   const status = String(raw.status ?? "").toUpperCase();
-  const currentLevel = numberValue(raw.current_level, 1);
+  const currentLevel = numberValue(raw.current_level) ?? 1;
   const requester = [
     raw.requester_user?.first_name,
     raw.requester_user?.last_name,
@@ -118,6 +153,8 @@ function mapRequest(raw: RawApprovalRequest): ApprovalRequest {
   }
 
   for (const action of raw.actions ?? []) {
+    const level = numberValue(action.level?.level_no);
+
     actions.push({
       id: stringValue(action.id, `${id}-${actions.length}`),
       action: stringValue(action.action, "UNKNOWN"),
@@ -128,9 +165,7 @@ function mapRequest(raw: RawApprovalRequest): ApprovalRequest {
       ...(typeof action.remarks === "string" && action.remarks.trim()
         ? { remarks: action.remarks }
         : {}),
-      ...(action.level?.level_no !== undefined
-        ? { level: numberValue(action.level.level_no) }
-        : {}),
+      ...(level !== null ? { level } : {}),
     });
   }
 
@@ -209,4 +244,34 @@ export async function submitApprovalDecision(
       : { method: "POST" },
   );
   return mapRequest(data);
+}
+
+export async function createWorkflowDefinition(
+  input: CreateWorkflowInput,
+): Promise<WorkflowDefinition> {
+  return request<WorkflowDefinition>("/workflows", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function createWorkflowLevel(
+  input: CreateLevelInput,
+): Promise<unknown> {
+  return request<unknown>("/create-levels", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function getWorkflowDefinitions(): Promise<WorkflowDefinition[]> {
+  const data = await request<RawWorkflowDefinition[]>("/workflows");
+  return data.map((definition) => ({
+    ...(typeof definition.id === "string" ? { id: definition.id } : {}),
+    workflow_code: stringValue(definition.workflow_code, ""),
+    name: stringValue(definition.name, "Unnamed workflow"),
+    description: typeof definition.description === "string" ? definition.description : null,
+    entity_type: stringValue(definition.entity_type, ""),
+    is_active: definition.is_active === true,
+  }));
 }
