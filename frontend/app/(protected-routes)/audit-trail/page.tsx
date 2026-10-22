@@ -24,7 +24,7 @@ export default async function AuditTrailPage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2.5 wrap">
               <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                Blockchain Audit Trail
+                Audit Trail
               </h1>
             </div>
 
@@ -39,7 +39,7 @@ export default async function AuditTrailPage() {
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-xs">
             <Layers className="h-3.5 w-3.5 text-primary" />
             <span>
-              Total Records:{" "}
+              Total Audits:{" "}
               <strong className="font-semibold text-foreground">
                 {data.length}
               </strong>
@@ -48,12 +48,11 @@ export default async function AuditTrailPage() {
         </div>
       </div>
 
-      {/* Table Section */}
       <DataTable
         columns={columns}
         data={data}
-        searchKey="request"
-        searchPlaceholder="Search request..."
+        searchKey="id"
+        searchPlaceholder="Search audit ID..."
         toolbarActions={modal}
       />
     </main>

@@ -15,11 +15,11 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  ArchiveIcon,
-  ClipboardCheckIcon,
-  FileCheck2Icon,
-  FileTextIcon,
-  FilePenIcon,
+  Tag,
+  FileQuestion,
+  Receipt,
+  ClipboardList,
+  Workflow,
   LayoutDashboardIcon,
   LifeBuoyIcon,
   ScrollTextIcon,
@@ -44,27 +44,27 @@ const data = {
     {
       title: "Purchase Requisitions",
       url: "/purchase-requisitions",
-      icon: <FileTextIcon />,
-    },
-    {
-      title: "Approval Workflows",
-      url: "/approval-workflows",
-      icon: <FilePenIcon />,
-    },
-    {
-      title: "Request for Quotations",
-      url: "/rfqs",
-      icon: <ClipboardCheckIcon />,
-    },
-    {
-      title: "Supplier Quotations",
-      url: "/quotations",
-      icon: <ArchiveIcon />,
+      icon: <ClipboardList />,
     },
     {
       title: "Purchase Orders",
       url: "/purchase-orders",
-      icon: <FileCheck2Icon />,
+      icon: <Receipt />,
+    },
+    {
+      title: "Approval Workflows",
+      url: "/approval-workflows",
+      icon: <Workflow />,
+    },
+    {
+      title: "Request for Quotations",
+      url: "/rfqs",
+      icon: <FileQuestion />,
+    },
+    {
+      title: "Supplier Quotations",
+      url: "/quotations",
+      icon: <Tag />,
     },
     {
       title: "Audit Trail",

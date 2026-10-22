@@ -5,65 +5,19 @@ import {
 import { modal } from "@/app/(protected-routes)/approval-workflows/modal-definitions";
 import { DataTable } from "@/components/data-table";
 import { Card, CardContent } from "@/components/ui/card";
-import { FilePenIcon } from "lucide-react";
+import { Workflow } from "lucide-react";
 
 async function getApprovalWorkflows(): Promise<ApprovalWorkflows[]> {
-  return [
-    {
-      id: "approval-uuid-001",
-      tenant_id: "tenant-uuid",
-      company_id: "company-uuid",
-      entity_type: "purchase_requisition",
-      entity_id: "requisition-uuid-001",
-      requester_user_id: "requester-uuid",
-      current_level: 1,
-      status: "PENDING",
-      submitted_at: "2026-10-21T10:00:00.000Z",
-      resolved_at: null,
-      created_at: "2026-10-21T10:00:00.000Z",
-      updated_at: "2026-10-21T10:00:00.000Z",
-      requester_user: {
-        first_name: "Ada",
-        last_name: "Lovelace",
-      },
-      purchase_requisition: {
-        pr_number: "PR-0001",
-        purpose: "Office equipment",
-        currency_code: "USD",
-        total_amount: "1000",
-      },
-    },
-    {
-      id: "approval-uuid-002",
-      tenant_id: "tenant-uuid",
-      company_id: "company-uuid",
-      entity_type: "purchase_requisition",
-      entity_id: "requisition-uuid-002",
-      requester_user_id: "requester-uuid",
-      current_level: 2,
-      status: "APPROVED",
-      submitted_at: "2026-10-18T09:00:00.000Z",
-      resolved_at: "2026-10-19T14:30:00.000Z",
-      created_at: "2026-10-18T09:00:00.000Z",
-      updated_at: "2026-10-19T14:30:00.000Z",
-      requester_user: {
-        first_name: "Grace",
-        last_name: "Hopper",
-      },
-      purchase_requisition: {
-        pr_number: "PR-0002",
-        purpose: "Server rack renewal",
-        currency_code: "PHP",
-        total_amount: "150000",
-      },
-    },
-  ];
+  // TODO: Replace with actual backend API call
+  // const res = await fetch('API_ENDPOINT');
+  // return res.json();
+
+  return []; // Delete this array once API is connected
 }
 
 export default async function ApprovalWorkflowsPage() {
   const data = await getApprovalWorkflows();
 
-  // Aggregate status counts dynamically
   const metrics = data.reduce(
     (acc, item) => {
       const status = item.status?.toUpperCase();
@@ -84,16 +38,16 @@ export default async function ApprovalWorkflowsPage() {
             Approval Workflows
           </h1>
           <p className="text-sm text-muted-foreground">
-            Review and manage purchase requisitions assigned to your approval
-            queue
+            Configure, monitor, and review multi-stage authorization paths for
+            enterprise purchase requests
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 sm:self-center">
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-xs">
-            <FilePenIcon className="h-3.5 w-3.5 text-primary" />
+            <Workflow className="h-3.5 w-3.5 text-primary" />
             <span>
-              Total Requests:{" "}
+              Total Workflows:{" "}
               <strong className="font-semibold text-foreground">
                 {data.length}
               </strong>
@@ -133,7 +87,6 @@ export default async function ApprovalWorkflowsPage() {
           </CardContent>
         </Card>
 
-        {/* Rejected Card */}
         <Card className="shadow-xs border-border/70">
           <CardContent className="p-4 space-y-1">
             <div className="flex items-center justify-between">
@@ -149,7 +102,6 @@ export default async function ApprovalWorkflowsPage() {
           </CardContent>
         </Card>
 
-        {/* Cancelled Card */}
         <Card className="shadow-xs border-border/70">
           <CardContent className="p-4 space-y-1">
             <div className="flex items-center justify-between">
@@ -166,12 +118,11 @@ export default async function ApprovalWorkflowsPage() {
         </Card>
       </div>
 
-      {/* Data Table */}
       <DataTable
         columns={columns}
         data={data}
         searchKey="request"
-        searchPlaceholder="Search request..."
+        searchPlaceholder="Search PR number..."
         toolbarActions={modal}
       />
     </main>

@@ -28,9 +28,9 @@ export const modal = (
     <form>
       <DialogTrigger
         render={
-          <Button variant="outline" className="gap-2">
+          <Button className="gap-2">
             <Edit2 className="h-4 w-4" />
-            Update PO Target
+            Update PO
           </Button>
         }
       />
@@ -82,7 +82,7 @@ export const modal = (
         </FieldGroup>
 
         <DialogFooter>
-          <DialogClose render={<Button variant="outline">Cancel</Button>} />
+          <DialogClose render={<Button variant="destructive">Cancel</Button>} />
           <Button type="submit">Save Changes</Button>
         </DialogFooter>
       </DialogContent>

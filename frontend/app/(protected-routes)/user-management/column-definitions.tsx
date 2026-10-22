@@ -1,7 +1,7 @@
 "use client";
 
 import { createColumnHelper } from "@tanstack/react-table";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Copy } from "lucide-react";
 import { type DataTableFeatures } from "@/types/data-table-features";
 import { Button } from "@/components/ui/button";
 import { DataTableColumnHeader } from "@/components/data-table-column-header";
@@ -77,17 +77,7 @@ export const columns = columnHelper.columns([
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       // The authentication middleware requires the user status to be ACTIVE.
-      return (
-        <span
-          className={
-            status === "ACTIVE"
-              ? "text-green-600 font-medium"
-              : "text-muted-foreground"
-          }
-        >
-          {status}
-        </span>
-      );
+      return <span>{status}</span>;
     },
   }),
 
@@ -110,7 +100,8 @@ export const columns = columnHelper.columns([
               <DropdownMenuItem
                 onClick={() => navigator.clipboard.writeText(profile.user_id)}
               >
-                Copy User ID
+                <Copy className="h-4 w-4" />
+                User ID
               </DropdownMenuItem>
             </DropdownMenuGroup>
 

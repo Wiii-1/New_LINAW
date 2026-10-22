@@ -1,7 +1,7 @@
 "use client";
 
 import { createColumnHelper } from "@tanstack/react-table";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Copy } from "lucide-react";
 import { type DataTableFeatures } from "@/types/data-table-features";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -149,12 +149,14 @@ export const columns = columnHelper.columns([
               <DropdownMenuItem
                 onClick={() => navigator.clipboard.writeText(po.id)}
               >
-                Copy PO ID
+                <Copy className="h-4 w-4" />
+                PO ID
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => navigator.clipboard.writeText(po.po_number)}
               >
-                Copy PO Number
+                <Copy className="h-4 w-4" />
+                PO Number
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
@@ -162,14 +164,10 @@ export const columns = columnHelper.columns([
 
             <DropdownMenuGroup>
               <DropdownMenuItem disabled={!canOrder}>
-                Mark as Ordered
+                Mark Ordered
               </DropdownMenuItem>
-              <DropdownMenuItem disabled={!canUpdate}>
-                Update Details
-              </DropdownMenuItem>
-              <DropdownMenuItem variant="destructive" disabled={!canCancel}>
-                Cancel Order
-              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!canUpdate}>Update</DropdownMenuItem>
+              <DropdownMenuItem disabled={!canCancel}>Cancel</DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

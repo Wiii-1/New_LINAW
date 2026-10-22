@@ -31,9 +31,7 @@ export const editProfileModal = (
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create Profile</DialogTitle>
-          <DialogDescription>
-            Update your personal information.
-          </DialogDescription>
+          <DialogDescription>Update user information.</DialogDescription>
         </DialogHeader>
 
         <FieldGroup className="grid gap-4 py-2">

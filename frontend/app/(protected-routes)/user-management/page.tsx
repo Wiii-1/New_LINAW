@@ -7,26 +7,11 @@ import { DataTable } from "@/components/data-table";
 import { UsersRoundIcon } from "lucide-react";
 
 async function getUserManagement(): Promise<UserManagement[]> {
-  return [
-    {
-      user_id: "user-uuid-1",
-      first_name: "Ada",
-      last_name: "Lovelace",
-      email: "ada@example.com",
-      job_title: "Finance Manager",
-      status: "ACTIVE",
-      company_name: "Example Company",
-    },
-    {
-      user_id: "user-uuid-2",
-      first_name: "Juan",
-      last_name: "Dela Cruz",
-      email: "juan.delacruz@domain.com",
-      job_title: null,
-      status: "ACTIVE",
-      company_name: null,
-    },
-  ];
+  // TODO: Replace with actual backend API call
+  // const res = await fetch('API_ENDPOINT');
+  // return res.json();
+
+  return []; // Delete this array once API is connected
 }
 
 export default async function AuditTrailPage() {
