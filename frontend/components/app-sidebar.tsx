@@ -15,8 +15,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  Tag,
-  FileQuestion,
+  UsersRoundCollaboration,
   Receipt,
   ClipboardList,
   Workflow,
@@ -26,6 +25,7 @@ import {
   Settings2Icon,
   ShieldCheckIcon,
   UsersRoundIcon,
+  SlidersHorizontal,
 } from "lucide-react";
 
 const data = {
@@ -36,8 +36,8 @@ const data = {
   },
   navMain: [
     {
-      title: "Dashboard",
-      url: "/dashboard",
+      title: "Administration",
+      url: "/administration",
       icon: <LayoutDashboardIcon />,
       isActive: true,
     },
@@ -57,14 +57,9 @@ const data = {
       icon: <Workflow />,
     },
     {
-      title: "Request for Quotations",
-      url: "/rfqs",
-      icon: <FileQuestion />,
-    },
-    {
-      title: "Supplier Quotations",
-      url: "/quotations",
-      icon: <Tag />,
+      title: "Supplier Management",
+      url: "/supplier-management",
+      icon: <UsersRoundCollaboration />,
     },
     {
       title: "Audit Trail",
@@ -75,6 +70,11 @@ const data = {
       title: "User Management",
       url: "/user-management",
       icon: <UsersRoundIcon />,
+    },
+    {
+      title: "Organization Administration",
+      url: "/organization-administration",
+      icon: <SlidersHorizontal />,
     },
   ],
   navSecondary: [

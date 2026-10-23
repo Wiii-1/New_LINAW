@@ -5,13 +5,12 @@ import type { NextRequest } from "next/server";
 const protectedRoutes = [
   "/approval-workflows",
   "/dashboard",
-  "/deliveries",
-  "/invoices",
   "/organizations",
   "/purchase-orders",
   "/purchase-requisitions",
   "/suppliers",
   "/users",
+  "/portal",
 ];
 
 const authRoutes = ["/forgot-password", "/login", "/reset-password", "/signup"];
