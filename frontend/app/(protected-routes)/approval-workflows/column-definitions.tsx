@@ -62,7 +62,7 @@ export function createColumns(actions: {
       <DataTableColumnHeader column={column} title="Level" />
     ),
     cell: ({ row }) => (
-      <div className="text-center font-medium">
+      <div className="text-center font-medium tabular-nums">
         L{row.getValue("approvalLevel")}
       </div>
     ),
@@ -75,13 +75,13 @@ export function createColumns(actions: {
     cell: ({ row }) => {
       const price = row.original.price;
       if (price === null || !row.original.currencyCode) {
-        return <span>Unavailable</span>;
+        return <span className="text-muted-foreground">Unavailable</span>;
       }
 
-      return new Intl.NumberFormat("en-PH", {
+      return <span className="tabular-nums">{new Intl.NumberFormat("en-PH", {
         style: "currency",
         currency: row.original.currencyCode,
-      }).format(price);
+      }).format(price)}</span>;
     },
   }),
 
@@ -92,11 +92,11 @@ export function createColumns(actions: {
     cell: ({ row }) => {
       const rawDate = row.original.date;
 
-      return new Date(rawDate).toLocaleDateString("en-PH", {
+      return <span className="tabular-nums">{new Date(rawDate).toLocaleDateString("en-PH", {
         year: "numeric",
         month: "short",
         day: "numeric",
-      });
+      })}</span>;
     },
   }),
 

@@ -245,14 +245,14 @@ export default function ApprovalWorkflowsPage() {
           </div>
         </header>
 
-        <section className="rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:border-slate-800">
-          <div className="flex gap-1 overflow-x-auto border-b border-slate-100 px-5 pt-3 sm:px-6 dark:border-slate-800">
+        <section className="rounded-xl border border-slate-200/80 pb-3 shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:border-slate-800">
+          <div className="flex gap-1 overflow-x-auto border-b border-slate-100 px-5 pt-4 sm:px-6 dark:border-slate-800">
             {filters.map((filter) => (
               <button
                 key={filter.label}
                 type="button"
                 onClick={() => setStatusFilter(filter.value)}
-                className={`whitespace-nowrap border-b-2 px-1 pb-3 text-xs font-medium transition-colors ${
+                className={`whitespace-nowrap border-b-2 px-1 pb-4 text-xs font-medium transition-colors ${
                   statusFilter === filter.value ? "border-[#1c63f2]" : "border-transparent"
                 }`}
               >
@@ -278,6 +278,7 @@ export default function ApprovalWorkflowsPage() {
               data={data}
               searchKey="request"
               searchPlaceholder="Search requests..."
+              density="comfortable"
             />
           )}
         </section>

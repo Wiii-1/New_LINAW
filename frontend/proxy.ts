@@ -9,9 +9,11 @@ const protectedRoutes = [
   "/invoices",
   "/organizations",
   "/purchase-orders",
+  "/audit-trail",
   "/purchase-requisitions",
   "/suppliers",
   "/users",
+  "/profile",
 ];
 
 const authRoutes = ["/forgot-password", "/login", "/reset-password", "/signup"];

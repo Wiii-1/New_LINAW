@@ -32,3 +32,15 @@ export async function POST(
     isPurchaseRequisitionPath,
   );
 }
+
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ path?: string[] }> },
+): Promise<Response> {
+  return forwardBackendRequest(
+    request,
+    backendPath((await context.params).path),
+    "PATCH",
+    isPurchaseRequisitionPath,
+  );
+}

@@ -15,8 +15,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
-  ArchiveIcon,
-  ClipboardCheckIcon,
   FileCheck2Icon,
   FileTextIcon,
   GitBranchIcon,
@@ -33,14 +31,12 @@ const data = {
     { title: "Overview", url: "/dashboard", icon: <LayoutDashboardIcon />, isActive: true },
     { title: "Purchase Requisitions", url: "/purchase-requisitions", icon: <FileTextIcon /> },
     { title: "Approval Workflows", url: "/approval-workflows", icon: <GitBranchIcon /> },
-    { title: "Request for Quotations", url: "/rfqs", icon: <ClipboardCheckIcon /> },
-    { title: "Supplier Quotations", url: "/quotations", icon: <ArchiveIcon /> },
+    { title: "Supplier Management", url: "/suppliers", icon: <UsersRoundIcon /> },
     { title: "Purchase Orders", url: "/purchase-orders", icon: <FileCheck2Icon /> },
     { title: "Audit Trail", url: "/audit-trail", icon: <ScrollTextIcon /> },
-    { title: "User & Roles", url: "/users", icon: <UsersRoundIcon /> },
+    { title: "Organization settings", url: "/organizations", icon: <Settings2Icon /> },
   ],
   navSecondary: [
-    { title: "Organization settings", url: "/organizations", icon: <Settings2Icon /> },
     { title: "Support center", url: "#", icon: <LifeBuoyIcon /> },
   ],
 };

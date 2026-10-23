@@ -125,7 +125,7 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem render={<a href="/profile" />}>
                 <UserIcon />
                 Profile
               </DropdownMenuItem>
