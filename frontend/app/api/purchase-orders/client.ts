@@ -1,4 +1,9 @@
-export type PurchaseOrderStatus = "DRAFT" | "ISSUED" | "ORDERED" | "CANCELLED" | "COMPLETED";
+export type PurchaseOrderStatus =
+  | "DRAFT"
+  | "ISSUED"
+  | "ORDERED"
+  | "CANCELLED"
+  | "COMPLETED";
 
 export type PurchaseOrderItem = {
   id?: string;
@@ -25,21 +30,38 @@ type ListResponse = { list: PurchaseOrder[]; total: number };
 
 export class PurchaseOrderApiError extends Error {
   status: number;
-  constructor(message: string, status: number) { super(message); this.name = "PurchaseOrderApiError"; this.status = status; }
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "PurchaseOrderApiError";
+    this.status = status;
+  }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/purchase-orders${path}`, {
     ...init,
-    headers: { Accept: "application/json", ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers },
+    headers: {
+      Accept: "application/json",
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
     cache: "no-store",
   });
-  const body = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
-  if (!response.ok) throw new PurchaseOrderApiError(body?.error ?? body?.message ?? "The purchase order request failed.", response.status);
+  const body = (await response.json().catch(() => null)) as {
+    error?: string;
+    message?: string;
+  } | null;
+  if (!response.ok)
+    throw new PurchaseOrderApiError(
+      body?.error ?? body?.message ?? "The purchase order request failed.",
+      response.status,
+    );
   return body as T;
 }
 
-export async function listPurchaseOrders(filters: { status?: PurchaseOrderStatus; referenceNo?: string } = {}) {
+export async function listPurchaseOrders(
+  filters: { status?: PurchaseOrderStatus; referenceNo?: string } = {},
+) {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.referenceNo) params.set("referenceNo", filters.referenceNo);
@@ -47,8 +69,12 @@ export async function listPurchaseOrders(filters: { status?: PurchaseOrderStatus
   return request<ListResponse>(query ? `/?${query}` : "/");
 }
 
-export async function getPurchaseOrder(id: string) { return (await request<{ PO: PurchaseOrder }>(`/${id}`)).PO; }
+export async function getPurchaseOrder(id: string) {
+  return (await request<{ PO: PurchaseOrder }>(`/${id}`)).PO;
+}
 
 export async function cancelPurchaseOrder(id: string) {
-  return (await request<{ deletedPO: PurchaseOrder }>(`/${id}`, { method: "DELETE" })).deletedPO;
+  return (
+    await request<{ deletedPO: PurchaseOrder }>(`/${id}`, { method: "DELETE" })
+  ).deletedPO;
 }

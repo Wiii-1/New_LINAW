@@ -1,3 +1,3 @@
 export async function dal() {
-	return undefined;
+  return undefined;
 }

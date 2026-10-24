@@ -27,7 +27,12 @@ export type OrganizationRole = {
   is_system: boolean;
 };
 
-export type Permission = { id: string; code: string; name: string; description: string | null };
+export type Permission = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+};
 
 type ApiBody = { success?: boolean; message?: string; [key: string]: unknown };
 
@@ -54,14 +59,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       cache: "no-store",
     });
   } catch {
-    throw new OrganizationApiError(0, "Unable to reach the organization service.");
+    throw new OrganizationApiError(
+      0,
+      "Unable to reach the organization service.",
+    );
   }
 
   const body = (await response.json().catch(() => null)) as ApiBody | null;
   if (!response.ok || body?.success !== true) {
     throw new OrganizationApiError(
       response.status,
-      typeof body?.message === "string" ? body.message : "The organization request could not be completed.",
+      typeof body?.message === "string"
+        ? body.message
+        : "The organization request could not be completed.",
     );
   }
   return body as T;
@@ -83,7 +93,9 @@ export async function refreshAuthenticationSession() {
   if (!response.ok || body?.success !== true) {
     throw new OrganizationApiError(
       response.status,
-      typeof body?.message === "string" ? body.message : "Your session could not be refreshed.",
+      typeof body?.message === "string"
+        ? body.message
+        : "Your session could not be refreshed.",
     );
   }
 }
@@ -107,10 +119,16 @@ export async function getMembers() {
 }
 
 export async function inviteMember(email: string) {
-  return request("members", { method: "POST", body: JSON.stringify({ email }) });
+  return request("members", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
 }
 
-export async function updateMember(userId: string, input: Record<string, unknown>) {
+export async function updateMember(
+  userId: string,
+  input: Record<string, unknown>,
+) {
   return request(`members/${encodeURIComponent(userId)}`, {
     method: "PATCH",
     body: JSON.stringify(input),
@@ -121,7 +139,10 @@ export async function assignRoleToMember(userId: string, roleId: string) {
   return updateMember(userId, { role_id: roleId });
 }
 
-export async function updateMemberStatus(userId: string, status: MembershipStatus) {
+export async function updateMemberStatus(
+  userId: string,
+  status: MembershipStatus,
+) {
   return updateMember(userId, { employment_status: status });
 }
 
@@ -138,7 +159,10 @@ export async function createRole(input: { name: string; description: string }) {
   return request("roles", { method: "POST", body: JSON.stringify(input) });
 }
 
-export async function updateRole(roleId: string, input: Record<string, unknown>) {
+export async function updateRole(
+  roleId: string,
+  input: Record<string, unknown>,
+) {
   return request(`roles/${encodeURIComponent(roleId)}`, {
     method: "PATCH",
     body: JSON.stringify(input),
@@ -155,20 +179,26 @@ export async function getPermissions() {
 }
 
 export async function getRolePermissions(roleId: string) {
-  const body = await request<{ permissions: Array<{ permission: Permission }> }>(
-    `roles/${encodeURIComponent(roleId)}/permissions`,
-  );
+  const body = await request<{
+    permissions: Array<{ permission: Permission }>;
+  }>(`roles/${encodeURIComponent(roleId)}/permissions`);
   return body.permissions;
 }
 
-export async function addRolePermissions(roleId: string, permissionIds: string[]) {
+export async function addRolePermissions(
+  roleId: string,
+  permissionIds: string[],
+) {
   return request(`roles/${encodeURIComponent(roleId)}/permissions`, {
     method: "POST",
     body: JSON.stringify({ permissionIds }),
   });
 }
 
-export async function removeRolePermission(roleId: string, permissionId: string) {
+export async function removeRolePermission(
+  roleId: string,
+  permissionId: string,
+) {
   return request(
     `roles/${encodeURIComponent(roleId)}/permissions/${encodeURIComponent(permissionId)}`,
     { method: "DELETE" },
@@ -176,7 +206,9 @@ export async function removeRolePermission(roleId: string, permissionId: string)
 }
 
 export async function registerCompany(input: Record<string, string>) {
-  const body = await request<{ data: { companyId: string; companyName: string } }>("registration", {
+  const body = await request<{
+    data: { companyId: string; companyName: string };
+  }>("registration", {
     method: "POST",
     body: JSON.stringify(input),
   });

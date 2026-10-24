@@ -55,37 +55,37 @@ The token must contain non-empty `user_id`, `session_id`, and `tenant_id`; `comp
 
 The public route `GET /api/suppliers/supplier-invitations/validate/:token` is registered before `authenticate` and requires no route permission. Other permissions are:
 
-| Route group | Permissions |
-|---|---|
-| Governance list | `supplier_management:read` |
-| Governance detail | `supplier_management:read_supplier` |
-| Deactivate relationship | `supplier_management:remove_supplier` |
-| Create/resend invitation | `supplier_management:invite_supplier` |
-| Accept/list/detail invitation | `supplier_management:read` |
-| Portal RFQs | `supplier:read_rfq` |
-| Portal quotations | `supplier:read` |
-| Submit quotation | `supplier:submit_quotation` |
+| Route group                   | Permissions                           |
+| ----------------------------- | ------------------------------------- |
+| Governance list               | `supplier_management:read`            |
+| Governance detail             | `supplier_management:read_supplier`   |
+| Deactivate relationship       | `supplier_management:remove_supplier` |
+| Create/resend invitation      | `supplier_management:invite_supplier` |
+| Accept/list/detail invitation | `supplier_management:read`            |
+| Portal RFQs                   | `supplier:read_rfq`                   |
+| Portal quotations             | `supplier:read`                       |
+| Submit quotation              | `supplier:submit_quotation`           |
 
 Permission failures return unwrapped `403 { "message": "Forbidden" }`. Handled service/validation errors use `{ success: false, error: { code, message } }`; development mode may include error details.
 
 ## 4. Endpoint Inventory
 
-| Method | Effective Path | Purpose | Authentication | Authorization |
-|---|---|---|---|---|
-| GET | `/api/suppliers/supplier-invitations/validate/:token` | Validate invitation token | None | None |
-| GET | `/api/suppliers/suppliers-governance` | List associated suppliers | Bearer/company context | `supplier_management:read` |
-| GET | `/api/suppliers/suppliers-governce/:supplierId` | Retrieve one supplier | Bearer/company context | `supplier_management:read_supplier` |
+| Method | Effective Path                                                 | Purpose                          | Authentication         | Authorization                         |
+| ------ | -------------------------------------------------------------- | -------------------------------- | ---------------------- | ------------------------------------- |
+| GET    | `/api/suppliers/supplier-invitations/validate/:token`          | Validate invitation token        | None                   | None                                  |
+| GET    | `/api/suppliers/suppliers-governance`                          | List associated suppliers        | Bearer/company context | `supplier_management:read`            |
+| GET    | `/api/suppliers/suppliers-governce/:supplierId`                | Retrieve one supplier            | Bearer/company context | `supplier_management:read_supplier`   |
 | DELETE | `/api/suppliers/suppliers-governance/:supplierId/relationship` | Deactivate supplier relationship | Bearer/company context | `supplier_management:remove_supplier` |
-| POST | `/api/suppliers/supplier-invitations` | Create and send invitation | Bearer/company context | `supplier_management:invite_supplier` |
-| POST | `/api/suppliers/supplier-invitations/:invitationId/resend` | Resend eligible invitation | Bearer/company context | `supplier_management:invite_supplier` |
-| POST | `/api/suppliers/supplier-invitations/:invitationId/accept` | Accept invitation | Bearer token | `supplier_management:read` |
-| GET | `/api/suppliers/supplier-invitations` | List invitations | Bearer/company context | `supplier_management:read` |
-| GET | `/api/suppliers/supplier-invitations/:invitationId` | Retrieve invitation | Bearer/company context | `supplier_management:read` |
-| GET | `/api/suppliers/supplier-portal/rfqs` | List available RFQs | Bearer/company context | `supplier:read_rfq` |
-| GET | `/api/suppliers/supplier-portal/rfqs/:rfqId` | Retrieve available RFQ | Bearer/company context | `supplier:read_rfq` |
-| GET | `/api/suppliers/supplier-portal/quotations` | List supplier quotations | Bearer/company context | `supplier:read` |
-| GET | `/api/suppliers/supplier-portal/quotations/:quotationId` | Retrieve supplier quotation | Bearer/company context | `supplier:read` |
-| POST | `/api/suppliers/supplier-portal/rfqs/:rfqId/quotations` | Submit quotation | Bearer/company context | `supplier:submit_quotation` |
+| POST   | `/api/suppliers/supplier-invitations`                          | Create and send invitation       | Bearer/company context | `supplier_management:invite_supplier` |
+| POST   | `/api/suppliers/supplier-invitations/:invitationId/resend`     | Resend eligible invitation       | Bearer/company context | `supplier_management:invite_supplier` |
+| POST   | `/api/suppliers/supplier-invitations/:invitationId/accept`     | Accept invitation                | Bearer token           | `supplier_management:read`            |
+| GET    | `/api/suppliers/supplier-invitations`                          | List invitations                 | Bearer/company context | `supplier_management:read`            |
+| GET    | `/api/suppliers/supplier-invitations/:invitationId`            | Retrieve invitation              | Bearer/company context | `supplier_management:read`            |
+| GET    | `/api/suppliers/supplier-portal/rfqs`                          | List available RFQs              | Bearer/company context | `supplier:read_rfq`                   |
+| GET    | `/api/suppliers/supplier-portal/rfqs/:rfqId`                   | Retrieve available RFQ           | Bearer/company context | `supplier:read_rfq`                   |
+| GET    | `/api/suppliers/supplier-portal/quotations`                    | List supplier quotations         | Bearer/company context | `supplier:read`                       |
+| GET    | `/api/suppliers/supplier-portal/quotations/:quotationId`       | Retrieve supplier quotation      | Bearer/company context | `supplier:read`                       |
+| POST   | `/api/suppliers/supplier-portal/rfqs/:rfqId/quotations`        | Submit quotation                 | Bearer/company context | `supplier:submit_quotation`           |
 
 The detail governance route contains the implemented spelling `suppliers-governce` (missing “an”); clients must use that path.
 
@@ -106,25 +106,27 @@ The detail governance route contains the implemented spelling `suppliers-governc
   "success": true,
   "message": "Suppliers retrieved successfully.",
   "data": {
-    "suppliers": [{
-      "supplier_id": "supplier-uuid",
-      "supplier_code": "SUP-001",
-      "company_id": "supplier-company-uuid",
-      "legal_name": "Supplier Ltd",
-      "display_name": "Supplier",
-      "tax_id": null,
-      "contact_email": "supplier@example.com",
-      "contact_phone": null,
-      "address": null,
-      "supplier_status": "ACTIVE",
-      "relationship_status": "ACTIVE",
-      "relationship": {
-        "relationship_id": "relationship-uuid",
-        "relationship_status": "ACTIVE"
-      },
-      "created_at": "2026-10-21T12:00:00.000Z",
-      "updated_at": "2026-10-21T12:00:00.000Z"
-    }],
+    "suppliers": [
+      {
+        "supplier_id": "supplier-uuid",
+        "supplier_code": "SUP-001",
+        "company_id": "supplier-company-uuid",
+        "legal_name": "Supplier Ltd",
+        "display_name": "Supplier",
+        "tax_id": null,
+        "contact_email": "supplier@example.com",
+        "contact_phone": null,
+        "address": null,
+        "supplier_status": "ACTIVE",
+        "relationship_status": "ACTIVE",
+        "relationship": {
+          "relationship_id": "relationship-uuid",
+          "relationship_status": "ACTIVE"
+        },
+        "created_at": "2026-10-21T12:00:00.000Z",
+        "updated_at": "2026-10-21T12:00:00.000Z"
+      }
+    ],
     "pagination": { "page": 1, "limit": 20, "total": 1, "total_pages": 1 }
   }
 }

@@ -10,7 +10,10 @@ export type Supplier = {
   address?: unknown;
   supplier_status?: string | null;
   relationship_status?: string | null;
-  relationship?: { relationship_id?: string; relationship_status?: string } | null;
+  relationship?: {
+    relationship_id?: string;
+    relationship_status?: string;
+  } | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -42,8 +45,16 @@ export type Rfq = {
   status?: string | null;
   closing_date?: string | null;
   published_at?: string | null;
-  company?: { legal_name?: string | null; display_name?: string | null; name?: string | null } | null;
-  purchasing_company?: { legal_name?: string | null; display_name?: string | null; name?: string | null } | null;
+  company?: {
+    legal_name?: string | null;
+    display_name?: string | null;
+    name?: string | null;
+  } | null;
+  purchasing_company?: {
+    legal_name?: string | null;
+    display_name?: string | null;
+    name?: string | null;
+  } | null;
   items?: RfqItem[];
   [key: string]: unknown;
 };
@@ -74,22 +85,40 @@ export type Quotation = {
   [key: string]: unknown;
 };
 
-type Envelope<T> = { success?: boolean; message?: string; data?: T; error?: { message?: string } };
+type Envelope<T> = {
+  success?: boolean;
+  message?: string;
+  data?: T;
+  error?: { message?: string };
+};
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/backend/suppliers${path}`, {
     ...init,
-    headers: { Accept: "application/json", ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers },
+    headers: {
+      Accept: "application/json",
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
     cache: "no-store",
   });
-  const body = (await response.json().catch(() => ({}))) as Envelope<T> & { message?: string };
+  const body = (await response.json().catch(() => ({}))) as Envelope<T> & {
+    message?: string;
+  };
   if (!response.ok) {
-    throw new Error(body.error?.message ?? body.message ?? `Request failed (${response.status})`);
+    throw new Error(
+      body.error?.message ??
+        body.message ??
+        `Request failed (${response.status})`,
+    );
   }
   return (body.data ?? body) as T;
 }
 
-export async function listSuppliers(): Promise<{ suppliers: Supplier[]; pagination?: { total?: number; total_pages?: number } }> {
+export async function listSuppliers(): Promise<{
+  suppliers: Supplier[];
+  pagination?: { total?: number; total_pages?: number };
+}> {
   return request("/suppliers-governance?limit=100");
 }
 
@@ -98,19 +127,29 @@ export function getSupplier(supplierId: string): Promise<Supplier> {
 }
 
 export function deactivateSupplier(supplierId: string): Promise<unknown> {
-  return request(`/suppliers-governance/${supplierId}/relationship`, { method: "DELETE" });
+  return request(`/suppliers-governance/${supplierId}/relationship`, {
+    method: "DELETE",
+  });
 }
 
-export async function listInvitations(): Promise<{ invitations: Invitation[]; pagination?: { total?: number; total_pages?: number } }> {
+export async function listInvitations(): Promise<{
+  invitations: Invitation[];
+  pagination?: { total?: number; total_pages?: number };
+}> {
   return request("/supplier-invitations?limit=100");
 }
 
 export function createInvitation(email: string): Promise<Invitation> {
-  return request("/supplier-invitations", { method: "POST", body: JSON.stringify({ email }) });
+  return request("/supplier-invitations", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
 }
 
 export function resendInvitation(invitationId: string): Promise<Invitation> {
-  return request(`/supplier-invitations/${invitationId}/resend`, { method: "POST" });
+  return request(`/supplier-invitations/${invitationId}/resend`, {
+    method: "POST",
+  });
 }
 
 export function listAvailableRfqs(): Promise<Rfq[]> {
@@ -132,9 +171,21 @@ export function getQuotation(quotationId: string): Promise<Quotation> {
 export type QuotationInput = {
   currency_code?: string;
   valid_until?: string;
-  items: Array<{ rfq_item_id: string; quoted_quantity: number; unit_price: number; lead_time_days?: number; remarks?: string }>;
+  items: Array<{
+    rfq_item_id: string;
+    quoted_quantity: number;
+    unit_price: number;
+    lead_time_days?: number;
+    remarks?: string;
+  }>;
 };
 
-export function submitQuotation(rfqId: string, input: QuotationInput): Promise<Quotation> {
-  return request(`/supplier-portal/rfqs/${rfqId}/quotations`, { method: "POST", body: JSON.stringify(input) });
+export function submitQuotation(
+  rfqId: string,
+  input: QuotationInput,
+): Promise<Quotation> {
+  return request(`/supplier-portal/rfqs/${rfqId}/quotations`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }

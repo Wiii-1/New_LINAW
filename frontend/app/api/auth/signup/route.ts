@@ -95,9 +95,7 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const apiUrl = (
-    env as typeof env & { LINAW_API_URL?: string }
-  ).LINAW_API_URL;
+  const apiUrl = (env as typeof env & { LINAW_API_URL?: string }).LINAW_API_URL;
 
   if (!apiUrl) {
     return Response.json(
@@ -192,8 +190,7 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const secure =
-    new URL(request.url).protocol === "https:" ? "; Secure" : "";
+  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
   const headers = new Headers({
     "Content-Type": "application/json",
     "Cache-Control": "no-store",

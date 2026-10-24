@@ -50,37 +50,37 @@ Permission failures return a direct response rather than the shared error wrappe
 
 The route permissions are:
 
-| Area | Permissions |
-|---|---|
-| Organization settings | `organization:read`, `organization:update` |
-| Members | `organization_member:invite`, `organization_member:read`, `organization_member:update`, `organization_member:remove` |
-| Roles | `organization_role:create`, `organization_role:read`, `organization_role:update`, `organization_role:delete` |
-| Role permissions | `organization_role_permission:add`, `organization_role_permission:remove` |
+| Area                  | Permissions                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Organization settings | `organization:read`, `organization:update`                                                                           |
+| Members               | `organization_member:invite`, `organization_member:read`, `organization_member:update`, `organization_member:remove` |
+| Roles                 | `organization_role:create`, `organization_role:read`, `organization_role:update`, `organization_role:delete`         |
+| Role permissions      | `organization_role_permission:add`, `organization_role_permission:remove`                                            |
 
 The service generally scopes records by the authenticated `tenant_id` and `company_id`. Route authorization is permission-based; the service does not perform an additional administrator check for most operations.
 
 ## 4. Endpoint Inventory
 
-| Method | Effective Path | Purpose | Authentication | Authorization |
-|---|---|---|---|---|
-| POST | `/api/organizationManagement/members` | Create a company invitation | Bearer token and company context | `organization_member:invite` |
-| GET | `/api/organizationManagement/members` | List company memberships | Bearer token and company context | `organization_member:read` |
-| GET | `/api/organizationManagement/members/:userId` | Retrieve one company member | Bearer token and company context | `organization_member:read` |
-| PATCH | `/api/organizationManagement/members/:userId` | Update membership fields | Bearer token and company context | `organization_member:update` |
-| DELETE | `/api/organizationManagement/members/:userId` | Remove company membership | Bearer token and company context | `organization_member:remove` |
-| POST | `/api/organizationManagement/roles` | Create a company role | Bearer token and company context | `organization_role:create` |
-| POST | `/api/organizationManagement/members/:userId/roles` | Assign a role to a member | Bearer token and company context | `organization_member:update` |
-| POST | `/api/organizationManagement/roles/:roleId/permissions` | Add permissions to a role | Bearer token and company context | `organization_role_permission:add` |
-| GET | `/api/organizationManagement/roles` | List company roles | Bearer token and company context | `organization_role:read` |
-| GET | `/api/organizationManagement/roles/:roleId` | Retrieve one company role | Bearer token and company context | `organization_role:read` |
-| GET | `/api/organizationManagement/roles/:roleId/permissions` | List role permissions | Bearer token and company context | `organization_role:read` |
-| GET | `/api/organizationManagement/permissions` | List all permissions | Bearer token and company context | `organization_role:read` |
-| PATCH | `/api/organizationManagement/roles/:roleId` | Update a role | Bearer token and company context | `organization_role:update` |
-| DELETE | `/api/organizationManagement/roles/:roleId` | Delete a role | Bearer token and company context | `organization_role:delete` |
+| Method | Effective Path                                                        | Purpose                         | Authentication                   | Authorization                         |
+| ------ | --------------------------------------------------------------------- | ------------------------------- | -------------------------------- | ------------------------------------- |
+| POST   | `/api/organizationManagement/members`                                 | Create a company invitation     | Bearer token and company context | `organization_member:invite`          |
+| GET    | `/api/organizationManagement/members`                                 | List company memberships        | Bearer token and company context | `organization_member:read`            |
+| GET    | `/api/organizationManagement/members/:userId`                         | Retrieve one company member     | Bearer token and company context | `organization_member:read`            |
+| PATCH  | `/api/organizationManagement/members/:userId`                         | Update membership fields        | Bearer token and company context | `organization_member:update`          |
+| DELETE | `/api/organizationManagement/members/:userId`                         | Remove company membership       | Bearer token and company context | `organization_member:remove`          |
+| POST   | `/api/organizationManagement/roles`                                   | Create a company role           | Bearer token and company context | `organization_role:create`            |
+| POST   | `/api/organizationManagement/members/:userId/roles`                   | Assign a role to a member       | Bearer token and company context | `organization_member:update`          |
+| POST   | `/api/organizationManagement/roles/:roleId/permissions`               | Add permissions to a role       | Bearer token and company context | `organization_role_permission:add`    |
+| GET    | `/api/organizationManagement/roles`                                   | List company roles              | Bearer token and company context | `organization_role:read`              |
+| GET    | `/api/organizationManagement/roles/:roleId`                           | Retrieve one company role       | Bearer token and company context | `organization_role:read`              |
+| GET    | `/api/organizationManagement/roles/:roleId/permissions`               | List role permissions           | Bearer token and company context | `organization_role:read`              |
+| GET    | `/api/organizationManagement/permissions`                             | List all permissions            | Bearer token and company context | `organization_role:read`              |
+| PATCH  | `/api/organizationManagement/roles/:roleId`                           | Update a role                   | Bearer token and company context | `organization_role:update`            |
+| DELETE | `/api/organizationManagement/roles/:roleId`                           | Delete a role                   | Bearer token and company context | `organization_role:delete`            |
 | DELETE | `/api/organizationManagement/roles/:roleId/permissions/:permissionId` | Remove a permission from a role | Bearer token and company context | `organization_role_permission:remove` |
-| DELETE | `/api/organizationManagement/members/:userId/roles/:roleId` | Remove a role assignment | Bearer token and company context | `organization_member:update` |
-| GET | `/api/organizationManagement/settings` | Retrieve company settings | Bearer token and company context | `organization:read` |
-| PATCH | `/api/organizationManagement/settings` | Update company settings | Bearer token and company context | `organization:update` |
+| DELETE | `/api/organizationManagement/members/:userId/roles/:roleId`           | Remove a role assignment        | Bearer token and company context | `organization_member:update`          |
+| GET    | `/api/organizationManagement/settings`                                | Retrieve company settings       | Bearer token and company context | `organization:read`                   |
+| PATCH  | `/api/organizationManagement/settings`                                | Update company settings         | Bearer token and company context | `organization:update`                 |
 
 ## 5. Detailed Endpoint Contracts
 
@@ -119,7 +119,24 @@ Unless an endpoint says otherwise, the required header is `Authorization: Bearer
 **Success Response:** `200`; the list is returned under `memberList`:
 
 ```json
-{ "success": true, "message": "successfully retrieved list", "memberList": [ { "id": "membership-uuid", "tenant_id": "tenant-uuid", "company_id": "company-uuid", "user_id": "user-uuid", "job_title": null, "role_id": null, "employment_status": "ACTIVE", "department": null, "user": {}, "role": null } ] }
+{
+  "success": true,
+  "message": "successfully retrieved list",
+  "memberList": [
+    {
+      "id": "membership-uuid",
+      "tenant_id": "tenant-uuid",
+      "company_id": "company-uuid",
+      "user_id": "user-uuid",
+      "job_title": null,
+      "role_id": null,
+      "employment_status": "ACTIVE",
+      "department": null,
+      "user": {},
+      "role": null
+    }
+  ]
+}
 ```
 
 The repository includes the complete Prisma `user` and nullable `role` relations. Exact nested fields follow the schema/runtime serialization. No pagination or query filters exist.
@@ -147,7 +164,11 @@ The repository includes the complete Prisma `user` and nullable `role` relations
 **Request Body:**
 
 ```json
-{ "role_id": "role-uuid", "employment_status": "ACTIVE", "jobTitle": "Finance Manager" }
+{
+  "role_id": "role-uuid",
+  "employment_status": "ACTIVE",
+  "jobTitle": "Finance Manager"
+}
 ```
 
 All fields are optional, but at least one must be present. `role_id` must be a UUID; `employment_status` must be `ACTIVE`, `INACTIVE`, or `SUSPENDED`; `jobTitle` is a trimmed 1-100 character string. `jobTitle` is camelCase while the persisted field is `job_title`.

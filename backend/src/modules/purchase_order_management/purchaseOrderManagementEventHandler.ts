@@ -5,30 +5,30 @@ import { SUPPLIER_QUOTATION_SUBMITTED_EVENT } from "../../shared/events/eventNam
 import { PurchaseOrderManagementService } from "./purchaseOrderManagementService";
 
 export function approvedPrIncoming(
-    purchaseOrderManagementService: PurchaseOrderManagementService,
+  purchaseOrderManagementService: PurchaseOrderManagementService,
 ) {
-    eventBus.subscribe<ApprovalWorkflowApprovedEvent>(
-        "approvalWorkflow.approved",
-        async (event) => {
-            await purchaseOrderManagementService.handleApprovedPurchaseRequisition({
-                purchaseRequisition_id: event.purchaseRequisition_id,
-                approvalWorkflow_id: event.approvalWorkflow_id,
-                tenant_id: event.tenant_id,
-                company_id: event.company_id,
-            });
-        },
-    );
+  eventBus.subscribe<ApprovalWorkflowApprovedEvent>(
+    "approvalWorkflow.approved",
+    async (event) => {
+      await purchaseOrderManagementService.handleApprovedPurchaseRequisition({
+        purchaseRequisition_id: event.purchaseRequisition_id,
+        approvalWorkflow_id: event.approvalWorkflow_id,
+        tenant_id: event.tenant_id,
+        company_id: event.company_id,
+      });
+    },
+  );
 }
 
 export function supplierQuotationSubmittedIncoming(
-    purchaseOrderManagementService: PurchaseOrderManagementService,
+  purchaseOrderManagementService: PurchaseOrderManagementService,
 ) {
-    eventBus.subscribe<SupplierQuotationSubmittedEvent>(
-        SUPPLIER_QUOTATION_SUBMITTED_EVENT,
-        async (event) => {
-            await purchaseOrderManagementService.handleSupplierQuotationSubmitted(
-                event,
-            );
-        },
-    );
+  eventBus.subscribe<SupplierQuotationSubmittedEvent>(
+    SUPPLIER_QUOTATION_SUBMITTED_EVENT,
+    async (event) => {
+      await purchaseOrderManagementService.handleSupplierQuotationSubmitted(
+        event,
+      );
+    },
+  );
 }

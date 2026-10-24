@@ -11,7 +11,9 @@ function backendPath(path?: string[]): string | null {
   }
 
   const resource = parts[0];
-  if (!["settings", "members", "roles", "permissions"].includes(resource ?? "")) {
+  if (
+    !["settings", "members", "roles", "permissions"].includes(resource ?? "")
+  ) {
     return null;
   }
 
@@ -19,7 +21,8 @@ function backendPath(path?: string[]): string | null {
 }
 
 function allowedMethod(path: string, method: HttpMethod): boolean {
-  if (path === "userManagementRouter/companies/register") return method === "POST";
+  if (path === "userManagementRouter/companies/register")
+    return method === "POST";
   if (path === "organizationManagement/settings") {
     return method === "GET" || method === "PATCH";
   }
@@ -29,7 +32,10 @@ function allowedMethod(path: string, method: HttpMethod): boolean {
   if (/^organizationManagement\/members\/[^/]+$/.test(path)) {
     return method === "PATCH" || method === "DELETE";
   }
-  if (path === "organizationManagement/roles" || path === "organizationManagement/permissions") {
+  if (
+    path === "organizationManagement/roles" ||
+    path === "organizationManagement/permissions"
+  ) {
     return method === "GET" || (path.endsWith("/roles") && method === "POST");
   }
   if (/^organizationManagement\/roles\/[^/]+$/.test(path)) {
@@ -63,21 +69,38 @@ async function forward(
     );
   }
 
-  return forwardBackendRequest(request, path, method, (candidate) => candidate === path);
+  return forwardBackendRequest(
+    request,
+    path,
+    method,
+    (candidate) => candidate === path,
+  );
 }
 
-export async function GET(request: Request, context: { params: Promise<{ path?: string[] }> }) {
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ path?: string[] }> },
+) {
   return forward(request, context, "GET");
 }
 
-export async function POST(request: Request, context: { params: Promise<{ path?: string[] }> }) {
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ path?: string[] }> },
+) {
   return forward(request, context, "POST");
 }
 
-export async function PATCH(request: Request, context: { params: Promise<{ path?: string[] }> }) {
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ path?: string[] }> },
+) {
   return forward(request, context, "PATCH");
 }
 
-export async function DELETE(request: Request, context: { params: Promise<{ path?: string[] }> }) {
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ path?: string[] }> },
+) {
   return forward(request, context, "DELETE");
 }

@@ -1,121 +1,118 @@
-import { EmailService } from "../../shared/email/email.service"
-import { ConflictError, NotFoundError } from "../../shared/errors/appError.js"
-import { hashToken } from "../../shared/types/cryptoUtility"
-import type { 
-    updateSettings,
-    memberEmail,
-    updateMember,      
-    createRole,
-    assignRole,
-    assignPermissions,
-    updateRole,
-    removePermission
-} from "./organizationAdministrationValidator"
-import type { AppEnv } from "../../config/env"
-import type { AssignRoleContext, CreateRoleContext, OrganizationAdministrationRepository } from "./organizationAdministrationRepository"
-import { MailgunEmailProvider } from "../../shared/email/mailgun.provider"
-
+import { EmailService } from "../../shared/email/email.service";
+import { ConflictError, NotFoundError } from "../../shared/errors/appError.js";
+import { hashToken } from "../../shared/types/cryptoUtility";
+import type {
+  updateSettings,
+  memberEmail,
+  updateMember,
+  createRole,
+  assignRole,
+  assignPermissions,
+  updateRole,
+  removePermission,
+} from "./organizationAdministrationValidator";
+import type { AppEnv } from "../../config/env";
+import type {
+  AssignRoleContext,
+  CreateRoleContext,
+  OrganizationAdministrationRepository,
+} from "./organizationAdministrationRepository";
+import { MailgunEmailProvider } from "../../shared/email/mailgun.provider";
 
 interface InviteMemberInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
-    email:memberEmail
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  email: memberEmail;
 }
 
 interface GetInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
 }
 
 interface GetUserInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
-    target_user_id:string
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  target_user_id: string;
 }
 
 interface RoleInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
-    role:createRole
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  role: createRole;
 }
 
 interface AssignRoleInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
-    member_user_id:string
-    assignRole:assignRole
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  member_user_id: string;
+  assignRole: assignRole;
 }
 
 interface UpdateMemberInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
-    target_user_id:string
-    update:updateMember
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  target_user_id: string;
+  update: updateMember;
 }
 
 interface AssignPermissionsInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
-    role_id:string
-    permissions:assignPermissions
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  role_id: string;
+  permissions: assignPermissions;
 }
 
 interface GetRolesInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
-    role_id:string
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  role_id: string;
 }
 
 interface UpdateRoleInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
-    role_id:string
-    update:updateRole
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  role_id: string;
+  update: updateRole;
 }
 
-
 interface deletePermissionsFromRoleInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
-    role_id:string
-    permission_id:removePermission["permission_id"]
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  role_id: string;
+  permission_id: removePermission["permission_id"];
 }
 
 interface UpdateSettingsInput {
-    user_id:string
-    tenant_id:string
-    company_id:string
-    updateSettings:updateSettings
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  updateSettings: updateSettings;
 }
 
 interface RemoveRoleFromMemberInput {
-    user_id: string
-    tenant_id: string
-    company_id: string
-    member_user_id: string
-    role_id: string
+  user_id: string;
+  tenant_id: string;
+  company_id: string;
+  member_user_id: string;
+  role_id: string;
 }
 
 export class OrganizationAdministrationService {
-    constructor(
-        private repository: OrganizationAdministrationRepository,
-    ){}
+  constructor(private repository: OrganizationAdministrationRepository) {}
 
-    async addMember (
-        input: InviteMemberInput,
-        env: AppEnv
-    ) {   
-        /*
+  async addMember(input: InviteMemberInput, env: AppEnv) {
+    /*
             1. Check target membership
 
             2. Find target user
@@ -126,57 +123,57 @@ export class OrganizationAdministrationService {
 
             5. Return result
         */
-        
-        const existingMember = await this.repository.findCompanyMemberByEmail({
-            company_id: input.company_id,
-            tenant_id: input.tenant_id,
-            email: input.email
-        })
 
-        if (existingMember) {
-            throw new ConflictError("User is already a member of this company")
-        }
+    const existingMember = await this.repository.findCompanyMemberByEmail({
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+      email: input.email,
+    });
 
-        const user = await this.repository.findUserByEmail({
-            tenant_id: input.tenant_id,
-            email: input.email
-        })
+    if (existingMember) {
+      throw new ConflictError("User is already a member of this company");
+    }
 
-        if (!user) {
-            throw new NotFoundError("User is not a user of the app")
-        }
+    const user = await this.repository.findUserByEmail({
+      tenant_id: input.tenant_id,
+      email: input.email,
+    });
 
-        const tokenBytes = new Uint8Array(32)
-        crypto.getRandomValues(tokenBytes)
+    if (!user) {
+      throw new NotFoundError("User is not a user of the app");
+    }
 
-        const token = Array.from(tokenBytes)
-            .map(byte => byte.toString(16).padStart(2, "0"))
-            .join("")
+    const tokenBytes = new Uint8Array(32);
+    crypto.getRandomValues(tokenBytes);
 
-        const tokenHash = await hashToken(token)
+    const token = Array.from(tokenBytes)
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
 
-        const provider = new MailgunEmailProvider(env)
+    const tokenHash = await hashToken(token);
 
-        const emailService = new EmailService(provider)
+    const provider = new MailgunEmailProvider(env);
 
-        await this.repository.createInvitation({
-            tenant_id: input.tenant_id,
-            company_id: input.company_id,
-            email: input.email,
-            invited_by: input.user_id,
-            invite_token_hash: tokenHash
-        })
+    const emailService = new EmailService(provider);
 
-        const invitationUrl = `${env.APP_URL}/invitations/${token}`
+    await this.repository.createInvitation({
+      tenant_id: input.tenant_id,
+      company_id: input.company_id,
+      email: input.email,
+      invited_by: input.user_id,
+      invite_token_hash: tokenHash,
+    });
 
-        await emailService.send({
-            to: input.email,
-            subject: "You're invited to join LINAW",
-            text: `You've been invited to join LINAW.
+    const invitationUrl = `${env.APP_URL}/invitations/${token}`;
+
+    await emailService.send({
+      to: input.email,
+      subject: "You're invited to join LINAW",
+      text: `You've been invited to join LINAW.
 
 Accept your invitation here:
 ${invitationUrl}`,
-            html: `
+      html: `
                 <h2>You're invited to join LINAW</h2>
 
                 <p>
@@ -194,281 +191,268 @@ ${invitationUrl}`,
                     If you did not expect this invitation,
                     you can safely ignore this email.
                 </p>
-            `
-        })
+            `,
+    });
 
-        return {
-            success: true
-        }
+    return {
+      success: true,
+    };
+  }
 
+  async getMember(input: GetInput) {
+    const members = await this.repository.findMembersByCompanyId({
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+    });
+
+    return members;
+  }
+
+  async getUser(input: GetUserInput) {
+    const companyMember = await this.repository.findCompanyMemberByUserId({
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+      user_id: input.target_user_id,
+    });
+
+    if (!companyMember) {
+      throw new NotFoundError("User is not a member");
     }
 
-    async getMember (input: GetInput) {
-        const members = await this.repository.findMembersByCompanyId({
-            company_id: input.company_id,
-            tenant_id: input.tenant_id
-        })
+    return companyMember;
+  }
 
-        return members
+  async updateMember(input: UpdateMemberInput) {
+    const member = await this.repository.findCompanyMemberByUserId({
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+      user_id: input.target_user_id,
+    });
+
+    if (!member) {
+      throw new NotFoundError("User is not a member");
     }
 
-    async getUser (input: GetUserInput) {      
-        const companyMember = await this.repository.findCompanyMemberByUserId({
-            company_id: input.company_id,
-            tenant_id: input.tenant_id,
-            user_id: input.target_user_id
-        })
+    return this.repository.updateMember({
+      user_id: input.target_user_id,
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+      update: input.update,
+    });
+  }
 
-        if (!companyMember) {
-            throw new NotFoundError("User is not a member")
-        }
-
-        return companyMember
+  async removeMember(input: GetUserInput) {
+    if (input.user_id === input.target_user_id) {
+      throw new ConflictError("You cannot remove your own company membership");
     }
 
-    async updateMember (input: UpdateMemberInput) {
-        const member = await this.repository.findCompanyMemberByUserId({
-            company_id: input.company_id,
-            tenant_id: input.tenant_id,
-            user_id: input.target_user_id
-        })
+    const member = await this.repository.findCompanyMemberByUserId({
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+      user_id: input.target_user_id,
+    });
 
-        if(!member) {
-            throw new NotFoundError("User is not a member")
-        }
-
-        return this.repository.updateMember({
-            user_id: input.target_user_id,
-            company_id: input.company_id,
-            tenant_id: input.tenant_id,
-            update: input.update
-        })
+    if (!member) {
+      throw new NotFoundError("User is not a member");
     }
 
-    async removeMember (input: GetUserInput) {
+    return this.repository.removeMember({
+      user_id: member.user_id,
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+    });
+  }
 
-        if (input.user_id === input.target_user_id) {
-            throw new ConflictError("You cannot remove your own company membership")
-        }
+  async role(input: RoleInput) {
+    const createRole: CreateRoleContext = {
+      name: input.role.name,
+      description: input.role.description,
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+    };
 
-        const member = await this.repository.findCompanyMemberByUserId({
-            company_id: input.company_id,
-            tenant_id: input.tenant_id,
-            user_id: input.target_user_id
-        })
+    return this.repository.createRole(createRole);
+  }
 
-        if(!member){
-            throw new NotFoundError("User is not a member")
-        }
+  async assignRoleToMember(input: AssignRoleInput) {
+    const member = await this.repository.findCompanyMemberByUserId({
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+      user_id: input.member_user_id,
+    });
 
-        return this.repository.removeMember({
-            user_id: member.user_id,
-            company_id: input.company_id,
-            tenant_id: input.tenant_id
-        })
+    if (!member) {
+      throw new NotFoundError("Company member not found");
     }
 
-    async role (input: RoleInput) {
-        const createRole:CreateRoleContext = {
-            name: input.role.name,
-            description: input.role.description,
-            company_id: input.company_id,
-            tenant_id: input.tenant_id
-        }
+    const role = await this.repository.findRoleById({
+      tenant_id: input.tenant_id,
+      company_id: input.company_id,
+      role_id: input.assignRole.role_id,
+    });
 
-        return this.repository.createRole(createRole)
+    if (!role) {
+      throw new NotFoundError("Role not found");
     }
 
-    async assignRoleToMember (input:AssignRoleInput) {
+    const assign: AssignRoleContext = {
+      user_id: member.user_id,
+      role_id: input.assignRole.role_id,
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+    };
 
-        const member = await this.repository.findCompanyMemberByUserId({
-            company_id: input.company_id,
-            tenant_id: input.tenant_id,
-            user_id: input.member_user_id
-        })
+    return this.repository.assignRole(assign);
+  }
 
-        if (!member) {
-            throw new NotFoundError("Company member not found")
-        }
+  async assignPermissionsToRole(input: AssignPermissionsInput) {
+    const role = await this.repository.findRoleById({
+      tenant_id: input.tenant_id,
+      company_id: input.company_id,
+      role_id: input.role_id,
+    });
 
-        const role = await this.repository.findRoleById({
-            tenant_id: input.tenant_id,
-            company_id: input.company_id,
-            role_id: input.assignRole.role_id
-        })
-
-        if (!role) {
-            throw new NotFoundError("Role not found")
-        }
-
-        const assign: AssignRoleContext = {
-            user_id: member.user_id,
-            role_id: input.assignRole.role_id,
-            company_id: input.company_id,
-            tenant_id: input.tenant_id
-        }
-
-        return this.repository.assignRole(assign)
+    if (!role) {
+      throw new NotFoundError("Role not found");
     }
 
-    async assignPermissionsToRole(input: AssignPermissionsInput) {
-        const role = await this.repository.findRoleById({
-            tenant_id: input.tenant_id,
-            company_id: input.company_id,
-            role_id: input.role_id
-        })
+    const assignments = input.permissions.permissionIds.map(
+      (permission_id) => ({
+        role_id: input.role_id,
+        permission_id,
+      }),
+    );
 
-        if (!role) {
-            throw new NotFoundError("Role not found")
-        }
+    return this.repository.assignPermissionsToRole(assignments);
+  }
 
-        const assignments = input.permissions.permissionIds.map(
-            (permission_id) => ({
-                role_id: input.role_id,
-                permission_id
-            })
-        )
+  async getRoles(input: GetInput) {
+    return this.repository.findRolesByCompanyId({
+      tenant_id: input.tenant_id,
+      company_id: input.company_id,
+    });
+  }
 
-        return this.repository.assignPermissionsToRole(assignments)
+  async getRole(input: GetRolesInput) {
+    return this.repository.findRoleById({
+      tenant_id: input.tenant_id,
+      company_id: input.company_id,
+      role_id: input.role_id,
+    });
+  }
+
+  async getRolePermissions(input: GetRolesInput) {
+    return this.repository.findRolePermissions({
+      tenant_id: input.tenant_id,
+      company_id: input.company_id,
+      role_id: input.role_id,
+    });
+  }
+
+  async getPermissions() {
+    return this.repository.findPermissions();
+  }
+
+  async updateRole(input: UpdateRoleInput) {
+    const role = await this.repository.findRoleById({
+      tenant_id: input.tenant_id,
+      company_id: input.company_id,
+      role_id: input.role_id,
+    });
+
+    if (!role) {
+      throw new NotFoundError("Role not found");
     }
 
-    async getRoles(input: GetInput) {
+    return this.repository.updateRole({
+      role_id: input.role_id,
+      update: input.update,
+    });
+  }
 
-        return this.repository.findRolesByCompanyId({
-            tenant_id: input.tenant_id,
-            company_id: input.company_id
-        })
-    
+  async deleteRole(input: GetRolesInput) {
+    const role = await this.repository.findRoleById({
+      tenant_id: input.tenant_id,
+      company_id: input.company_id,
+      role_id: input.role_id,
+    });
+
+    if (!role) {
+      throw new NotFoundError("Role not found");
     }
 
-    async getRole(input: GetRolesInput) {
-    
-        return this.repository.findRoleById({
-            tenant_id: input.tenant_id,
-            company_id:input.company_id,
-            role_id: input.role_id
-        })
-    
+    if (role.is_system) {
+      throw new Error("System roles cannot be deleted");
     }
 
-    async getRolePermissions(input: GetRolesInput) {
-    
-        return this.repository.findRolePermissions({
-            tenant_id: input.tenant_id,
-            company_id: input.company_id,
-            role_id: input.role_id
-        })
-    
+    return this.repository.deleteRole(input.role_id);
+  }
+
+  async deletePermissionsFromRole(input: deletePermissionsFromRoleInput) {
+    const role = await this.repository.findRoleById({
+      tenant_id: input.tenant_id,
+      company_id: input.company_id,
+      role_id: input.role_id,
+    });
+
+    if (!role) {
+      throw new NotFoundError("Role not found");
     }
 
-    async getPermissions() {
-    
-        return this.repository.findPermissions()
-    
+    if (role.is_system) {
+      throw new Error("Permissions cannot be removed from system roles");
     }
 
-    async updateRole(input: UpdateRoleInput) {
-        const role = await this.repository.findRoleById({
-            tenant_id: input.tenant_id,
-            company_id: input.company_id,
-            role_id: input.role_id
-        })
+    return this.repository.deletePermissionFromRole({
+      role_id: input.role_id,
+      permission_id: input.permission_id,
+    });
+  }
 
-        if (!role) {
-            throw new NotFoundError("Role not found")
-        }
+  async removeRoleFromMember(input: RemoveRoleFromMemberInput) {
+    const member = await this.repository.findCompanyMemberByUserId({
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+      user_id: input.member_user_id,
+    });
 
-        return this.repository.updateRole({
-            role_id: input.role_id,
-            update: input.update
-        })
+    if (!member) {
+      throw new NotFoundError("Company member not found");
     }
 
-    async deleteRole(input: GetRolesInput) {
-        const role = await this.repository.findRoleById({
-            tenant_id: input.tenant_id,
-            company_id:input.company_id,
-            role_id:input.role_id
-        })
+    return this.repository.removeRoleFromMember({
+      user_id: member.user_id,
+      company_id: input.company_id,
+      tenant_id: input.tenant_id,
+      role_id: input.role_id,
+    });
+  }
 
-        if (!role) {
-            throw new NotFoundError("Role not found")
-        }
+  async settings(input: GetInput) {
+    return this.repository.findCompanySettings({
+      company_id: input.company_id,
+    });
+  }
 
-        if (role.is_system) {
-            throw new Error("System roles cannot be deleted")
-        }
+  async updateSettings(input: UpdateSettingsInput) {
+    const settings = await this.repository.findCompanySettings({
+      company_id: input.company_id,
+    });
 
-        return this.repository.deleteRole(input.role_id)
+    if (!settings) {
+      throw new NotFoundError("Company settings not found");
     }
 
-    async deletePermissionsFromRole(
-        input: deletePermissionsFromRoleInput
-    ) {
-        const role = await this.repository.findRoleById({
-            tenant_id: input.tenant_id,
-            company_id:input.company_id,
-            role_id:input.role_id
-        })
+    return this.repository.updateCompanySettings({
+      company_id: input.company_id,
+      update: input.updateSettings,
+    });
+  }
 
-        if (!role) {
-            throw new NotFoundError("Role not found")
-        }
-
-        if (role.is_system) {
-            throw new Error("Permissions cannot be removed from system roles")
-        }
-
-        return this.repository.deletePermissionFromRole({
-            role_id: input.role_id,
-            permission_id: input.permission_id
-        })
-    }
-
-    async removeRoleFromMember(input: RemoveRoleFromMemberInput) {
-        const member = await this.repository.findCompanyMemberByUserId({
-            company_id: input.company_id,
-            tenant_id: input.tenant_id,
-            user_id: input.member_user_id
-        })
-
-        if (!member) {
-            throw new NotFoundError("Company member not found")
-        }
-
-        return this.repository.removeRoleFromMember({
-            user_id: member.user_id,
-            company_id: input.company_id,
-            tenant_id: input.tenant_id,
-            role_id: input.role_id
-        })
-    }
-
-    async settings(input: GetInput) {
-        return this.repository.findCompanySettings({
-            company_id: input.company_id
-        })
-    }
-
-    async updateSettings(input: UpdateSettingsInput) {
-        const settings = await this.repository.findCompanySettings({
-            company_id: input.company_id
-        })
-
-        if (!settings) {
-            throw new NotFoundError("Company settings not found")
-        }
-
-        return this.repository.updateCompanySettings({
-            company_id: input.company_id,
-            update: input.updateSettings
-        })
-    }
-
-    // async auditTrail(input: GetInput) {
-    //     //return this.repository.findAuditTrail(input.company_id)
-    // }
-} 
+  // async auditTrail(input: GetInput) {
+  //     //return this.repository.findAuditTrail(input.company_id)
+  // }
+}
 
 /*
     dev note:   audit trail here need to have an publish event to the audti trail 

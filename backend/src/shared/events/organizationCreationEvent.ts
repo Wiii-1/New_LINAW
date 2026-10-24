@@ -1,5 +1,5 @@
 export type OrganizationCreationEvent = {
-    companyId: string 
-    tenantId: string
-    userId: string      
-}
+  companyId: string;
+  tenantId: string;
+  userId: string;
+};

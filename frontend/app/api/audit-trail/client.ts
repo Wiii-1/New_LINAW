@@ -125,7 +125,10 @@ function mapRecord(raw: RawAuditRecord): AuditTrailRecord {
       : null,
     blockchainRef: raw.blockchain_ref
       ? {
-          transactionHash: stringValue(raw.blockchain_ref.blockchain_transaction_hash, "Unavailable"),
+          transactionHash: stringValue(
+            raw.blockchain_ref.blockchain_transaction_hash,
+            "Unavailable",
+          ),
           blockNumber: nullableString(raw.blockchain_ref.block_number),
           anchoredAt: stringValue(raw.blockchain_ref.anchored_at),
         }
@@ -142,34 +145,56 @@ async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
       signal,
     });
   } catch {
-    throw new AuditTrailApiError("Unable to reach the audit service. Please try again.", 0);
+    throw new AuditTrailApiError(
+      "Unable to reach the audit service. Please try again.",
+      0,
+    );
   }
 
-  const body = (await response.json().catch(() => null)) as (T & ApiErrorBody) | null;
+  const body = (await response.json().catch(() => null)) as
+    | (T & ApiErrorBody)
+    | null;
   if (!response.ok) {
     const errorMessage = body?.error?.message ?? body?.message;
     throw new AuditTrailApiError(
-      typeof errorMessage === "string" ? errorMessage : "The audit request could not be completed.",
+      typeof errorMessage === "string"
+        ? errorMessage
+        : "The audit request could not be completed.",
       response.status,
     );
   }
 
   if (!body) {
-    throw new AuditTrailApiError("The audit service returned an empty response.", 502);
+    throw new AuditTrailApiError(
+      "The audit service returned an empty response.",
+      502,
+    );
   }
 
   return body as T;
 }
 
-export async function getAuditTrail(filters: AuditTrailFilters, signal?: AbortSignal): Promise<AuditTrailPage> {
-  const query = new URLSearchParams({ page: String(filters.page), page_size: String(filters.pageSize) });
+export async function getAuditTrail(
+  filters: AuditTrailFilters,
+  signal?: AbortSignal,
+): Promise<AuditTrailPage> {
+  const query = new URLSearchParams({
+    page: String(filters.page),
+    page_size: String(filters.pageSize),
+  });
   if (filters.entityType) query.set("entity_type", filters.entityType);
   if (filters.action) query.set("action", filters.action);
   if (filters.result) query.set("result", filters.result);
 
-  const body = await request<{ success?: boolean; data?: RawAuditPage }>(`/?${query.toString()}`, signal);
+  const body = await request<{ success?: boolean; data?: RawAuditPage }>(
+    `/?${query.toString()}`,
+    signal,
+  );
   if (!body || body.success !== true || !body.data) {
-    throw new AuditTrailApiError("The audit service returned an invalid response.", 502);
+    throw new AuditTrailApiError(
+      "The audit service returned an invalid response.",
+      502,
+    );
   }
 
   const pagination = body.data.pagination ?? {};
@@ -182,9 +207,15 @@ export async function getAuditTrail(filters: AuditTrailFilters, signal?: AbortSi
   };
 }
 
-export async function getAuditTrailDetail(auditId: string, signal?: AbortSignal): Promise<AuditTrailDetail> {
+export async function getAuditTrailDetail(
+  auditId: string,
+  signal?: AbortSignal,
+): Promise<AuditTrailDetail> {
   const query = new URLSearchParams({ audit_id: auditId });
-  const body = await request<{ success?: boolean; data?: AuditTrailDetail }>(`/search?${query.toString()}`, signal);
+  const body = await request<{ success?: boolean; data?: AuditTrailDetail }>(
+    `/search?${query.toString()}`,
+    signal,
+  );
   if (!body || body.success !== true || !body.data?.audit) {
     throw new AuditTrailApiError("The audit event could not be found.", 404);
   }

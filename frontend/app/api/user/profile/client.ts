@@ -8,7 +8,10 @@ export type UserProfile = {
   company_name: string | null;
 };
 
-export type UpdateUserProfile = Pick<UserProfile, "first_name" | "last_name" | "email" | "job_title">;
+export type UpdateUserProfile = Pick<
+  UserProfile,
+  "first_name" | "last_name" | "email" | "job_title"
+>;
 
 export class UserProfileApiError extends Error {
   readonly status: number;
@@ -22,16 +25,25 @@ export class UserProfileApiError extends Error {
 
 type ProfileResponse = { message?: string; data?: UserProfile };
 
-async function requestProfile(method: "GET" | "PATCH", body?: UpdateUserProfile): Promise<UserProfile> {
+async function requestProfile(
+  method: "GET" | "PATCH",
+  body?: UpdateUserProfile,
+): Promise<UserProfile> {
   const response = await fetch("/api/user/profile", {
     method,
-    headers: { Accept: "application/json", ...(body ? { "Content-Type": "application/json" } : {}) },
+    headers: {
+      Accept: "application/json",
+      ...(body ? { "Content-Type": "application/json" } : {}),
+    },
     ...(body ? { body: JSON.stringify(body) } : {}),
     cache: "no-store",
   });
   const result = (await response.json().catch(() => ({}))) as ProfileResponse;
   if (!response.ok || !result.data) {
-    throw new UserProfileApiError(response.status, result.message ?? "Unable to load your profile.");
+    throw new UserProfileApiError(
+      response.status,
+      result.message ?? "Unable to load your profile.",
+    );
   }
   return result.data;
 }
@@ -40,6 +52,8 @@ export function getUserProfile(): Promise<UserProfile> {
   return requestProfile("GET");
 }
 
-export function updateUserProfile(profile: UpdateUserProfile): Promise<UserProfile> {
+export function updateUserProfile(
+  profile: UpdateUserProfile,
+): Promise<UserProfile> {
   return requestProfile("PATCH", profile);
 }

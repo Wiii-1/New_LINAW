@@ -107,7 +107,8 @@ function isApprovalStatus(value: unknown): value is ApprovalStatus {
 }
 
 function formatDate(value: unknown): string {
-  if (typeof value !== "string" && !(value instanceof Date)) return "Unknown date";
+  if (typeof value !== "string" && !(value instanceof Date))
+    return "Unknown date";
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? "Unknown date"
@@ -135,7 +136,10 @@ function mapRequest(raw: RawApprovalRequest): ApprovalRequest {
     raw.requester_user?.first_name,
     raw.requester_user?.last_name,
   ]
-    .filter((part): part is string => typeof part === "string" && part.trim().length > 0)
+    .filter(
+      (part): part is string =>
+        typeof part === "string" && part.trim().length > 0,
+    )
     .join(" ");
 
   if (!id || !isApprovalStatus(status) || !raw.entity_id) {
@@ -158,9 +162,13 @@ function mapRequest(raw: RawApprovalRequest): ApprovalRequest {
     actions.push({
       id: stringValue(action.id, `${id}-${actions.length}`),
       action: stringValue(action.action, "UNKNOWN"),
-      actor: [action.acted_by_user?.first_name, action.acted_by_user?.last_name]
-        .filter((part): part is string => typeof part === "string" && part.trim().length > 0)
-        .join(" ") || "Unknown user",
+      actor:
+        [action.acted_by_user?.first_name, action.acted_by_user?.last_name]
+          .filter(
+            (part): part is string =>
+              typeof part === "string" && part.trim().length > 0,
+          )
+          .join(" ") || "Unknown user",
       date: formatDate(action.acted_at),
       ...(typeof action.remarks === "string" && action.remarks.trim()
         ? { remarks: action.remarks }
@@ -171,10 +179,16 @@ function mapRequest(raw: RawApprovalRequest): ApprovalRequest {
 
   return {
     id,
-    entityId: stringValue(raw.purchase_requisition?.pr_number ?? raw.entity_id, String(raw.entity_id)),
+    entityId: stringValue(
+      raw.purchase_requisition?.pr_number ?? raw.entity_id,
+      String(raw.entity_id),
+    ),
     request: stringValue(
       raw.purchase_requisition?.purpose,
-      stringValue(raw.purchase_requisition?.pr_number ?? raw.entity_id, String(raw.entity_id)),
+      stringValue(
+        raw.purchase_requisition?.pr_number ?? raw.entity_id,
+        String(raw.entity_id),
+      ),
     ),
     requester: requester || "Unknown requester",
     entityType: stringValue(raw.entity_type, "Approval request"),
@@ -208,10 +222,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     );
   }
 
-  const body = (await response.json().catch(() => null)) as ApiResponse<T> | null;
+  const body = (await response
+    .json()
+    .catch(() => null)) as ApiResponse<T> | null;
   if (!response.ok || body?.success !== true || body.data === undefined) {
     throw new ApprovalWorkflowApiError(
-      body?.error?.message ?? body?.message ?? "The approval request could not be completed.",
+      body?.error?.message ??
+        body?.message ??
+        "The approval request could not be completed.",
       response.status,
     );
   }
@@ -223,7 +241,9 @@ export async function getApprovalRequests(
   status?: ApprovalStatus,
 ): Promise<ApprovalRequest[]> {
   const query = status ? `?status=${encodeURIComponent(status)}` : "";
-  const data = await request<{ approval_requests?: RawApprovalRequest[] }>(query);
+  const data = await request<{ approval_requests?: RawApprovalRequest[] }>(
+    query,
+  );
   return (data.approval_requests ?? []).map(mapRequest);
 }
 
@@ -270,7 +290,10 @@ export async function getWorkflowDefinitions(): Promise<WorkflowDefinition[]> {
     ...(typeof definition.id === "string" ? { id: definition.id } : {}),
     workflow_code: stringValue(definition.workflow_code, ""),
     name: stringValue(definition.name, "Unnamed workflow"),
-    description: typeof definition.description === "string" ? definition.description : null,
+    description:
+      typeof definition.description === "string"
+        ? definition.description
+        : null,
     entity_type: stringValue(definition.entity_type, ""),
     is_active: definition.is_active === true,
   }));

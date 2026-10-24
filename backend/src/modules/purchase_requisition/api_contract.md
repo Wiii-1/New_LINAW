@@ -44,27 +44,27 @@ The HS256 token must contain non-empty `user_id`, `session_id`, and `tenant_id`;
 
 Route permissions:
 
-| Operation | Permission |
-|---|---|
-| Create | `pr:create` |
-| Submit/resubmit | `pr:submit` |
-| Cancel | `pr:cancel` |
-| Read/list/detail | `pr:read` |
-| Update | `pr:update` |
+| Operation        | Permission  |
+| ---------------- | ----------- |
+| Create           | `pr:create` |
+| Submit/resubmit  | `pr:submit` |
+| Cancel           | `pr:cancel` |
+| Read/list/detail | `pr:read`   |
+| Update           | `pr:update` |
 
 Permission failures return an unwrapped `403` response `{ "message": "Forbidden" }`. Service operations additionally require an active membership for the authenticated tenant/company. Mutation operations verify the requester owns the requisition.
 
 ## 4. Endpoint Inventory
 
-| Method | Effective Path | Purpose | Authentication | Authorization |
-|---|---|---|---|---|
-| POST | `/api/PurchaseRequisition/create` | Create a draft requisition | Bearer token and company context | `pr:create` |
-| POST | `/api/PurchaseRequisition/:requisitionId/submit` | Submit a draft requisition | Bearer token and company context | `pr:submit` plus authorship |
-| POST | `/api/PurchaseRequisition/:requisitionId/cancel` | Cancel a draft/submitted requisition | Bearer token and company context | `pr:cancel` plus authorship |
-| POST | `/api/PurchaseRequisition/:requisitionId/resubmit` | Create a new draft revision from a rejected requisition | Bearer token and company context | `pr:submit` plus authorship |
-| GET | `/api/PurchaseRequisition/` | List requisitions | Bearer token and company context | `pr:read` |
-| GET | `/api/PurchaseRequisition/:requisitionId` | Retrieve requisition details | Bearer token and company context | `pr:read` |
-| PATCH | `/api/PurchaseRequisition/:requisitionId` | Update an owned draft | Bearer token and company context | `pr:update` plus authorship |
+| Method | Effective Path                                     | Purpose                                                 | Authentication                   | Authorization               |
+| ------ | -------------------------------------------------- | ------------------------------------------------------- | -------------------------------- | --------------------------- |
+| POST   | `/api/PurchaseRequisition/create`                  | Create a draft requisition                              | Bearer token and company context | `pr:create`                 |
+| POST   | `/api/PurchaseRequisition/:requisitionId/submit`   | Submit a draft requisition                              | Bearer token and company context | `pr:submit` plus authorship |
+| POST   | `/api/PurchaseRequisition/:requisitionId/cancel`   | Cancel a draft/submitted requisition                    | Bearer token and company context | `pr:cancel` plus authorship |
+| POST   | `/api/PurchaseRequisition/:requisitionId/resubmit` | Create a new draft revision from a rejected requisition | Bearer token and company context | `pr:submit` plus authorship |
+| GET    | `/api/PurchaseRequisition/`                        | List requisitions                                       | Bearer token and company context | `pr:read`                   |
+| GET    | `/api/PurchaseRequisition/:requisitionId`          | Retrieve requisition details                            | Bearer token and company context | `pr:read`                   |
+| PATCH  | `/api/PurchaseRequisition/:requisitionId`          | Update an owned draft                                   | Bearer token and company context | `pr:update` plus authorship |
 
 ## 5. Detailed Endpoint Contracts
 
@@ -237,6 +237,7 @@ The response is a controller summary, not the full Prisma record. Total is calcu
       {
 }
 ```
+
         "workflow_code": "PURCHASE_REQUISITION",
 
 The repository returns at most 10 rows ordered by `updated_at` descending; `total` is an unbounded count matching the filters. The controller maps each row to the summary fields above.

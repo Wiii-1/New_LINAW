@@ -8,10 +8,10 @@ The workflow definition defines the type of business request that requires appro
 
 It identifies what kind of request is entering the approval workflow, such as:
 
-* `purchase_requisition`
-* `contract`
-* `expense`
-* other supported business request types
+- `purchase_requisition`
+- `contract`
+- `expense`
+- other supported business request types
 
 Workflow definitions provide predefined and consistent request-type definitions. The system should not allow arbitrary values to be introduced as request types because the Approval Workflow module relies on these definitions to correctly map incoming requests to the appropriate approval configuration.
 
@@ -41,4 +41,4 @@ System defined and there's tenant defined
 
 The system defined only gives them a example to build upon on or they could just use whatever the system defined. This type of definition is global and every tenant can use this workflow definition.
 
-for the other type, the tenant defined one is uniquely the tenant owns even if they have something simillar with other tenants. 
+for the other type, the tenant defined one is uniquely the tenant owns even if they have something simillar with other tenants.

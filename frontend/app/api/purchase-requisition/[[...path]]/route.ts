@@ -6,7 +6,9 @@ function backendPath(path?: string[]): string {
 }
 
 function isPurchaseRequisitionPath(path: string): boolean {
-  return path === "PurchaseRequisition" || path.startsWith("PurchaseRequisition/");
+  return (
+    path === "PurchaseRequisition" || path.startsWith("PurchaseRequisition/")
+  );
 }
 
 export async function GET(
