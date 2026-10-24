@@ -7,12 +7,68 @@ import { DataTable } from "@/components/data-table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Receipt } from "lucide-react";
 
-async function getPurchaseOrder(): Promise<PurchaseOrder[]> {
+export async function getPurchaseOrder(): Promise<PurchaseOrder[]> {
   // TODO: Replace with actual backend API call
   // const res = await fetch('API_ENDPOINT');
   // return res.json();
 
-  return []; // Delete this array once API is connected
+  // Delete this array once API is connecte
+  return [
+    {
+      id: "uuid-po-001",
+      po_number: "PO-2026-001",
+      issuer: "Maria Santos",
+      expected_delivery_date: "2026-11-15",
+      currency_code: "PHP",
+      total: 475000.0,
+      status: "ISSUED",
+      items: [
+        {
+          line_no: 1,
+          description: "Dell XPS 15 Laptops",
+          quantity: 5,
+          unit_of_measure: "EA",
+          unit_price: 95000.0,
+        },
+      ],
+    },
+    {
+      id: "uuid-po-002",
+      po_number: "PO-2026-002",
+      issuer: "Juan Dela Cruz",
+      expected_delivery_date: "2026-10-30",
+      currency_code: "USD",
+      total: 2400.0,
+      status: "ORDERED",
+    },
+    {
+      id: "uuid-po-003",
+      po_number: "PO-2026-003",
+      issuer: "Elena Torralba",
+      expected_delivery_date: "2026-12-01",
+      currency_code: "PHP",
+      total: 85000.0,
+      status: "DRAFT",
+    },
+    {
+      id: "uuid-po-004",
+      po_number: "PO-2026-004",
+      issuer: "Mark Tan",
+      expected_delivery_date: "2026-10-25",
+      currency_code: "USD",
+      total: 150000.0,
+      status: "COMPLETED",
+    },
+    {
+      id: "uuid-po-005",
+      po_number: "PO-2026-005",
+      issuer: "Ana Reyes",
+      expected_delivery_date: "2026-11-05",
+      currency_code: "PHP",
+      total: 68000.0,
+      status: "CANCELLED",
+    },
+  ];
 }
 
 export default async function PurchaseOrderPage() {
@@ -145,6 +201,10 @@ export default async function PurchaseOrderPage() {
         searchKey="po_number"
         searchPlaceholder="Search PO number..."
         toolbarActions={modal}
+        enableExport={true}
+        //exportEndpoint="/api/purchase-order/export" // Temporarily disable the endpoint to force the client-side fallback
+        // HTTP method logs:  GET /api/purchase-order/export?format=csv 404 in 161ms
+        exportFileName="purchase-order"
       />
     </main>
   );

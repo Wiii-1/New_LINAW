@@ -7,12 +7,59 @@ import { DataTable } from "@/components/data-table";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClipboardList } from "lucide-react";
 
-async function getPurchaseRequisition(): Promise<PurchaseRequisition[]> {
+export async function getPurchaseRequisition(): Promise<PurchaseRequisition[]> {
   // TODO: Replace with actual backend API call
   // const res = await fetch('API_ENDPOINT');
   // return res.json();
 
-  return []; // Delete this array once API is connected
+  // Delete this array once API is connected
+  return [
+    {
+      requisition_id: "req-uuid-001",
+      requisition_number: "PR-20261021-1",
+      requisition_status: "DRAFT",
+      total_estimated_amount: "2500.00",
+      currency_code: "USD",
+      created_at: "2026-10-21T12:00:00.000Z",
+      updated_at: "2026-10-21T12:00:00.000Z",
+    },
+    {
+      requisition_id: "req-uuid-002",
+      requisition_number: "PR-20261020-2",
+      requisition_status: "SUBMITTED",
+      total_estimated_amount: "150000.00",
+      currency_code: "PHP",
+      created_at: "2026-10-20T09:15:00.000Z",
+      updated_at: "2026-10-20T09:30:00.000Z",
+    },
+    {
+      requisition_id: "req-uuid-003",
+      requisition_number: "PR-20261019-3",
+      requisition_status: "REJECTED",
+      total_estimated_amount: "4500.00",
+      currency_code: "USD",
+      created_at: "2026-10-19T14:00:00.000Z",
+      updated_at: "2026-10-20T10:00:00.000Z",
+    },
+    {
+      requisition_id: "req-uuid-004",
+      requisition_number: "PR-20261018-4",
+      requisition_status: "APPROVED",
+      total_estimated_amount: "85000.00",
+      currency_code: "PHP",
+      created_at: "2026-10-18T11:00:00.000Z",
+      updated_at: "2026-10-19T16:45:00.000Z",
+    },
+    {
+      requisition_id: "req-uuid-005",
+      requisition_number: "PR-20261015-5",
+      requisition_status: "CANCELLED",
+      total_estimated_amount: "1200.00",
+      currency_code: "USD",
+      created_at: "2026-10-15T08:30:00.000Z",
+      updated_at: "2026-10-15T09:00:00.000Z",
+    },
+  ];
 }
 
 export default async function PurchaseRequisitionsPage() {
@@ -145,6 +192,10 @@ export default async function PurchaseRequisitionsPage() {
         searchKey="requisition_number"
         searchPlaceholder="Search PR request..."
         toolbarActions={modal}
+        enableExport={true}
+        //exportEndpoint="/api/purchase-requisition/export" // Temporarily disable the endpoint to force the client-side fallback
+        // HTTP method logs:  GET /api/purchase-requisition/export?format=csv 404 in 161ms
+        exportFileName="purchase-requisition"
       />
     </main>
   );

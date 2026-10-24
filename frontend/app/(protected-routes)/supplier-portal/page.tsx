@@ -175,8 +175,13 @@ export default async function SupplierManagementPage() {
             searchKey="title"
             searchPlaceholder="Search title..."
             toolbarActions={rfqModal}
+            enableExport={true}
+            //exportEndpoint="/api/rfq/export" // Temporarily disable the endpoint to force the client-side fallback
+            // HTTP method logs:  GET /api/rfq/export?format=csv 404 in 161ms
+            exportFileName="rfq"
           />
         </TabsContent>
+
         <TabsContent value="quotation" className="space-y-6">
           <DataTable
             columns={quotationColumns}
@@ -184,6 +189,10 @@ export default async function SupplierManagementPage() {
             searchKey="id"
             searchPlaceholder="Search quotation ID..."
             toolbarActions={quotationModal}
+            enableExport={true}
+            //exportEndpoint="/api/quotation/export" // Temporarily disable the endpoint to force the client-side fallback
+            // HTTP method logs:  GET /api/quotation/export?format=csv 404 in 161ms
+            exportFileName="quotation"
           />
         </TabsContent>
       </Tabs>

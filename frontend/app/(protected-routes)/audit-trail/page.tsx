@@ -6,12 +6,57 @@ import { modal } from "@/app/(protected-routes)/audit-trail/modal-definitions";
 import { DataTable } from "@/components/data-table";
 import { Layers } from "lucide-react";
 
-async function getAuditTrail(): Promise<AuditTrail[]> {
+export async function getAuditTrail(): Promise<AuditTrail[]> {
   // TODO: Replace with actual backend API call
   // const res = await fetch('API_ENDPOINT');
   // return res.json();
 
-  return []; // Delete this array once API is connected
+  // Delete this array once API is connected
+  return [
+    {
+      id: "audit-uuid-001",
+      entity_type: "PURCHASE_ORDER",
+      entity_id: "po-uuid-001",
+      action: "COMPLETED",
+      result: "SUCCESS",
+      created_at: "2026-10-21T12:00:00.000Z",
+      actor_user_id: "user-uuid-1",
+      hash: {
+        hash_algorithm: "SHA-256",
+        hash_value: "abc123def456...",
+      },
+      blockchain_ref: {
+        blockchain_transaction_hash: "0x123abc...",
+        block_number: "12345",
+        anchored_at: "2026-10-21T12:00:05.000Z",
+      },
+    },
+    {
+      id: "audit-uuid-002",
+      entity_type: "PURCHASE_ORDER",
+      entity_id: "po-uuid-002",
+      action: "COMPLETED",
+      result: "FAILED",
+      created_at: "2026-10-20T09:30:00.000Z",
+      actor_user_id: "user-uuid-2",
+      hash: {
+        hash_algorithm: "SHA-256",
+        hash_value: "def456ghi789...",
+      },
+      blockchain_ref: null,
+    },
+    {
+      id: "audit-uuid-003",
+      entity_type: "PURCHASE_ORDER",
+      entity_id: "po-uuid-003",
+      action: "COMPLETED",
+      result: null, // Pending blockchain anchoring
+      created_at: "2026-10-22T08:15:00.000Z",
+      actor_user_id: "user-uuid-1",
+      hash: null,
+      blockchain_ref: null,
+    },
+  ];
 }
 
 export default async function AuditTrailPage() {
@@ -54,6 +99,10 @@ export default async function AuditTrailPage() {
         searchKey="id"
         searchPlaceholder="Search audit ID..."
         toolbarActions={modal}
+        enableExport={true}
+        //exportEndpoint="/api/audit-trail/export" // Temporarily disable the endpoint to force the client-side fallback
+        // HTTP method logs:  GET /api/audit-trail/export?format=csv 404 in 161ms
+        exportFileName="audit-trail"
       />
     </main>
   );

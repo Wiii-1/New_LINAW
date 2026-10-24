@@ -55,7 +55,7 @@ async function getGovernanceSupplier(): Promise<GovernanceSupplier[]> {
   ];
 }
 
-async function getSupplierInvitations(): Promise<SupplierInvitation[]> {
+export async function getSupplierInvitations(): Promise<SupplierInvitation[]> {
   return [
     {
       invitation_id: "inv-uuid-001",
@@ -166,8 +166,13 @@ export default async function SupplierManagementPage() {
             searchKey="legal_name"
             searchPlaceholder="Search legal name..."
             toolbarActions={governanceModal}
+            enableExport={true}
+            //exportEndpoint="/api/supplier-invitation/export" // Temporarily disable the endpoint to force the client-side fallback
+            // HTTP method logs:  GET /api/supplier-invitation/export?format=csv 404 in 161ms
+            exportFileName="supplier-invitation"
           />
         </TabsContent>
+
         <TabsContent value="invitation" className="space-y-6">
           <DataTable
             columns={invitationColumns}
@@ -175,6 +180,10 @@ export default async function SupplierManagementPage() {
             searchKey="email"
             searchPlaceholder="Search email..."
             toolbarActions={invitationsModal}
+            enableExport={true}
+            //exportEndpoint="/api/supplier-governance/export" // Temporarily disable the endpoint to force the client-side fallback
+            // HTTP method logs:  GET /api/supplier-governance/export?format=csv 404 in 161ms
+            exportFileName="supplier-governance"
           />
         </TabsContent>
       </Tabs>

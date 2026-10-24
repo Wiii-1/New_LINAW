@@ -6,12 +6,32 @@ import { editProfileModal } from "@/app/(protected-routes)/user-management/modal
 import { DataTable } from "@/components/data-table";
 import { UsersRoundIcon } from "lucide-react";
 
-async function getUserManagement(): Promise<UserManagement[]> {
+export async function getUserManagement(): Promise<UserManagement[]> {
   // TODO: Replace with actual backend API call
   // const res = await fetch('API_ENDPOINT');
   // return res.json();
 
-  return []; // Delete this array once API is connected
+  // Delete this array once API is connected
+  return [
+    {
+      user_id: "user-uuid-1",
+      first_name: "Ada",
+      last_name: "Lovelace",
+      email: "ada@example.com",
+      job_title: "Finance Manager",
+      status: "ACTIVE",
+      company_name: "Example Company",
+    },
+    {
+      user_id: "user-uuid-2",
+      first_name: "Juan",
+      last_name: "Dela Cruz",
+      email: "juan.delacruz@domain.com",
+      job_title: null,
+      status: "ACTIVE",
+      company_name: null,
+    },
+  ];
 }
 
 export default async function AuditTrailPage() {
@@ -54,6 +74,10 @@ export default async function AuditTrailPage() {
         searchKey="request"
         searchPlaceholder="Search request..."
         toolbarActions={editProfileModal}
+        enableExport={true}
+        //exportEndpoint="/api/user-management/export" // Temporarily disable the endpoint to force the client-side fallback
+        // HTTP method logs:  GET /api/user-management/export?format=csv 404 in 161ms
+        exportFileName="user-management"
       />
     </main>
   );
