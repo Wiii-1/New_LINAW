@@ -62,11 +62,11 @@ The controller then requires `company_id` in the authenticated context. If absen
 
 Permissions:
 
-| Operation               | Permission           |
-| ----------------------- | -------------------- |
-| List audit records      | `audit_trail:search` |
+| Operation | Permission |
+|---|---|
+| List audit records | `audit_trail:search` |
 | Search one audit record | `audit_trail:search` |
-| Verify audit integrity  | `audit_trail:verify` |
+| Verify audit integrity | `audit_trail:verify` |
 
 Permission failures return a direct `403` response:
 
@@ -78,11 +78,11 @@ This differs from authentication and service errors, which use the shared `{ suc
 
 ## 4. Endpoint Inventory
 
-| Method | Effective Path                    | Purpose                                                       | Authentication                   | Authorization        |
-| ------ | --------------------------------- | ------------------------------------------------------------- | -------------------------------- | -------------------- |
-| GET    | `/api/auditTrail/`                | List purchase-order audit records with filters and pagination | Bearer token and company context | `audit_trail:search` |
-| GET    | `/api/auditTrail/search`          | Retrieve one purchase-order audit and its blockchain record   | Bearer token and company context | `audit_trail:search` |
-| GET    | `/api/auditTrail/:auditId/verify` | Recompute and compare database and blockchain hashes          | Bearer token and company context | `audit_trail:verify` |
+| Method | Effective Path | Purpose | Authentication | Authorization |
+|---|---|---|---|---|
+| GET | `/api/auditTrail/` | List purchase-order audit records with filters and pagination | Bearer token and company context | `audit_trail:search` |
+| GET | `/api/auditTrail/search` | Retrieve one purchase-order audit and its blockchain record | Bearer token and company context | `audit_trail:search` |
+| GET | `/api/auditTrail/:auditId/verify` | Recompute and compare database and blockchain hashes | Bearer token and company context | `audit_trail:verify` |
 
 The router-local list path is `/`; the effective registered path is `/api/auditTrail/`. Hono behavior for omitting the trailing slash should be confirmed against the deployed runtime.
 
@@ -100,13 +100,13 @@ The router-local list path is `/`; the effective registered path is `/api/auditT
 
 **Query Parameters:**
 
-| Name          | Type    | Required | Constraints/default                         | Behavior                    |
-| ------------- | ------- | -------- | ------------------------------------------- | --------------------------- |
-| `entity_type` | string  | No       | Trimmed, at least 1 character when supplied | Filters audit `entity_type` |
-| `action`      | string  | No       | Trimmed, at least 1 character when supplied | Filters audit `action`      |
-| `result`      | string  | No       | Trimmed, at least 1 character when supplied | Filters audit `result`      |
-| `page`        | integer | No       | Coerced from input, minimum 1, default `1`  | Calculates offset           |
-| `page_size`   | integer | No       | Coerced from input, 1-100, default `25`     | Controls page size          |
+| Name | Type | Required | Constraints/default | Behavior |
+|---|---|---|---|---|
+| `entity_type` | string | No | Trimmed, at least 1 character when supplied | Filters audit `entity_type` |
+| `action` | string | No | Trimmed, at least 1 character when supplied | Filters audit `action` |
+| `result` | string | No | Trimmed, at least 1 character when supplied | Filters audit `result` |
+| `page` | integer | No | Coerced from input, minimum 1, default `1` | Calculates offset |
+| `page_size` | integer | No | Coerced from input, 1-100, default `25` | Controls page size |
 
 The controller adds authenticated `user_id`, `tenant_id`, and `company_id` to the schema input; clients do not send those values. No sorting parameter is supported. Results are ordered by `created_at` descending.
 
@@ -180,9 +180,9 @@ The repository selects only the fields shown. `blockchain_ref.block_number` is e
 
 **Query Parameters:**
 
-| Name       | Type        | Required | Constraints          |
-| ---------- | ----------- | -------- | -------------------- |
-| `audit_id` | UUID string | Yes      | Must be a valid UUID |
+| Name | Type | Required | Constraints |
+|---|---|---|---|
+| `audit_id` | UUID string | Yes | Must be a valid UUID |
 
 The controller adds authenticated `user_id`, `tenant_id`, and `company_id` before validating. These are not client-supplied query parameters.
 

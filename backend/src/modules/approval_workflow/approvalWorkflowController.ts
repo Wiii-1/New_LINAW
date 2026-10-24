@@ -17,7 +17,7 @@ export class ApprovalWorkflowController {
 
     approve = async (
         c: Context<AppContext>
-    ): Promise <void> => {
+    ): Promise<Response> => {
 
         const { approvalWorkflowId } = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param())
 
@@ -34,7 +34,7 @@ export class ApprovalWorkflowController {
 
         const approved = await this.service.approveRequest(data)
 
-        c.json({
+        return c.json({
             success: true,
             data: approved
         }, 200)            
@@ -43,7 +43,7 @@ export class ApprovalWorkflowController {
 
     reject = async (
         c: Context<AppContext>
-    ): Promise <void> => {
+    ): Promise<Response> => {
 
         const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param())
 
@@ -63,7 +63,7 @@ export class ApprovalWorkflowController {
 
         const rejected = await this.service.rejectRequest(data)
 
-        c.json({
+        return c.json({
             success: true,
             data: rejected
         },200)
@@ -71,7 +71,7 @@ export class ApprovalWorkflowController {
 
     cancel = async (
         c: Context<AppContext>
-    ): Promise <void> => {
+    ): Promise<Response> => {
 
         const params = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param())
 
@@ -88,7 +88,7 @@ export class ApprovalWorkflowController {
 
         const cancelled = await this.service.cancelRequest(data)
 
-        c.json({
+        return c.json({
             success: true,
             data: cancelled
         },200)
@@ -111,7 +111,7 @@ export class ApprovalWorkflowController {
         const getApprovalWorkflows = await this.service.getApprovalWorkflows(data)
         const total = await this.service.countApprovalWorkflows(data)
 
-        c.json({
+        return c.json({
             success: true,
             data: {
                 approval_requests: getApprovalWorkflows,
@@ -123,7 +123,7 @@ export class ApprovalWorkflowController {
 
     approvalRequest = async (
         c: Context<AppContext>
-    ): Promise <void> => {
+    ): Promise<Response> => {
 
         const { approvalWorkflowId } = APPROVAL_WORKFLOW_ID_PARAMS_SCHEMA.parse(c.req.param())
 
@@ -140,7 +140,7 @@ export class ApprovalWorkflowController {
 
         const request = await this.service.approvalRequest(data)
 
-        c.json({
+        return c.json({
             success: true,
             data: request
         }, 200)
@@ -150,7 +150,7 @@ export class ApprovalWorkflowController {
 
     createLevels = async (
         c: Context<AppContext>
-    ): Promise<void> => {
+    ): Promise<Response> => {
 
         const body = APPROVAL_WORKFLOW_LEVEL_CREATION.parse(await c.req.json())
 
@@ -167,7 +167,7 @@ export class ApprovalWorkflowController {
 
         const level = await this.service.createLevel(data)
 
-        c.json({
+        return c.json({
             success: true,
             data: level
         }, 200)
@@ -176,7 +176,7 @@ export class ApprovalWorkflowController {
 
     createWorkflowDefinition = async (
         c: Context<AppContext>
-    ): Promise<void> => {
+    ): Promise<Response> => {
     
         const body = APPROVAL_WORKFLOW_CREATION.parse(await c.req.json())
 
@@ -193,7 +193,7 @@ export class ApprovalWorkflowController {
 
         const workflow = await this.service.createWorkflowDefinition(data)
 
-        c.json({
+        return c.json({
             success: true,
             data: workflow
         },200 )
@@ -202,7 +202,7 @@ export class ApprovalWorkflowController {
 
     workflowCodes = async (
         c: Context<AppContext>
-    ): Promise<void> => {
+    ): Promise<Response> => {
 
         const { user_id, company_id } = c.var.user
 
@@ -216,7 +216,7 @@ export class ApprovalWorkflowController {
 
         const getCodes = await this.service.workflowCodes(data)
 
-        c.json({
+        return c.json({
             success: true,
             data: getCodes
         },200)

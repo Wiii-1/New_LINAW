@@ -22,26 +22,37 @@ export async function upsertSystemPermission(permission: {
 }
 
 export async function upsertSystemRole(
-    tenantId: string,
     role: {
         code: string;
         name: string;
         description?: string;
     },
 ) {
-    return prisma.role.upsert({
+    const existingRole = await prisma.role.findFirst({
         where: {
-            tenant_id_code: {
-                tenant_id: tenantId,
-                code: role.code,
+            tenant_id: null,
+            company_id: null,
+            code: role.code,
+        },
+    });
+
+    if (existingRole) {
+        return prisma.role.update({
+            where: { id: existingRole.id },
+            data: {
+                tenant_id: null,
+                company_id: null,
+                name: role.name,
+                description: role.description ?? null,
+                is_system: true,
             },
-        },
-        update: {
-            name: role.name,
-            description: role.description ?? null,
-        },
-        create: {
-            tenant_id: tenantId,
+        });
+    }
+
+    return prisma.role.create({
+        data: {
+            tenant_id: null,
+            company_id: null,
             code: role.code,
             name: role.name,
             description: role.description ?? null,

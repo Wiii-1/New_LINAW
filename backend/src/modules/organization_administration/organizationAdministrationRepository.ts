@@ -166,8 +166,17 @@ export class OrganizationAdministrationRepository {
     async findRolesByCompanyId(input: CompanyContext & TenantContext) {
         return prisma.role.findMany({
             where: {
-                tenant_id: input.tenant_id,
-                company_id: input.company_id
+                OR: [
+                    {
+                        tenant_id: input.tenant_id,
+                        company_id: input.company_id,
+                    },
+                    {
+                        tenant_id: null,
+                        company_id: null,
+                        is_system: true,
+                    },
+                ],
             }
         })
     }

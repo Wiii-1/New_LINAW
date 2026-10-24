@@ -214,6 +214,7 @@ export class ApprovalWorkflowRepository {
                 purchase_requisition: {
                     select: {
                         pr_number: true,
+                        workflow_code: true,
                         purpose: true,
                         currency_code: true,
                         total_amount: true,
@@ -580,6 +581,33 @@ export class ApprovalWorkflowRepository {
                 resolved_at: true,
                 created_at: true,
                 updated_at: true,
+                requester_user: {
+                    select: { first_name: true, last_name: true },
+                },
+                purchase_requisition: {
+                    select: {
+                        pr_number: true,
+                        workflow_code: true,
+                        purpose: true,
+                        currency_code: true,
+                        total_amount: true,
+                    },
+                },
+                actions: {
+                    orderBy: { acted_at: "asc" },
+                    select: {
+                        id: true,
+                        action: true,
+                        remarks: true,
+                        acted_at: true,
+                        acted_by_user: {
+                            select: { first_name: true, last_name: true },
+                        },
+                        level: {
+                            select: { level_no: true },
+                        },
+                    },
+                },
             },
         });
     }    
@@ -624,16 +652,14 @@ export class ApprovalWorkflowRepository {
     async getCurrentLevel(
         data: ApprovalRequest,
         currentLevel: number,
-        entityType: string,
+        workflowId: string,
     ) {
         return prisma.approvalWorkflowLevel.findFirst({
             where: {
                 tenant_id: data.tenant_id,
                 company_id: data.company_id,
                 level_no: currentLevel,
-                workflow: {
-                    entity_type: entityType,
-                },
+                workflow_id: workflowId,
             },
             select: {
                 id: true,

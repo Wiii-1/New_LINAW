@@ -4,6 +4,12 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+generator seedClient {
+  provider = "prisma-client"
+  runtime  = "nodejs"
+  output   = "../src/generated/prisma-node"
+}
+
 datasource db {
   provider = "postgresql"
 }
@@ -306,6 +312,7 @@ model PurchaseRequisition {
   pr_number            String
   generation           Int
   requested_by_user_id String                         @db.Uuid
+  workflow_code       String?
   purpose              String? // Purpose determines the applicable workflow and the entity type
   justification        String?
   status               PurchaseRequisitionStatus
@@ -333,6 +340,7 @@ model PurchaseRequisition {
   @@index([company_id])
   @@index([status])
   @@index([root_id])
+  @@index([workflow_code])
 }
 
 model PurchaseRequisitionItem {

@@ -45,11 +45,11 @@ No route-specific permission is checked by this module. Authorization is based o
 
 ## 4. Endpoint Inventory
 
-| Method | Effective Path                                 | Purpose                                                   | Authentication | Authorization                                         |
-| ------ | ---------------------------------------------- | --------------------------------------------------------- | -------------- | ----------------------------------------------------- |
-| GET    | `/api/userManagementRouter/profile`            | Retrieve authenticated user's profile                     | Bearer token   | Authenticated user identity                           |
-| PATCH  | `/api/userManagementRouter/profile`            | Update authenticated user's profile                       | Bearer token   | Authenticated user identity                           |
-| POST   | `/api/userManagementRouter/companies/register` | Register a company and assign initial administrator roles | Bearer token   | Authenticated user with no existing tenant membership |
+| Method | Effective Path | Purpose | Authentication | Authorization |
+|---|---|---|---|---|
+| GET | `/api/userManagementRouter/profile` | Retrieve authenticated user's profile | Bearer token | Authenticated user identity |
+| PATCH | `/api/userManagementRouter/profile` | Update authenticated user's profile | Bearer token | Authenticated user identity |
+| POST | `/api/userManagementRouter/companies/register` | Register a company and assign initial administrator roles | Bearer token | Authenticated user with no existing tenant membership |
 
 ## 5. Detailed Endpoint Contracts
 

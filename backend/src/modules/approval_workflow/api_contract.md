@@ -63,14 +63,14 @@ The token must be an HS256 JWT containing non-empty `user_id`, `session_id`, and
 
 Route-level permissions are:
 
-| Route operation                 | Permission                          |
-| ------------------------------- | ----------------------------------- |
-| Create level                    | `approval_workflow:create_level`    |
-| Create workflow                 | `approval_workflow:create_workflow` |
-| Approve                         | `approval_workflow:approve`         |
-| Reject                          | `approval_workflow:reject`          |
-| Cancel                          | `approval_workflow:cancel`          |
-| List/read/detail/workflow codes | `approval_workflow:read`            |
+| Route operation | Permission |
+|---|---|
+| Create level | `approval_workflow:create_level` |
+| Create workflow | `approval_workflow:create_workflow` |
+| Approve | `approval_workflow:approve` |
+| Reject | `approval_workflow:reject` |
+| Cancel | `approval_workflow:cancel` |
+| List/read/detail/workflow codes | `approval_workflow:read` |
 
 Missing or invalid permissions return a direct `403` response `{ "message": "Forbidden" }`, without the shared `{ success, error }` wrapper. This is the response returned by `Authorize`.
 
@@ -82,16 +82,16 @@ Approve, reject, and cancel additionally require a `UserRole` for the user, deri
 
 ## 4. Endpoint Inventory
 
-| Method | Effective Path                                          | Purpose                                               | Authentication                          | Authorization                                             |
-| ------ | ------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------- | --------------------------------------------------------- |
-| POST   | `/api/approval-workflows/create-levels`                 | Create a tenant/company workflow level                | Bearer access token and company context | `approval_workflow:create_level`                          |
-| POST   | `/api/approval-workflows/workflows`                     | Create a tenant/company workflow definition           | Bearer access token and company context | `approval_workflow:create_workflow`                       |
-| POST   | `/api/approval-workflows/:approval-workflow-id/approve` | Approve the current level                             | Bearer access token and company context | `approval_workflow:approve` plus current-level role match |
-| POST   | `/api/approval-workflows/:approval-workflow-id/reject`  | Reject the current level                              | Bearer access token and company context | `approval_workflow:reject` plus current-level role match  |
-| POST   | `/api/approval-workflows/:approval-workflow-id/cancel`  | Cancel the pending request                            | Bearer access token and company context | `approval_workflow:cancel` plus current-level role match  |
-| GET    | `/api/approval-workflows/`                              | List requests visible at the caller's approval levels | Bearer access token and company context | `approval_workflow:read`                                  |
-| GET    | `/api/approval-workflows/workflows`                     | List company-owned workflow definitions               | Bearer access token and company context | `approval_workflow:read`                                  |
-| GET    | `/api/approval-workflows/:approval-workflow-id`         | Read one scoped request and its actions               | Bearer access token and company context | `approval_workflow:read`                                  |
+| Method | Effective Path | Purpose | Authentication | Authorization |
+|---|---|---|---|---|
+| POST | `/api/approval-workflows/create-levels` | Create a tenant/company workflow level | Bearer access token and company context | `approval_workflow:create_level` |
+| POST | `/api/approval-workflows/workflows` | Create a tenant/company workflow definition | Bearer access token and company context | `approval_workflow:create_workflow` |
+| POST | `/api/approval-workflows/:approval-workflow-id/approve` | Approve the current level | Bearer access token and company context | `approval_workflow:approve` plus current-level role match |
+| POST | `/api/approval-workflows/:approval-workflow-id/reject` | Reject the current level | Bearer access token and company context | `approval_workflow:reject` plus current-level role match |
+| POST | `/api/approval-workflows/:approval-workflow-id/cancel` | Cancel the pending request | Bearer access token and company context | `approval_workflow:cancel` plus current-level role match |
+| GET | `/api/approval-workflows/` | List requests visible at the caller's approval levels | Bearer access token and company context | `approval_workflow:read` |
+| GET | `/api/approval-workflows/workflows` | List company-owned workflow definitions | Bearer access token and company context | `approval_workflow:read` |
+| GET | `/api/approval-workflows/:approval-workflow-id` | Read one scoped request and its actions | Bearer access token and company context | `approval_workflow:read` |
 
 The trailing slash on the list route is registered as `/` in the child router. Hono routing behavior for a request without that trailing slash should be confirmed by the deployed runtime; the documented registered path is `/api/approval-workflows/`.
 

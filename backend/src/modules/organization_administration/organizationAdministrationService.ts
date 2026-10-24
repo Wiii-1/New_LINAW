@@ -247,6 +247,10 @@ ${invitationUrl}`,
 
     async removeMember (input: GetUserInput) {
 
+        if (input.user_id === input.target_user_id) {
+            throw new ConflictError("You cannot remove your own company membership")
+        }
+
         const member = await this.repository.findCompanyMemberByUserId({
             company_id: input.company_id,
             tenant_id: input.tenant_id,

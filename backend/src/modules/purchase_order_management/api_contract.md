@@ -48,14 +48,14 @@ The HS256 token must contain non-empty `user_id`, `session_id`, and `tenant_id`.
 
 Route permissions are:
 
-| Operation                                                          | Permission                               |
-| ------------------------------------------------------------------ | ---------------------------------------- |
-| List/read purchase orders, procurement queue, RFQs, and quotations | `purchase_order:read`                    |
-| Create RFQ                                                         | `purchase_order:create_rfq`              |
-| Publish/update RFQ                                                 | `purchase_order:update_rfq`              |
-| Delete/cancel RFQ                                                  | `purchase_order:delete_rfq`              |
-| Select supplier                                                    | `purchase_order:accept_quotation`        |
-| Create/order/update/delete purchase order                          | `purchase_order:read` in the live router |
+| Operation | Permission |
+|---|---|
+| List/read purchase orders, procurement queue, RFQs, and quotations | `purchase_order:read` |
+| Create RFQ | `purchase_order:create_rfq` |
+| Publish/update RFQ | `purchase_order:update_rfq` |
+| Delete/cancel RFQ | `purchase_order:delete_rfq` |
+| Select supplier | `purchase_order:accept_quotation` |
+| Create/order/update/delete purchase order | `purchase_order:read` in the live router |
 
 Permission failures return an unwrapped `403` response:
 
@@ -67,23 +67,23 @@ The service then scopes resource queries by the authenticated `tenant_id` and `c
 
 ## 4. Endpoint Inventory
 
-| Method | Effective Path                                                    | Purpose                                     | Authentication                   | Authorization                     |
-| ------ | ----------------------------------------------------------------- | ------------------------------------------- | -------------------------------- | --------------------------------- |
-| POST   | `/api/purchase-orders/`                                           | Order an issued purchase order              | Bearer token and company context | `purchase_order:read`             |
-| POST   | `/api/purchase-orders/rfqs`                                       | Create a draft RFQ                          | Bearer token and company context | `purchase_order:create_rfq`       |
-| POST   | `/api/purchase-orders/rfqs/:rfqId/publish`                        | Publish a draft RFQ                         | Bearer token and company context | `purchase_order:update_rfq`       |
-| POST   | `/api/purchase-orders/rfqs/:rfqId/quotations/:quotationId/select` | Select a supplier quotation and create a PO | Bearer token and company context | `purchase_order:accept_quotation` |
-| GET    | `/api/purchase-orders/procurement-queue`                          | List approved requisitions without RFQs     | Bearer token and company context | `purchase_order:read`             |
-| GET    | `/api/purchase-orders/`                                           | List purchase orders                        | Bearer token and company context | `purchase_order:read`             |
-| GET    | `/api/purchase-orders/rfqs`                                       | List RFQs                                   | Bearer token and company context | `purchase_order:read`             |
-| GET    | `/api/purchase-orders/quotations`                                 | List all company quotations                 | Bearer token and company context | `purchase_order:read`             |
-| GET    | `/api/purchase-orders/rfqs/:rfqId/quotations`                     | List quotations for an RFQ                  | Bearer token and company context | `purchase_order:read`             |
-| GET    | `/api/purchase-orders/rfqs/:rfqId/quotations/:quotationId`        | Retrieve one quotation                      | Bearer token and company context | `purchase_order:read`             |
-| GET    | `/api/purchase-orders/:poId`                                      | Retrieve one purchase order                 | Bearer token and company context | `purchase_order:read`             |
-| PATCH  | `/api/purchase-orders/rfqs/:rfqId`                                | Update a draft RFQ                          | Bearer token and company context | `purchase_order:update_rfq`       |
-| PATCH  | `/api/purchase-orders/:poId`                                      | Update an issued purchase order             | Bearer token and company context | `purchase_order:read`             |
-| DELETE | `/api/purchase-orders/rfqs/:rfqId`                                | Cancel a draft RFQ                          | Bearer token and company context | `purchase_order:delete_rfq`       |
-| DELETE | `/api/purchase-orders/:poId`                                      | Cancel an eligible purchase order           | Bearer token and company context | `purchase_order:read`             |
+| Method | Effective Path | Purpose | Authentication | Authorization |
+|---|---|---|---|---|
+| POST | `/api/purchase-orders/` | Order an issued purchase order | Bearer token and company context | `purchase_order:read` |
+| POST | `/api/purchase-orders/rfqs` | Create a draft RFQ | Bearer token and company context | `purchase_order:create_rfq` |
+| POST | `/api/purchase-orders/rfqs/:rfqId/publish` | Publish a draft RFQ | Bearer token and company context | `purchase_order:update_rfq` |
+| POST | `/api/purchase-orders/rfqs/:rfqId/quotations/:quotationId/select` | Select a supplier quotation and create a PO | Bearer token and company context | `purchase_order:accept_quotation` |
+| GET | `/api/purchase-orders/procurement-queue` | List approved requisitions without RFQs | Bearer token and company context | `purchase_order:read` |
+| GET | `/api/purchase-orders/` | List purchase orders | Bearer token and company context | `purchase_order:read` |
+| GET | `/api/purchase-orders/rfqs` | List RFQs | Bearer token and company context | `purchase_order:read` |
+| GET | `/api/purchase-orders/quotations` | List all company quotations | Bearer token and company context | `purchase_order:read` |
+| GET | `/api/purchase-orders/rfqs/:rfqId/quotations` | List quotations for an RFQ | Bearer token and company context | `purchase_order:read` |
+| GET | `/api/purchase-orders/rfqs/:rfqId/quotations/:quotationId` | Retrieve one quotation | Bearer token and company context | `purchase_order:read` |
+| GET | `/api/purchase-orders/:poId` | Retrieve one purchase order | Bearer token and company context | `purchase_order:read` |
+| PATCH | `/api/purchase-orders/rfqs/:rfqId` | Update a draft RFQ | Bearer token and company context | `purchase_order:update_rfq` |
+| PATCH | `/api/purchase-orders/:poId` | Update an issued purchase order | Bearer token and company context | `purchase_order:read` |
+| DELETE | `/api/purchase-orders/rfqs/:rfqId` | Cancel a draft RFQ | Bearer token and company context | `purchase_order:delete_rfq` |
+| DELETE | `/api/purchase-orders/:poId` | Cancel an eligible purchase order | Bearer token and company context | `purchase_order:read` |
 
 The router registers the root child path as `/`; deployed behavior for omitting the trailing slash should be confirmed if clients use `/api/purchase-orders` without `/`.
 
@@ -150,11 +150,7 @@ The router registers the root child path as `/`; deployed behavior for omitting 
 **Success Response:** `200`:
 
 ```json
-{
-  "success": true,
-  "message": "Successfully published RFQS",
-  "published": { "message": "RFQ successfully published" }
-}
+{ "success": true, "message": "Successfully published RFQS", "published": { "message": "RFQ successfully published" } }
 ```
 
 **Errors:** `404` for missing RFQ or failed transition; `409` if the RFQ is not `DRAFT`; `422` for invalid UUID; `401`, `403`, or `500` as shared.

@@ -44,27 +44,27 @@ The HS256 token must contain non-empty `user_id`, `session_id`, and `tenant_id`;
 
 Route permissions:
 
-| Operation        | Permission  |
-| ---------------- | ----------- |
-| Create           | `pr:create` |
-| Submit/resubmit  | `pr:submit` |
-| Cancel           | `pr:cancel` |
-| Read/list/detail | `pr:read`   |
-| Update           | `pr:update` |
+| Operation | Permission |
+|---|---|
+| Create | `pr:create` |
+| Submit/resubmit | `pr:submit` |
+| Cancel | `pr:cancel` |
+| Read/list/detail | `pr:read` |
+| Update | `pr:update` |
 
 Permission failures return an unwrapped `403` response `{ "message": "Forbidden" }`. Service operations additionally require an active membership for the authenticated tenant/company. Mutation operations verify the requester owns the requisition.
 
 ## 4. Endpoint Inventory
 
-| Method | Effective Path                                     | Purpose                                                 | Authentication                   | Authorization               |
-| ------ | -------------------------------------------------- | ------------------------------------------------------- | -------------------------------- | --------------------------- |
-| POST   | `/api/PurchaseRequisition/create`                  | Create a draft requisition                              | Bearer token and company context | `pr:create`                 |
-| POST   | `/api/PurchaseRequisition/:requisitionId/submit`   | Submit a draft requisition                              | Bearer token and company context | `pr:submit` plus authorship |
-| POST   | `/api/PurchaseRequisition/:requisitionId/cancel`   | Cancel a draft/submitted requisition                    | Bearer token and company context | `pr:cancel` plus authorship |
-| POST   | `/api/PurchaseRequisition/:requisitionId/resubmit` | Create a new draft revision from a rejected requisition | Bearer token and company context | `pr:submit` plus authorship |
-| GET    | `/api/PurchaseRequisition/`                        | List requisitions                                       | Bearer token and company context | `pr:read`                   |
-| GET    | `/api/PurchaseRequisition/:requisitionId`          | Retrieve requisition details                            | Bearer token and company context | `pr:read`                   |
-| PATCH  | `/api/PurchaseRequisition/:requisitionId`          | Update an owned draft                                   | Bearer token and company context | `pr:update` plus authorship |
+| Method | Effective Path | Purpose | Authentication | Authorization |
+|---|---|---|---|---|
+| POST | `/api/PurchaseRequisition/create` | Create a draft requisition | Bearer token and company context | `pr:create` |
+| POST | `/api/PurchaseRequisition/:requisitionId/submit` | Submit a draft requisition | Bearer token and company context | `pr:submit` plus authorship |
+| POST | `/api/PurchaseRequisition/:requisitionId/cancel` | Cancel a draft/submitted requisition | Bearer token and company context | `pr:cancel` plus authorship |
+| POST | `/api/PurchaseRequisition/:requisitionId/resubmit` | Create a new draft revision from a rejected requisition | Bearer token and company context | `pr:submit` plus authorship |
+| GET | `/api/PurchaseRequisition/` | List requisitions | Bearer token and company context | `pr:read` |
+| GET | `/api/PurchaseRequisition/:requisitionId` | Retrieve requisition details | Bearer token and company context | `pr:read` |
+| PATCH | `/api/PurchaseRequisition/:requisitionId` | Update an owned draft | Bearer token and company context | `pr:update` plus authorship |
 
 ## 5. Detailed Endpoint Contracts
 
@@ -99,6 +99,8 @@ Permission failures return an unwrapped `403` response `{ "message": "Forbidden"
 ```
 
 `justification` is required, trimmed, 10-500 characters. `purpose` is optional with default `""`, `priority` defaults to `NORMAL`, and `currency_code` defaults to the shared default currency. Dates must be `YYYY-MM-DD`. Items may be supplied as `items` or `line_items`; at least one item is required and input is transformed to `items`. Item type is `GOODS`, `SERVICE`, or `ASSET`; quantity is finite, positive, and has at most four decimal places; estimated unit cost is finite, nonnegative, and has at most four decimal places. Descriptions/specifications/units have schema length limits. Unknown fields are rejected. Several compatibility fields (`requisition_number`, `requester_id`, `company_id`, `request_date`, `requisition_status`, `total_estimated_amount`, `created_by`, `submitted_at`, `remarks`) are accepted by the schema but are not used to set the persisted record.
+
+`workflow_code` is required and must identify an active workflow definition eligible for the authenticated tenant and company. The selected code is persisted on the requisition and is revalidated when the requisition is submitted.
 
 **Success Response:** `201`:
 
@@ -222,6 +224,7 @@ The response is a controller summary, not the full Prisma record. Total is calcu
       {
         "requisition_id": "requisition-uuid",
         "requisition_number": "PR-requisition-uuid-20261021-1",
+        "workflow_code": "PURCHASE_REQUISITION",
         "requisition_status": "DRAFT",
         "total_estimated_amount": "2500",
         "currency_code": "USD",
@@ -230,9 +233,11 @@ The response is a controller summary, not the full Prisma record. Total is calcu
       }
     ],
     "total": 1
-  }
+        "workflow_code": "PURCHASE_REQUISITION",
+      {
 }
 ```
+        "workflow_code": "PURCHASE_REQUISITION",
 
 The repository returns at most 10 rows ordered by `updated_at` descending; `total` is an unbounded count matching the filters. The controller maps each row to the summary fields above.
 

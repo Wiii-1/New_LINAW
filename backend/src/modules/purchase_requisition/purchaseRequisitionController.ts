@@ -21,6 +21,7 @@ function requisitionSummary(requisition: {
     id: string;
     pr_number: string;
     status: string;
+    workflow_code: string | null;
     total_amount: unknown;
     currency_code: string;
     created_at: Date;
@@ -30,6 +31,7 @@ function requisitionSummary(requisition: {
         requisition_id: requisition.id,
         requisition_number: requisition.pr_number,
         requisition_status: requisition.status,
+        workflow_code: requisition.workflow_code,
         total_estimated_amount: requisition.total_amount,
         currency_code: requisition.currency_code,
         created_at: requisition.created_at,
@@ -54,7 +56,7 @@ export class PurchaseRequisitionController {
 
     createRequisition = async (
         c: Context<AppContext>
-    )   => {
+    ): Promise<Response> => {
 
         if (!c.get("user").user_id) {
             throw new UnauthorizedAccessError("Authentication required");
@@ -75,7 +77,7 @@ export class PurchaseRequisitionController {
 
         const creation = await this.service.createRequisition(purchaseRequisition)
 
-        c.json({
+        return c.json({
             success: true,
             message: "Purchase requisition created successfully.",
             data: requisitionSummary(creation)
@@ -85,7 +87,7 @@ export class PurchaseRequisitionController {
 
     submitRequisition  = async (
         c: Context<AppContext>
-    ) => {
+    ): Promise<Response> => {
           
             const params =
                 purchaseRequisitionIdParamsSchema.parse(c.req.param());
@@ -99,7 +101,7 @@ export class PurchaseRequisitionController {
 
             const submit = await this.service.submitRequisition(submitRequisition)
 
-            c.json({
+            return c.json({
                 success: true,
                 message: "Purchase requisition submitted successfully.",
                 data: {
@@ -113,7 +115,7 @@ export class PurchaseRequisitionController {
 
     cancelRequisition = async (
         c: Context<AppContext>
-    )   => {
+    ): Promise<Response> => {
           
             const cancellation = cancelPurchaseRequisitionSchema.parse( await c.req.json())
 
@@ -129,7 +131,7 @@ export class PurchaseRequisitionController {
 
             const cancel = await this.service.cancelRequisition(cancelRequisition)
 
-            c.json({
+            return c.json({
                 success: true,
                 message: "Purchase resquisition cancelled successfully.",
                 data: cancel
@@ -140,7 +142,7 @@ export class PurchaseRequisitionController {
     
     resubmitRequisition = async (
         c: Context<AppContext>
-    )   => {
+    ): Promise<Response> => {
           
 
             const params = purchaseRequisitionIdParamsSchema.parse(c.req.param())
@@ -157,7 +159,7 @@ export class PurchaseRequisitionController {
 
             const resubmitRequisition = await this.service.resubmitRequisition(resubmit)
 
-            c.json({
+            return c.json({
                 success: true,
                 message: "Purchase requisition successfully submitted",
                 data: {
@@ -190,7 +192,7 @@ export class PurchaseRequisitionController {
         const requisition = await this.service.getRequisition(data);
         const total = await this.service.countRequisition(data);
 
-        c.json({
+        return c.json({
             success: true,
             message: "Purchase requisitions retrieved successfully.",
             data: {
@@ -203,7 +205,7 @@ export class PurchaseRequisitionController {
 
     details = async (
         c: Context<AppContext>
-    )   => {
+    ): Promise<Response> => {
         
         const params = purchaseRequisitionIdParamsSchema.parse(c.req.param())
 
@@ -216,7 +218,7 @@ export class PurchaseRequisitionController {
 
         const details = await this.service.purchaseRequisitionDetail(requisitionDetails)
 
-        c.json({
+        return c.json({
             success: true,
             message: "Purchase requisition retrieved successfully.",
             data: details
@@ -235,7 +237,7 @@ export class PurchaseRequisitionController {
 
     update = async (
         c: Context<AppContext>
-    )   => {
+    ): Promise<Response> => {
           
         const body = await c.req.json();
         const updateContent = updatePurchaseRequisitionSchema.parse(body);
@@ -250,7 +252,7 @@ export class PurchaseRequisitionController {
             updateContent
         )
 
-        c.json({
+        return c.json({
             success: true,
             message: "Purchase requisition updated successfully.",
             data: requisitionSummary(updateReqs)
