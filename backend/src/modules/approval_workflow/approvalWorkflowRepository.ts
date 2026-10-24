@@ -85,6 +85,7 @@ export interface ApprovalActionData {
 
 export interface UpdateRequestStatusData {
     approvalWorkflow_id: string;
+    purchaseRequisition_id?: string;
     tenant_id: string;
     company_id: string;
     status: ApprovalRequestStatus;
@@ -333,11 +334,22 @@ export class ApprovalWorkflowRepository {
     async findRoleByCodeAndTenant(
         roleCode: string,
         tenantId: string,
+        companyId: string,
     ) {
         return prisma.role.findFirst({
             where: {
-                role_code: roleCode,
-                tenant_id: tenantId,
+                code: roleCode,
+                OR: [
+                    {
+                        tenant_id: tenantId,
+                        company_id: companyId,
+                    },
+                    {
+                        tenant_id: null,
+                        company_id: null,
+                        is_system: true,
+                    },
+                ],
             },
         });
     }
@@ -477,7 +489,7 @@ export class ApprovalWorkflowRepository {
                 },
             });
 
-            return transaction.approvalRequest.update({
+            const approvalRequest = await transaction.approvalRequest.update({
                 where: {
                     id: data.request.approvalWorkflow_id,
                     tenant_id: data.request.tenant_id,
@@ -494,6 +506,33 @@ export class ApprovalWorkflowRepository {
                     }),
                 },
             });
+
+            if (data.request.purchaseRequisition_id && ["APPROVED", "REJECTED"].includes(data.request.status)) {
+                const requisitionUpdate = await transaction.purchaseRequisition.updateMany({
+                    where: {
+                        id: data.request.purchaseRequisition_id,
+                        tenant_id: data.request.tenant_id,
+                        company_id: data.request.company_id,
+                    },
+                    data: {
+                        ...(data.request.status === "APPROVED"
+                            ? {
+                                status: "APPROVED",
+                                approved_at: data.request.resolved_at ?? new Date(),
+                            }
+                            : {
+                                status: "REJECTED",
+                                rejected_at: data.request.resolved_at ?? new Date(),
+                            }),
+                    },
+                });
+
+                if (requisitionUpdate.count !== 1) {
+                    throw new Error("Purchase requisition decision could not be updated");
+                }
+            }
+
+            return approvalRequest;
         });
     }
 

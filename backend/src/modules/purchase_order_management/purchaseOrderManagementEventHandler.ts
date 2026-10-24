@@ -13,6 +13,8 @@ export function approvedPrIncoming(
             await purchaseOrderManagementService.handleApprovedPurchaseRequisition({
                 purchaseRequisition_id: event.purchaseRequisition_id,
                 approvalWorkflow_id: event.approvalWorkflow_id,
+                tenant_id: event.tenant_id,
+                company_id: event.company_id,
             });
         },
     );

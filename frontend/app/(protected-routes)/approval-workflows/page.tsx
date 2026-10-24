@@ -16,6 +16,7 @@ import {
   type ApprovalRequest,
   type WorkflowDefinition,
 } from "@/app/api/approval-workflow/client";
+import { getRoles, type OrganizationRole } from "@/app/api/organization-administration/client";
 import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +63,7 @@ export default function ApprovalWorkflowsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [workflowDefinitions, setWorkflowDefinitions] = useState<WorkflowDefinition[]>([]);
+  const [roles, setRoles] = useState<OrganizationRole[]>([]);
   const [configurationError, setConfigurationError] = useState<string | null>(null);
   const [isConfigurationLoading, setIsConfigurationLoading] = useState(false);
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
@@ -110,6 +112,9 @@ export default function ApprovalWorkflowsPage() {
   useEffect(() => {
     getWorkflowDefinitions()
       .then(setWorkflowDefinitions)
+      .catch(() => undefined);
+    getRoles()
+      .then(setRoles)
       .catch(() => undefined);
   }, []);
 
@@ -391,7 +396,21 @@ export default function ApprovalWorkflowsPage() {
           </DialogHeader>
           <form className="grid gap-4" onSubmit={submitLevel}>
             <label className="grid gap-2 text-sm">Workflow<select required className="h-9 rounded-md border border-input px-2.5 text-sm" value={levelForm.workflow_code} onChange={(event) => setLevelForm({ ...levelForm, workflow_code: event.target.value })}><option value="">Select workflow</option>{workflowDefinitions.map((definition) => <option key={definition.id} value={definition.workflow_code}>{definition.name} ({definition.workflow_code})</option>)}</select></label>
-            <label className="grid gap-2 text-sm">Role code<Input required value={levelForm.role_code} onChange={(event) => setLevelForm({ ...levelForm, role_code: event.target.value })} placeholder="DEPARTMENT_MANAGER" /></label>
+            <label className="grid gap-2 text-sm">Role
+              <select
+                required
+                className="h-9 w-full rounded-md border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+                value={levelForm.role_code}
+                onChange={(event) => setLevelForm({ ...levelForm, role_code: event.target.value })}
+              >
+                <option value="">Select role</option>
+                {roles.map((role) => (
+                  <option key={role.id} value={role.code}>
+                    {role.code} - {role.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="grid grid-cols-3 gap-3"><label className="grid gap-2 text-sm">Level<Input required type="number" min="1" step="1" value={levelForm.level_no} onChange={(event) => setLevelForm({ ...levelForm, level_no: event.target.value })} /></label><label className="grid gap-2 text-sm">Minimum<Input required type="number" min="0" step="0.01" value={levelForm.min_amount} onChange={(event) => setLevelForm({ ...levelForm, min_amount: event.target.value })} /></label><label className="grid gap-2 text-sm">Maximum<Input required type="number" min="0" step="0.01" value={levelForm.max_amount} onChange={(event) => setLevelForm({ ...levelForm, max_amount: event.target.value })} /></label></div>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={levelForm.is_required} onChange={(event) => setLevelForm({ ...levelForm, is_required: event.target.checked })} /> Required level</label>
             {configurationError && <p className="text-sm text-destructive" role="alert">{configurationError}</p>}

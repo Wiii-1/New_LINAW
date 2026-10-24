@@ -21,6 +21,7 @@ export type OrganizationMember = {
 
 export type OrganizationRole = {
   id: string;
+  code: string;
   name: string;
   description: string | null;
   is_system: boolean;

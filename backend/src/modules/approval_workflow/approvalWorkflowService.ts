@@ -352,6 +352,7 @@ export class ApprovalWorkflowService {
 
       const approve: UpdateRequestStatusData = {
          approvalWorkflow_id: input.approvalWorkflow_id,
+         purchaseRequisition_id: request.entity_id,
          tenant_id: tenantId,
          status: "APPROVED",
          current_level: currentLevel,
@@ -490,6 +491,7 @@ export class ApprovalWorkflowService {
 
       const reject: UpdateRequestStatusData = {
          approvalWorkflow_id: input.approvalWorkflow_id,
+         purchaseRequisition_id: request.entity_id,
          tenant_id: tenantId,
          company_id: company_id,
          status: "REJECTED",
@@ -770,7 +772,8 @@ export class ApprovalWorkflowService {
       
       const role = await this.repository.findRoleByCodeAndTenant(
          roleCode,
-         tenantId
+         tenantId,
+         companyId,
       )
 
       if (!role) {

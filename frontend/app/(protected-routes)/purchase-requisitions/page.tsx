@@ -59,6 +59,14 @@ const statusStyles: Record<PurchaseRequisitionStatus, string> = {
   CANCELLED: "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
 };
 
+const statusLabels: Record<PurchaseRequisitionStatus, string> = {
+  DRAFT: "Draft",
+  SUBMITTED: "Submitted",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  CANCELLED: "Cancelled",
+};
+
 const itemSchema = z.object({
   item_type: z.enum(["GOODS", "SERVICE", "ASSET"]),
   description: z.string().trim().min(1, "Description is required.").max(255),
@@ -119,7 +127,7 @@ const dateFormat = (value?: string | null) => value
 const display = (value?: string | number | null) => value === null || value === undefined || value === "" ? "Not provided" : String(value);
 
 function StatusBadge({ status }: { status: PurchaseRequisitionStatus }) {
-  return <Badge variant="outline" className={statusStyles[status]}>{status.replace("_", " ")}</Badge>;
+  return <Badge variant="outline" className={statusStyles[status]}>{statusLabels[status]}</Badge>;
 }
 
 function Notice({ error, onRetry }: { error: string; onRetry?: () => void }) {
@@ -159,6 +167,13 @@ export default function PurchaseRequisitionsPage() {
     void getWorkflowDefinitions()
       .then((data) => setWorkflows(data.filter((item) => item.is_active && item.workflow_code)))
       .catch(() => setWorkflowError("Approval workflows could not be loaded."));
+
+    const refreshOnReturn = () => {
+      if (document.visibilityState === "visible") void loadList();
+    };
+
+    document.addEventListener("visibilitychange", refreshOnReturn);
+    return () => document.removeEventListener("visibilitychange", refreshOnReturn);
   }, []);
 
   async function openDetail(id: string) {
