@@ -143,6 +143,10 @@ export const columns = columnHelper.columns([
   }),
 
   columnHelper.accessor("status", {
+    meta: {
+      isSearchable: true,
+      searchPlaceholder: "Search PR number...",
+    },
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),

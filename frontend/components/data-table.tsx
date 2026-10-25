@@ -199,7 +199,7 @@ export function DataTable<TData extends RowData>({
   const showExportMenu = Boolean(exportEndpoint) || enableExport;
 
   return (
-    <div>
+    <div suppressHydrationWarning>
       <div className="flex items-center py-4">
         {searchKey && (
           <div className="relative w-full max-w-sm">

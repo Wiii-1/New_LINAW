@@ -3,17 +3,22 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const protectedRoutes = [
+  "/administration",
   "/approval-workflows",
+  "/audit-trail",
   "/dashboard",
-  "/organizations",
+  "/organization-administration",
+  "/profile",
   "/purchase-orders",
   "/purchase-requisitions",
-  "/suppliers",
-  "/users",
-  "/portal",
+  "/supplier-management",
+  "/supplier-portal",
+  "/user-management",
 ];
 
 const authRoutes = ["/forgot-password", "/login", "/reset-password", "/signup"];
+
+const postLoginPath = "/administration";
 
 function matchesRoute(pathname: string, route: string): boolean {
   return pathname === route || pathname.startsWith(`${route}/`);
@@ -50,6 +55,86 @@ async function hasValidSession(accessToken: string): Promise<boolean> {
   }
 }
 
+function createNonce(): string {
+  return btoa(crypto.randomUUID());
+}
+
+function createCsrfToken(): string {
+  return btoa(crypto.randomUUID());
+}
+
+function buildCsp(nonce: string): string {
+  const isDev = process.env.NODE_ENV !== "production";
+  const scriptSrc = isDev
+    ? "'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com"
+    : `'self' 'nonce-${nonce}' 'strict-dynamic' https://www.googletagmanager.com`;
+  const cspHeader = `
+    default-src 'self';
+    script-src ${scriptSrc};
+    style-src 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`};
+    img-src 'self' blob: data: https://storage.efferd.com https://www.googletagmanager.com;
+    connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com;
+    frame-src 'self' https://www.googletagmanager.com;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  `;
+
+  return cspHeader.replace(/\s{2,}/g, " ").trim();
+}
+
+function applySecurityHeaders(
+  response: NextResponse,
+  csp: string,
+): NextResponse {
+  response.headers.set("Content-Security-Policy", csp);
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set(
+    "Cache-Control",
+    "private, no-cache, no-store, must-revalidate",
+  );
+  response.headers.set("Pragma", "no-cache");
+  response.headers.set("Expires", "0");
+  return response;
+}
+
+function nextWithSecurityHeaders(request: NextRequest) {
+  const nonce = createNonce();
+  const csrfToken = createCsrfToken();
+  const csp = buildCsp(nonce);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+  requestHeaders.set("x-csrf-token", csrfToken);
+
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  response.cookies.set("csrfToken", csrfToken, {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: request.nextUrl.protocol === "https:",
+    path: "/",
+  });
+
+  return applySecurityHeaders(response, csp);
+}
+
+function redirectWithSecurityHeaders(url: URL) {
+  const nonce = createNonce();
+  const csp = buildCsp(nonce);
+  const response = NextResponse.redirect(url);
+  return applySecurityHeaders(response, csp);
+}
+
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isProtectedRoute = protectedRoutes.some((route) =>
@@ -57,33 +142,32 @@ export async function proxy(request: NextRequest) {
   );
   const isAuthRoute = authRoutes.some((route) => matchesRoute(pathname, route));
 
-  const BYPASS_AUTH = true;
-
-  if (BYPASS_AUTH) {
-    return NextResponse.next();
-  }
-
   if (!isProtectedRoute && !isAuthRoute) {
-    return NextResponse.next();
+    return nextWithSecurityHeaders(request);
   }
 
   const accessToken = request.cookies.get("accessToken")?.value;
   const hasSession = accessToken ? await hasValidSession(accessToken) : false;
 
   if (isProtectedRoute && !hasSession) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return redirectWithSecurityHeaders(new URL("/login", request.url));
   }
 
   if (isAuthRoute && hasSession) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return redirectWithSecurityHeaders(new URL(postLoginPath, request.url));
   }
 
-  return NextResponse.next();
+  return nextWithSecurityHeaders(request);
 }
 
-// Alternatively, you can use a default export:
-// export default function proxy(request: NextRequest) { ... }
-
 export const config = {
-  matcher: [String.raw`/((?!api|_next/static|_next/image|.*\.png$).*)`],
+  matcher: [
+    {
+      source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+      ],
+    },
+  ],
 };

@@ -18,9 +18,10 @@ import { Input } from "@/components/ui/input";
 import { loginSchema, type LoginFormValues } from "@/validators/auth";
 
 export function LoginForm({
+  csrfToken,
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { csrfToken: string }) {
   //const [isLoading, setIsLoading] = useState(false);
   //const router = useRouter();
 
@@ -58,8 +59,11 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form
         id="login-form"
+        method="post"
+        onSubmit={(event) => event.preventDefault()}
         //onSubmit={form.handleSubmit(onSubmit)}
       >
+        <input type="hidden" name="CSRFToken" value={csrfToken} />
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-xl font-bold">Welcome to LINAW</h1>

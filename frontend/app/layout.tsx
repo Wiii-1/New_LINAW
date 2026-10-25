@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { GoogleTagManager } from "@/components/google-tag-manager";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Tooltip } from "@/components/ui/tooltip";
 
@@ -13,9 +15,11 @@ export const metadata: Metadata = {
     "Next-Generation Procurement and Asset Management System with Blockchain Verification and Tokenization",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="en"
@@ -23,11 +27,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body>
+        <GoogleTagManager gtmId="GTM-WC5VNCT3" nonce={nonce} />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem={true}
           disableTransitionOnChange
+          nonce={nonce}
         >
           <Tooltip>{children}</Tooltip>
         </ThemeProvider>

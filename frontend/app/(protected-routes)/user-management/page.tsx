@@ -71,8 +71,8 @@ export default async function AuditTrailPage() {
       <DataTable
         columns={columns}
         data={data}
-        searchKey="request"
-        searchPlaceholder="Search request..."
+        searchKey="email "
+        searchPlaceholder="Search email..."
         toolbarActions={editProfileModal}
         enableExport={true}
         //exportEndpoint="/api/user-management/export" // Temporarily disable the endpoint to force the client-side fallback

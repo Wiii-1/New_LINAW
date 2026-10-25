@@ -171,8 +171,8 @@ export default function ApprovalWorkflowsPage() {
       <DataTable
         columns={columns}
         data={data}
-        searchKey="request"
-        searchPlaceholder="Search PR number..."
+        searchKey="status"
+        searchPlaceholder="Search status..."
         toolbarActions={modal}
         enableExport={true}
         //exportEndpoint="/api/approval-workflow/export" // Temporarily disable the endpoint to force the client-side fallback

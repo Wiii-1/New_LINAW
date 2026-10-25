@@ -17,9 +17,10 @@ import { Input } from "@/components/ui/input";
 import { signUpSchema, type SignUpFormValues } from "@/validators/auth";
 
 export function SignupForm({
+  csrfToken,
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { csrfToken: string }) {
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -40,7 +41,10 @@ export function SignupForm({
     try {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({
           first_name: values.firstName,
           last_name: values.lastName,
@@ -61,7 +65,7 @@ export function SignupForm({
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/administration");
     } catch {
       form.setError("root", {
         message: "Unable to reach the signup service. Please try again.",
@@ -73,7 +77,13 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form id="signup-form" onSubmit={form.handleSubmit(onSubmit)}>
+      <form
+        id="signup-form"
+        method="post"
+        action="/api/auth/signup"
+        onSubmit={form.handleSubmit(onSubmit)}
+      >
+        <input type="hidden" name="CSRFToken" value={csrfToken} />
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-xl font-bold">Welcome to LINAW</h1>
