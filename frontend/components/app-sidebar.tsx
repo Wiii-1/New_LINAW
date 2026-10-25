@@ -24,7 +24,6 @@ import {
   ScrollTextIcon,
   Settings2Icon,
   ShieldCheckIcon,
-  UsersRoundIcon,
   SlidersHorizontal,
 } from "lucide-react";
 
@@ -67,13 +66,8 @@ const data = {
       icon: <ScrollTextIcon />,
     },
     {
-      title: "User Management",
-      url: "/user-management",
-      icon: <UsersRoundIcon />,
-    },
-    {
-      title: "Organization Administration",
-      url: "/organization-administration",
+      title: "Organization Settings",
+      url: "/organization-settings",
       icon: <SlidersHorizontal />,
     },
   ],

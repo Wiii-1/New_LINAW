@@ -27,7 +27,7 @@ export type UserManagement = {
 
 const columnHelper = createColumnHelper<DataTableFeatures, UserManagement>();
 
-export const columns = columnHelper.columns([
+export const userColumns = columnHelper.columns([
   columnHelper.accessor("first_name", {
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="First Name" />
