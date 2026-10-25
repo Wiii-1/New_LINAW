@@ -59,16 +59,16 @@ The backend does not set or clear browser cookies; the trusted frontend/server i
 
 ## 4. Endpoint Inventory
 
-| Method | Effective Path | Purpose | Authentication | Authorization |
-|---|---|---|---|---|
-| POST | `/api/auth/signup` | Create tenant, user, and credentials | Public; rate limited | None |
-| POST | `/api/auth/login` | Verify credentials and create session/tokens | Public; rate limited | Active user and unambiguous company membership |
-| POST | `/api/auth/forgot-password` | Request reset email | Public; rate limited | None; response is account-enumeration resistant |
-| POST | `/api/auth/reset-password` | Consume reset token and change password | Public reset token | Valid unused/unexpired token |
-| GET | `/api/auth/:id` | Retrieve the authenticated user's own record | Access Bearer token | Path ID must equal token user ID |
-| POST | `/api/auth/logout` | Revoke the current refresh-token session | Refresh cookie | Valid current refresh token |
-| POST | `/api/auth/refresh` | Rotate refresh token and issue new access token | Refresh cookie | Valid current refresh token/session |
-| POST | `/api/auth/validate_token` | Return validated access-token context | Access Bearer token | Valid access token/session |
+| Method | Effective Path              | Purpose                                         | Authentication       | Authorization                                   |
+| ------ | --------------------------- | ----------------------------------------------- | -------------------- | ----------------------------------------------- |
+| POST   | `/api/auth/signup`          | Create tenant, user, and credentials            | Public; rate limited | None                                            |
+| POST   | `/api/auth/login`           | Verify credentials and create session/tokens    | Public; rate limited | Active user and unambiguous company membership  |
+| POST   | `/api/auth/forgot-password` | Request reset email                             | Public; rate limited | None; response is account-enumeration resistant |
+| POST   | `/api/auth/reset-password`  | Consume reset token and change password         | Public reset token   | Valid unused/unexpired token                    |
+| GET    | `/api/auth/:id`             | Retrieve the authenticated user's own record    | Access Bearer token  | Path ID must equal token user ID                |
+| POST   | `/api/auth/logout`          | Revoke the current refresh-token session        | Refresh cookie       | Valid current refresh token                     |
+| POST   | `/api/auth/refresh`         | Rotate refresh token and issue new access token | Refresh cookie       | Valid current refresh token/session             |
+| POST   | `/api/auth/validate_token`  | Return validated access-token context           | Access Bearer token  | Valid access token/session                      |
 
 ## 5. Detailed Endpoint Contracts
 
@@ -207,7 +207,16 @@ Tokens are returned in JSON; this backend does not set cookies.
 {
   "success": true,
   "message": "User found",
-  "data": { "checkUser": { "id": "user-uuid", "tenant_id": "tenant-uuid", "email": "ada@example.com", "first_name": "Ada", "last_name": "Lovelace", "status": "ACTIVE" } }
+  "data": {
+    "checkUser": {
+      "id": "user-uuid",
+      "tenant_id": "tenant-uuid",
+      "email": "ada@example.com",
+      "first_name": "Ada",
+      "last_name": "Lovelace",
+      "status": "ACTIVE"
+    }
+  }
 }
 ```
 
@@ -249,7 +258,10 @@ The service returns `{ checkUser }`; the repository lookup includes credentials 
 {
   "success": true,
   "message": "Session refreshed successfully",
-  "result": { "accessToken": "<new-access-token>", "refreshToken": "<new-refresh-token>" }
+  "result": {
+    "accessToken": "<new-access-token>",
+    "refreshToken": "<new-refresh-token>"
+  }
 }
 ```
 
@@ -315,6 +327,15 @@ The raw token is `<token-id>.<token-secret>`. The database stores the token ID, 
 - Handle `401` uniformly for invalid credentials, access tokens, refresh tokens, and reset tokens; login intentionally does not reveal whether the email exists.
 - Account creation does not log the user in; call login separately.
 - A password reset invalidates existing sessions, so clients must authenticate again after reset.
+
+### Browser authentication coordination
+
+- The supported browser model is one active account per browser profile. Same-origin tabs share the `accessToken` and `refreshToken` cookies; separate browser profiles are required to use different accounts simultaneously.
+- Browser login, signup, logout, explicit refresh, and access-token refresh-and-retry operations use the exclusive `linaw-auth-transition` Web Lock.
+- The generic server-side backend proxy forwards the current access token and returns `401`; it does not independently refresh tokens or emit rotated authentication cookies.
+- Concurrent `401` responses wait for the shared transition. A non-secret local revision marker lets waiting requests reuse a refresh already completed by another same-origin tab instead of rotating the same refresh token again.
+- Browsers without Web Locks fail closed for coordinated authentication transitions and refresh retries. They do not silently fall back to an uncoordinated refresh path.
+- `HttpOnly` cookies remain the only browser credential storage. The coordination marker contains no token or user credential.
 
 ## 9. Contract Gaps and Implementation Discrepancies
 

@@ -6,183 +6,162 @@ import { NotFoundError } from "../../../shared/errors/appError.js";
 import type { SupplierManagementPortalService } from "./supplierManagementPortalService.js";
 
 import {
-    SupplierPortalRFQIdSchema,
-    SupplierQuotationIdSchema,
-    SubmitSupplierQuotationSchema,
+  SupplierPortalRFQIdSchema,
+  SupplierQuotationIdSchema,
+  SubmitSupplierQuotationSchema,
 } from "./supplierManagementPortalValidator.js";
 
 export class SupplierManagementPortalController {
-    constructor(
-        private service: SupplierManagementPortalService,
-    ) {}
+  constructor(private service: SupplierManagementPortalService) {}
 
-    // ====================
-    // Get Available RFQs
-    // ====================
+  // ====================
+  // Get Available RFQs
+  // ====================
 
-    getAvailableRFQs = async (
-        c: Context<AppContext>,
-    ) => {
-        const { user_id, tenant_id, company_id } = c.var.user;
+  getAvailableRFQs = async (c: Context<AppContext>) => {
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        if (!company_id) {
-            throw new NotFoundError(
-                "User does not belong to a company",
-            );
-        }
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
+    }
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-        };
-
-        const rfqs = await this.service.getAvailableRFQs(input);
-
-        return c.json({
-            success: true,
-            message: "Available RFQs retrieved successfully.",
-            data: rfqs,
-        });
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
     };
 
-    // ====================
-    // Get RFQ Details
-    // ====================
+    const rfqs = await this.service.getAvailableRFQs(input);
 
-    getRFQ = async (
-        c: Context<AppContext>,
-    ) => {
-        const { user_id, tenant_id, company_id } = c.var.user;
+    return c.json({
+      success: true,
+      message: "Available RFQs retrieved successfully.",
+      data: rfqs,
+    });
+  };
 
-        if (!company_id) {
-            throw new NotFoundError(
-                "User does not belong to a company",
-            );
-        }
+  // ====================
+  // Get RFQ Details
+  // ====================
 
-        const { rfqId } = SupplierPortalRFQIdSchema.parse({
-            rfqId: c.req.param("rfqId"),
-        });
+  getRFQ = async (c: Context<AppContext>) => {
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            rfq_id: rfqId,
-        };
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
+    }
 
-        const rfq = await this.service.getRFQ(input);
+    const { rfqId } = SupplierPortalRFQIdSchema.parse({
+      rfqId: c.req.param("rfqId"),
+    });
 
-        return c.json({
-            success: true,
-            message: "RFQ retrieved successfully.",
-            data: rfq,
-        });
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      rfq_id: rfqId,
     };
 
-    // ====================
-    // Get Supplier Quotations
-    // ====================
+    const rfq = await this.service.getRFQ(input);
 
-    getQuotations = async (
-        c: Context<AppContext>,
-    ) => {
-        const { user_id, tenant_id, company_id } = c.var.user;
+    return c.json({
+      success: true,
+      message: "RFQ retrieved successfully.",
+      data: rfq,
+    });
+  };
 
-        if (!company_id) {
-            throw new NotFoundError(
-                "User does not belong to a company",
-            );
-        }
+  // ====================
+  // Get Supplier Quotations
+  // ====================
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-        };
+  getQuotations = async (c: Context<AppContext>) => {
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        const quotations = await this.service.getQuotations(input);
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
+    }
 
-        return c.json({
-            success: true,
-            message: "Supplier quotations retrieved successfully.",
-            data: quotations,
-        });
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
     };
 
-    // ====================
-    // Get Quotation Details
-    // ====================
+    const quotations = await this.service.getQuotations(input);
 
-    getQuotation = async (
-        c: Context<AppContext>,
-    ) => {
-        const { user_id, tenant_id, company_id } = c.var.user;
+    return c.json({
+      success: true,
+      message: "Supplier quotations retrieved successfully.",
+      data: quotations,
+    });
+  };
 
-        if (!company_id) {
-            throw new NotFoundError(
-                "User does not belong to a company",
-            );
-        }
+  // ====================
+  // Get Quotation Details
+  // ====================
 
-        const { quotationId } = SupplierQuotationIdSchema.parse({
-            quotationId: c.req.param("quotationId"),
-        });
+  getQuotation = async (c: Context<AppContext>) => {
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            quotation_id: quotationId,
-        };
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
+    }
 
-        const quotation = await this.service.getQuotation(input);
+    const { quotationId } = SupplierQuotationIdSchema.parse({
+      quotationId: c.req.param("quotationId"),
+    });
 
-        return c.json({
-            success: true,
-            message: "Supplier quotation retrieved successfully.",
-            data: quotation,
-        });
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      quotation_id: quotationId,
     };
 
-    // ====================
-    // Submit Supplier Quotation
-    // ====================
+    const quotation = await this.service.getQuotation(input);
 
-    submitQuotation = async (
-        c: Context<AppContext>,
-    ) => {
-        const { user_id, tenant_id, company_id } = c.var.user;
+    return c.json({
+      success: true,
+      message: "Supplier quotation retrieved successfully.",
+      data: quotation,
+    });
+  };
 
-        if (!company_id) {
-            throw new NotFoundError(
-                "User does not belong to a company",
-            );
-        }
+  // ====================
+  // Submit Supplier Quotation
+  // ====================
 
-        const { rfqId } = SupplierPortalRFQIdSchema.parse({
-            rfqId: c.req.param("rfqId"),
-        });
+  submitQuotation = async (c: Context<AppContext>) => {
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        const body = SubmitSupplierQuotationSchema.parse(
-            await c.req.json(),
-        );
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
+    }
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            rfq_id: rfqId,
-            body,
-        };
+    const { rfqId } = SupplierPortalRFQIdSchema.parse({
+      rfqId: c.req.param("rfqId"),
+    });
 
-        const quotation = await this.service.submitQuotation(input);
+    const body = SubmitSupplierQuotationSchema.parse(await c.req.json());
 
-        return c.json({
-            success: true,
-            message: "Supplier quotation submitted successfully.",
-            data: quotation,
-        }, 201);
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      rfq_id: rfqId,
+      body,
     };
+
+    const quotation = await this.service.submitQuotation(input);
+
+    return c.json(
+      {
+        success: true,
+        message: "Supplier quotation submitted successfully.",
+        data: quotation,
+      },
+      201,
+    );
+  };
 }

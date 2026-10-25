@@ -7,53 +7,123 @@ import { OrganizationAdministrationController } from "./organizationAdministrato
 import { OrganizationAdministrationService } from "./organizationAdministrationService";
 import { OrganizationAdministrationRepository } from "./organizationAdministrationRepository";
 
+export function createOrganizationAdministration() {
+  const router = new Hono<AppContext>();
+  const service = new OrganizationAdministrationService(
+    new OrganizationAdministrationRepository(),
+  );
+  const controller = new OrganizationAdministrationController(service);
 
+  router.use(authenticate);
 
-export function createOrganizationAdministration () {
-    const router = new Hono<AppContext>();
-    const service = new OrganizationAdministrationService(new OrganizationAdministrationRepository()) 
-    const controller = new OrganizationAdministrationController(service)
+  // Organization Member Management
 
-    router.use(authenticate)
+  router.post(
+    "/members",
+    Authorize(systemPermissions.organizationManagement.inviteMember),
+    controller.addMember,
+  );
 
-    // Organization Member Management
+  router.get(
+    "/members",
+    Authorize(systemPermissions.organizationManagement.readMember),
+    controller.getMember,
+  );
+  router.get(
+    "/members/:userId",
+    Authorize(systemPermissions.organizationManagement.readMember),
+    controller.getUser,
+  );
 
-    router.post("/members", Authorize(systemPermissions.organizationManagement.inviteMember), controller.addMember)
-    
-    router.get("/members", Authorize(systemPermissions.organizationManagement.readMember), controller.getMember)
-    router.get("/members/:userId", Authorize(systemPermissions.organizationManagement.readMember), controller.getUser)
+  router.patch(
+    "/members/:userId",
+    Authorize(systemPermissions.organizationManagement.updateMember),
+    controller.updateMember,
+  );
 
-    router.patch("/members/:userId", Authorize(systemPermissions.organizationManagement.updateMember), controller.updateMember)
+  router.delete(
+    "/members/:userId",
+    Authorize(systemPermissions.organizationManagement.removeMember),
+    controller.removeMember,
+  );
 
-    router.delete("/members/:userId", Authorize(systemPermissions.organizationManagement.removeMember), controller.removeMember)
+  // Organizatoin Role & Permission Management
 
+  router.post(
+    "/roles",
+    Authorize(systemPermissions.organizationManagement.createRole),
+    controller.role,
+  );
+  router.post(
+    "/members/:userId/roles",
+    Authorize(systemPermissions.organizationManagement.updateMember),
+    controller.assignRoleToMember,
+  );
+  router.post(
+    "/roles/:roleId/permissions",
+    Authorize(systemPermissions.organizationManagement.addRolePermission),
+    controller.assignPermissionsToRole,
+  );
 
-    // Organizatoin Role & Permission Management
+  router.get(
+    "/roles",
+    Authorize(systemPermissions.organizationManagement.readRole),
+    controller.getRoles,
+  );
+  router.get(
+    "/roles/:roleId",
+    Authorize(systemPermissions.organizationManagement.readRole),
+    controller.getRole,
+  );
+  router.get(
+    "/roles/:roleId/permissions",
+    Authorize(systemPermissions.organizationManagement.readRole),
+    controller.getRolePermissions,
+  );
+  router.get(
+    "/permissions",
+    Authorize(systemPermissions.organizationManagement.readRole),
+    controller.getPermissions,
+  );
 
-    router.post("/roles", Authorize(systemPermissions.organizationManagement.createRole), controller.role)
-    router.post("/members/:userId/roles", Authorize(systemPermissions.organizationManagement.updateMember), controller.assignRoleToMember)
-    router.post("/roles/:roleId/permissions", Authorize(systemPermissions.organizationManagement.addRolePermission), controller.assignPermissionsToRole)
+  router.patch(
+    "/roles/:roleId",
+    Authorize(systemPermissions.organizationManagement.updateRole),
+    controller.updateRole,
+  );
 
-    router.get("/roles", Authorize(systemPermissions.organizationManagement.readRole), controller.getRoles)
-    router.get("/roles/:roleId", Authorize(systemPermissions.organizationManagement.readRole), controller.getRole)
-    router.get("/roles/:roleId/permissions", Authorize(systemPermissions.organizationManagement.readRole), controller.getRolePermissions)
-    router.get("/permissions", Authorize(systemPermissions.organizationManagement.readRole), controller.getPermissions)
+  router.delete(
+    "/roles/:roleId",
+    Authorize(systemPermissions.organizationManagement.deleteRole),
+    controller.deleteRole,
+  );
+  router.delete(
+    "/roles/:roleId/permissions/:permissionId",
+    Authorize(systemPermissions.organizationManagement.removeRolePermission),
+    controller.deletePermissionsFromRole,
+  );
+  router.delete(
+    "/members/:userId/roles/:roleId",
+    Authorize(systemPermissions.organizationManagement.updateMember),
+    controller.removeRoleFromMember,
+  );
 
-    router.patch("/roles/:roleId", Authorize(systemPermissions.organizationManagement.updateRole), controller.updateRole)
+  // Organization Settings
 
-    router.delete("/roles/:roleId", Authorize(systemPermissions.organizationManagement.deleteRole), controller.deleteRole)
-    router.delete("/roles/:roleId/permissions/:permissionId", Authorize(systemPermissions.organizationManagement.removeRolePermission), controller.deletePermissionsFromRole)
-    router.delete("/members/:userId/roles/:roleId", Authorize(systemPermissions.organizationManagement.updateMember), controller.removeRoleFromMember)
+  router.get(
+    "/settings",
+    Authorize(systemPermissions.organizationManagement.read),
+    controller.settings,
+  );
+  router.patch(
+    "/settings",
+    Authorize(systemPermissions.organizationManagement.update),
+    controller.updateSettings,
+  );
 
+  // Administrative Audit trail
 
-    // Organization Settings
+  //router.get("/audit-trail", controller.auditTrail)
 
-    router.get("/settings", Authorize(systemPermissions.organizationManagement.read), controller.settings)
-    router.patch("/settings", Authorize(systemPermissions.organizationManagement.update), controller.updateSettings)
-
-    // Administrative Audit trail
-
-    //router.get("/audit-trail", controller.auditTrail)
-
-    return router
+  return router;
 }

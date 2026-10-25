@@ -24,12 +24,12 @@ Repository / Database
 
 Each layer has a separate responsibility:
 
-* **Rate Limiter** — Controls how frequently an endpoint can be accessed.
-* **Authentication** — Determines who the requester is.
-* **Authorization / RBAC** — Determines whether the authenticated requester is allowed to perform the requested operation.
-* **Controller** — Handles the HTTP request and response.
-* **Service** — Performs business logic and resource-level authorization.
-* **Repository** — Handles data access and should maintain tenant/resource boundaries where appropriate.
+- **Rate Limiter** — Controls how frequently an endpoint can be accessed.
+- **Authentication** — Determines who the requester is.
+- **Authorization / RBAC** — Determines whether the authenticated requester is allowed to perform the requested operation.
+- **Controller** — Handles the HTTP request and response.
+- **Service** — Performs business logic and resource-level authorization.
+- **Repository** — Handles data access and should maintain tenant/resource boundaries where appropriate.
 
 RBAC should not replace authentication or resource-level authorization. It is one layer in the application's overall security model.
 
@@ -55,14 +55,14 @@ Tenant ID: organization-a
 The authentication middleware establishes the identity of the requester.
 
 ```ts
-authenticate
+authenticate;
 ```
 
 After successful authentication, the request may contain information such as:
 
 ```ts
-req.user.id
-req.user.tenantId
+req.user.id;
+req.user.tenantId;
 ```
 
 ### Authorization
@@ -358,11 +358,11 @@ export const permissions = {
 
 The important principle is that permission names should be:
 
-* Explicit
-* Stable
-* Easy to understand
-* Specific enough to represent an authorization boundary
-* Independent from HTTP routes
+- Explicit
+- Stable
+- Easy to understand
+- Specific enough to represent an authorization boundary
+- Independent from HTTP routes
 
 The permission should describe the capability rather than the implementation.
 
@@ -387,7 +387,7 @@ because routes can change while the underlying capability remains the same.
 The application should have a type representing valid permissions.
 
 One straightforward approach is an explicit union:
-    
+
 ```ts
 export type Permission =
   | "user:read"
@@ -431,11 +431,7 @@ Roles represent collections of permissions.
 Example:
 
 ```ts
-export type Role =
-  | "admin"
-  | "procurement_officer"
-  | "approver"
-  | "supplier";
+export type Role = "admin" | "procurement_officer" | "approver" | "supplier";
 ```
 
 Roles should represent meaningful organizational responsibilities.
@@ -501,9 +497,7 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     "audit_trail:verify",
   ],
 
-  supplier: [
-    "purchase_order:read",
-  ],
+  supplier: ["purchase_order:read"],
 };
 ```
 
@@ -532,10 +526,7 @@ approver
 The core RBAC operation should be simple.
 
 ```ts
-export function hasPermission(
-  role: Role,
-  permission: Permission,
-): boolean {
+export function hasPermission(role: Role, permission: Permission): boolean {
   return rolePermissions[role].includes(permission);
 }
 ```
@@ -543,10 +534,7 @@ export function hasPermission(
 Example:
 
 ```ts
-hasPermission(
-  "approver",
-  "audit_trail:verify",
-);
+hasPermission("approver", "audit_trail:verify");
 ```
 
 Result:
@@ -558,10 +546,7 @@ true
 While:
 
 ```ts
-hasPermission(
-  "supplier",
-  "audit_trail:verify",
-);
+hasPermission("supplier", "audit_trail:verify");
 ```
 
 Result:
@@ -575,9 +560,9 @@ This function should remain independent from Express.
 It should not know about:
 
 ```ts
-Request
-Response
-NextFunction
+Request;
+Response;
+NextFunction;
 ```
 
 That keeps the actual RBAC policy reusable.
@@ -656,10 +641,7 @@ export function authorize(permission: Permission) {
   ): Promise<void> => {
     const user = req.user;
 
-    const role = await getUserRole(
-      user.id,
-      user.tenantId,
-    );
+    const role = await getUserRole(user.id, user.tenantId);
 
     if (!role) {
       res.status(403).json({
@@ -806,28 +788,18 @@ GET /api/audit-trails/:auditId/verify
 Define:
 
 ```ts
-export type Permission =
-  | "audit_trail:search"
-  | "audit_trail:verify";
+export type Permission = "audit_trail:search" | "audit_trail:verify";
 ```
 
 Assign permissions to appropriate roles:
 
 ```ts
 export const rolePermissions: Record<Role, readonly Permission[]> = {
-  admin: [
-    "audit_trail:search",
-    "audit_trail:verify",
-  ],
+  admin: ["audit_trail:search", "audit_trail:verify"],
 
-  approver: [
-    "audit_trail:search",
-    "audit_trail:verify",
-  ],
+  approver: ["audit_trail:search", "audit_trail:verify"],
 
-  procurement_officer: [
-    "audit_trail:search",
-  ],
+  procurement_officer: ["audit_trail:search"],
 
   supplier: [],
 };
@@ -982,10 +954,7 @@ repository.findById(resourceId);
 prefer a tenant-scoped operation where appropriate:
 
 ```ts
-repository.findById(
-  resourceId,
-  tenantId,
-);
+repository.findById(resourceId, tenantId);
 ```
 
 Conceptually:
@@ -1026,7 +995,7 @@ Avoid putting business rules inside the RBAC middleware.
 Bad:
 
 ```ts
-authorize("purchase_order:approve")
+authorize("purchase_order:approve");
 ```
 
 also knowing:
@@ -1163,12 +1132,7 @@ router.post(
 For a read operation:
 
 ```ts
-router.get(
-  "/:id",
-  authenticate,
-  authorize("resource:read"),
-  controller,
-);
+router.get("/:id", authenticate, authorize("resource:read"), controller);
 ```
 
 For a sensitive operation:
@@ -1259,27 +1223,27 @@ The core permission check should not depend on Express.
 Prefer:
 
 ```ts
-hasPermission(role, permission)
+hasPermission(role, permission);
 ```
 
 over making the permission engine directly manipulate:
 
 ```ts
-Request
-Response
-NextFunction
+Request;
+Response;
+NextFunction;
 ```
 
 Only the Express-specific middleware should know about HTTP.
 
 This keeps the RBAC policy reusable for:
 
-* HTTP requests
-* Background jobs
-* Event handlers
-* Internal services
-* CLI operations
-* Future transports
+- HTTP requests
+- Background jobs
+- Event handlers
+- Internal services
+- CLI operations
+- Future transports
 
 ---
 
@@ -1300,13 +1264,9 @@ Role does not have permission
 Example:
 
 ```ts
-expect(
-  hasPermission("approver", "audit_trail:verify"),
-).toBe(true);
+expect(hasPermission("approver", "audit_trail:verify")).toBe(true);
 
-expect(
-  hasPermission("supplier", "audit_trail:verify"),
-).toBe(false);
+expect(hasPermission("supplier", "audit_trail:verify")).toBe(false);
 ```
 
 Then test the middleware separately.
@@ -1527,22 +1487,22 @@ This separation keeps the authorization system centralized while allowing each m
 
 For every new module:
 
-* [ ] Identify protected operations.
-* [ ] Define permissions for those operations.
-* [ ] Add permissions to the authorization registry.
-* [ ] Determine which roles receive each permission.
-* [ ] Add `authorize(permission)` to protected endpoints.
-* [ ] Ensure `authenticate` runs before `authorize`.
-* [ ] Add rate limiting to sensitive/high-risk endpoints.
-* [ ] Add resource-level tenant verification in the service.
-* [ ] Ensure database queries are tenant-scoped where appropriate.
-* [ ] Test allowed roles.
-* [ ] Test denied roles.
-* [ ] Test missing organization membership.
-* [ ] Test cross-tenant resource access.
-* [ ] Test unauthenticated requests.
-* [ ] Test rate-limit behavior.
-* [ ] Verify the module does not bypass authorization through another execution path.
+- [ ] Identify protected operations.
+- [ ] Define permissions for those operations.
+- [ ] Add permissions to the authorization registry.
+- [ ] Determine which roles receive each permission.
+- [ ] Add `authorize(permission)` to protected endpoints.
+- [ ] Ensure `authenticate` runs before `authorize`.
+- [ ] Add rate limiting to sensitive/high-risk endpoints.
+- [ ] Add resource-level tenant verification in the service.
+- [ ] Ensure database queries are tenant-scoped where appropriate.
+- [ ] Test allowed roles.
+- [ ] Test denied roles.
+- [ ] Test missing organization membership.
+- [ ] Test cross-tenant resource access.
+- [ ] Test unauthenticated requests.
+- [ ] Test rate-limit behavior.
+- [ ] Verify the module does not bypass authorization through another execution path.
 
 The goal is not merely to have RBAC middleware.
 

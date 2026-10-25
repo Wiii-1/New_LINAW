@@ -17,7 +17,7 @@
         "JWT_ACCESS_EXPIRES": "60m",
         "JWT_REFRESH_EXPIRES": "7d",
 
-        "APP_URL": "http://localhost:5173",
+        "APP_URL": "https://zj9tbp0k-5173.asse.devtunnels.ms/",
         "ALLOWED_ORIGIN": "http://localhost:5173",
 
         "REDIS_URL": "https://linaw-buff-inlet-rest.cloud.layerbase.dev",

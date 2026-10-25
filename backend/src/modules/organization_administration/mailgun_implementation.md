@@ -6,26 +6,26 @@ This document records the exact setup used to test **Mailgun email delivery from
 
 The test was intentionally kept separate from LINAW so the following could be verified independently before integrating email functionality into the thesis backend:
 
-* Mailgun account/API
-* Sending domain
-* DNS configuration
-* Mailgun authentication
-* Hono
-* Cloudflare Workers
-* Wrangler
-* Worker-compatible HTTP requests
-* Outbound HTTPS/TLS
-* Actual email delivery
+- Mailgun account/API
+- Sending domain
+- DNS configuration
+- Mailgun authentication
+- Hono
+- Cloudflare Workers
+- Wrangler
+- Worker-compatible HTTP requests
+- Outbound HTTPS/TLS
+- Actual email delivery
 
 The final test stack:
 
-* Hono
-* Cloudflare Workers
-* Wrangler
-* Mailgun HTTP API
-* `wii.qd.je` sending domain
-* NixOS development environment
-* pnpm
+- Hono
+- Cloudflare Workers
+- Wrangler
+- Mailgun HTTP API
+- `wii.qd.je` sending domain
+- NixOS development environment
+- pnpm
 
 The implementation uses the **Mailgun HTTP API directly with `fetch()`** instead of `mailgun.js`, because Cloudflare Workers is not a traditional Node.js runtime.
 
@@ -74,13 +74,13 @@ Mailgun handles the actual email delivery.
 
 Required:
 
-* Node.js
-* pnpm
-* Hono
-* Wrangler
-* Mailgun account
-* Verified Mailgun sending domain
-* DNS access for the sending domain
+- Node.js
+- pnpm
+- Hono
+- Wrangler
+- Mailgun account
+- Verified Mailgun sending domain
+- DNS access for the sending domain
 
 For this test, the sending domain was:
 
@@ -260,7 +260,7 @@ Wrangler automatically loads `.dev.vars` when running local development.
 Inside the Worker, these values are accessed through:
 
 ```ts
-c.env
+c.env;
 ```
 
 ---
@@ -288,12 +288,7 @@ type Bindings = {
 const app = new Hono<{ Bindings: Bindings }>();
 
 app.get("/", async (c) => {
-  const {
-    MAILGUN_API_KEY,
-    MAILGUN_DOMAIN,
-    MAILGUN_FROM,
-    MAILGUN_TO,
-  } = c.env;
+  const { MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_FROM, MAILGUN_TO } = c.env;
 
   const body = new FormData();
 
@@ -361,7 +356,7 @@ Cloudflare Workers uses the Workers runtime rather than a traditional Node.js se
 The Mailgun HTTP API can be called directly using the standard:
 
 ```ts
-fetch()
+fetch();
 ```
 
 The API endpoint is:
@@ -877,21 +872,21 @@ Service
 
 The invitation service should primarily care about:
 
-* recipient
-* tenant
-* invitation token
-* invitation expiration
-* invitation state
+- recipient
+- tenant
+- invitation token
+- invitation expiration
+- invitation state
 
 The email service should care about:
 
-* sender
-* recipient
-* subject
-* text
-* HTML
-* provider authentication
-* Mailgun API communication
+- sender
+- recipient
+- subject
+- text
+- HTML
+- provider authentication
+- Mailgun API communication
 
 ---
 
@@ -981,12 +976,12 @@ await emailService.send({
 
 Never:
 
-* hard-code the Mailgun API key
-* commit `.dev.vars`
-* put the Mailgun API key in frontend code
-* return the API key in API responses
-* log the API key
-* disable TLS verification
+- hard-code the Mailgun API key
+- commit `.dev.vars`
+- put the Mailgun API key in frontend code
+- return the API key in API responses
+- log the API key
+- disable TLS verification
 
 Keep the Mailgun API key in the Worker secret/environment configuration.
 
@@ -1143,14 +1138,14 @@ Mailgun queue
 
 The major problem encountered was **not**:
 
-* Mailgun
-* the Mailgun API key
-* the sending domain
-* DNS
-* Hono
-* the `fetch()` implementation
-* NixOS system networking
-* NixOS OpenSSL
+- Mailgun
+- the Mailgun API key
+- the sending domain
+- DNS
+- Hono
+- the `fetch()` implementation
+- NixOS system networking
+- NixOS OpenSSL
 
 The problem was the local Cloudflare `workerd` development runtime not automatically using the NixOS CA bundle.
 

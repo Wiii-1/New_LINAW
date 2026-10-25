@@ -967,6 +967,7 @@ model AuditTrail {
   @@index([entity_id])
   @@index([action])
   @@index([result])
+  @@unique([tenant_id, entity_type, entity_id, action])
 }
 
 model AuditTrailHash {
@@ -974,7 +975,7 @@ model AuditTrailHash {
   tenant_id      String     @db.Uuid
   audit_trail_id String     @unique @db.Uuid
   hash_algorithm String
-  hash_value     String     @unique
+  hash_value     String
   created_at     DateTime   @default(now()) @db.Timestamptz(6)
   audit_trail    AuditTrail @relation("AuditTrailHashRelation", fields: [audit_trail_id], references: [id])
   tenant         Tenant     @relation(fields: [tenant_id], references: [id])

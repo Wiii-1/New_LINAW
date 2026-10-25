@@ -5,51 +5,46 @@ import type { AppEnv } from "./env.js";
 
 type PrismaClientInstance = InstanceType<typeof GeneratedPrismaClient>;
 
-export function createPrismaClient(
-    databaseUrl: string,
-): PrismaClientInstance {
-    const adapter = new PrismaPg({
-        connectionString: databaseUrl,
-    });
+export function createPrismaClient(databaseUrl: string): PrismaClientInstance {
+  const adapter = new PrismaPg({
+    connectionString: databaseUrl,
+  });
 
-    return new GeneratedPrismaClient({
-        adapter,
-        log: [
-            "error",
-            "warn",
-        ],
-    });
+  return new GeneratedPrismaClient({
+    adapter,
+    log: ["error", "warn"],
+  });
 }
 
 const prismaContext = new AsyncLocalStorage<PrismaClientInstance>();
 
 const prismaBinding = new Proxy({} as PrismaClientInstance, {
-    get(_target, property) {
-        const client = prismaContext.getStore();
+  get(_target, property) {
+    const client = prismaContext.getStore();
 
-        if (!client) {
-            throw new Error("Prisma client is not available in this request");
-        }
+    if (!client) {
+      throw new Error("Prisma client is not available in this request");
+    }
 
-        return Reflect.get(client, property, client);
-    },
+    return Reflect.get(client, property, client);
+  },
 });
 
 export function initializePrisma(env: AppEnv): PrismaClientInstance {
-    return createPrismaClient(env.DATABASE_URL);
+  return createPrismaClient(env.DATABASE_URL);
 }
 
 export function runWithPrisma<T>(
-    client: PrismaClientInstance,
-    callback: () => T,
+  client: PrismaClientInstance,
+  callback: () => T,
 ): T {
-    return prismaContext.run(client, callback);
+  return prismaContext.run(client, callback);
 }
 
 export async function disposePrisma(
-    client: PrismaClientInstance,
+  client: PrismaClientInstance,
 ): Promise<void> {
-    await client.$disconnect();
+  await client.$disconnect();
 }
 
 export { prismaBinding as prisma };
