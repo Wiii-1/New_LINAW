@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-client";
+
 export type Supplier = {
   supplier_id: string;
   supplier_code?: string | null;
@@ -93,7 +95,7 @@ type Envelope<T> = {
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/backend/suppliers${path}`, {
+  const response = await authFetch(`/api/backend/suppliers${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
@@ -149,6 +151,35 @@ export function createInvitation(email: string): Promise<Invitation> {
 export function resendInvitation(invitationId: string): Promise<Invitation> {
   return request(`/supplier-invitations/${invitationId}/resend`, {
     method: "POST",
+  });
+}
+
+export type InvitationPreview = {
+  invitation_id: string;
+  invitation_status: string;
+  expires_at: string | null;
+  onboarding_action: "EXISTING_COMPANY" | "REGISTER_COMPANY";
+};
+
+export function validateInvitation(token: string): Promise<InvitationPreview> {
+  return authFetch(`/api/supplier-invitations/validate/${encodeURIComponent(token)}`, {
+    cache: "no-store",
+  }, { retryOnUnauthorized: false }).then(async (response) => {
+    const body = (await response.json().catch(() => ({}))) as Envelope<InvitationPreview>;
+    if (!response.ok) {
+      throw new Error(body.error?.message ?? body.message ?? "This invitation is unavailable.");
+    }
+    return (body.data ?? body) as InvitationPreview;
+  });
+}
+
+export function acceptInvitation(
+  invitationId: string,
+  token: string,
+): Promise<unknown> {
+  return request(`/supplier-invitations/${invitationId}/accept`, {
+    method: "POST",
+    body: JSON.stringify({ token }),
   });
 }
 

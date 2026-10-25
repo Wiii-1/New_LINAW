@@ -1,9 +1,11 @@
 import { AuditTrailRepository } from "./auditTrailRepository.js";
 import { BlockchainAdapter } from "../../shared/blockchain/blockchainAdapter.js";
+import { Prisma } from "../../generated/prisma/client.js";
 import {
   NotFoundError,
   UnauthorizedAccessError,
 } from "../../shared/errors/appError.js";
+import type { PurchaseOrderAuditEvent } from "../../shared/events/purchaseOrderEvents.js";
 import type {
   auditIntegrity,
   listAudit,
@@ -22,7 +24,8 @@ type AnchorContext = {
   auditId: string;
   tenantId: string;
   hashValue: string;
-  eventType: "COMPLETED";
+  eventType: string;
+  checkExistingChainRecord?: boolean;
 };
 
 type AuditHashInput = {
@@ -132,7 +135,7 @@ export class AuditTrailService {
       throw new NotFoundError("audit not found");
     }
 
-    if (!audit.hash || !audit.blockchain_ref) {
+    if (!audit.hash) {
       throw new NotFoundError("audit relations not found");
     }
 
@@ -153,6 +156,14 @@ export class AuditTrailService {
       return {
         status: "INVALID",
         reason: "Database snapshot has changed",
+      };
+    }
+
+    if (!audit.blockchain_ref) {
+      return {
+        status: audit.result === "FAILED" ? "ANCHOR_FAILED" : "UNANCHORED",
+        databaseHash: storedHash,
+        currentHash: freshHash,
       };
     }
 
@@ -201,40 +212,142 @@ export class AuditTrailService {
 
   // purchase order
   async createAuditTrail(event: CreateAuditTrailInput) {
-    const purchaseOrderSnapshot =
-      await this.repository.getPurchaseOrderSnapshot(event.purchaseOrderId);
+    return this.createPOMAuditTrail({
+      tenantId: event.tenantId,
+      companyId: "",
+      actorId: event.actorId,
+      entityType: "PURCHASE_ORDER",
+      entityId: event.purchaseOrderId,
+      action: event.eventType,
+      metadata: {},
+    });
+  }
 
-    if (!purchaseOrderSnapshot) {
-      throw new NotFoundError("Purchase order not found");
+  async createPOMAuditTrail(event: PurchaseOrderAuditEvent) {
+    let audit = await this.repository.findAuditByEvent(
+      event.tenantId,
+      event.entityType,
+      event.entityId,
+      event.action,
+    );
+
+    let snapshot: object | null = null;
+    if (!audit || !audit.hash) {
+      snapshot =
+        event.entityType === "PURCHASE_ORDER"
+          ? await this.repository.getPurchaseOrderSnapshot(event.entityId)
+          : event.metadata;
+
+      if (!snapshot) {
+        throw new NotFoundError("Purchase order not found");
+      }
     }
 
-    const hashValue = await this.generateHash(purchaseOrderSnapshot);
+    if (!audit) {
+      const hashValue = await this.generateHash(snapshot as object);
 
-    const auditRecord = {
-      tenant_id: event.tenantId,
-      actor_user_id: event.actorId,
-      entity_type: "PURCHASE_ORDER",
-      entity_id: event.entityId,
-      action: event.eventType,
-      result: null,
-      snapshot_json: purchaseOrderSnapshot,
-    };
+      try {
+        audit = await this.repository.createAuditTrail({
+          tenant_id: event.tenantId,
+          actor_user_id: event.actorId,
+          entity_type: event.entityType,
+          entity_id: event.entityId,
+          action: event.action,
+          result: null,
+          snapshot_json: snapshot as Prisma.InputJsonValue,
+        });
+      } catch (error) {
+        if (!this.isUniqueConstraintError(error)) {
+          throw error;
+        }
 
-    const audit = await this.repository.createAuditTrail(auditRecord);
+        audit = await this.repository.findAuditByEvent(
+          event.tenantId,
+          event.entityType,
+          event.entityId,
+          event.action,
+        );
 
-    const auditAnchor: AnchorContext = {
+        if (!audit) {
+          throw error;
+        }
+      }
+
+      if (!audit.hash) {
+        await this.persistAuditHash(audit.id, event.tenantId, hashValue);
+        audit.hash = {
+          id: "",
+          tenant_id: event.tenantId,
+          audit_trail_id: audit.id,
+          hash_algorithm: "SHA-256",
+          hash_value: hashValue,
+          created_at: new Date(),
+        };
+      }
+    } else if (!audit.hash) {
+      const storedSnapshot = audit.snapshot_json;
+      const hashValue = await this.generateHash(
+        (storedSnapshot ?? snapshot) as object,
+      );
+      await this.persistAuditHash(audit.id, event.tenantId, hashValue);
+      audit.hash = {
+        id: "",
+        tenant_id: event.tenantId,
+        audit_trail_id: audit.id,
+        hash_algorithm: "SHA-256",
+        hash_value: hashValue,
+        created_at: new Date(),
+      };
+
+      if (audit.result === "FAILED" && !this.isCompletedPurchaseOrderEvent(event)) {
+        await this.repository.updateAuditTrail(audit.id, null);
+        audit.result = null;
+      }
+    }
+
+    if (!this.isCompletedPurchaseOrderEvent(event)) {
+      return audit;
+    }
+
+    if (audit.blockchain_ref) {
+      if (audit.result !== "SUCCESS") {
+        await this.repository.updateAuditTrail(audit.id, "SUCCESS");
+        audit.result = "SUCCESS";
+      }
+      return audit;
+    }
+
+    const hashValue = audit.hash?.hash_value;
+    if (!hashValue) {
+      throw new Error("Audit hash is missing for completed purchase order");
+    }
+
+    await this.anchor({
       auditId: audit.id,
       tenantId: event.tenantId,
       hashValue,
-      eventType: event.eventType,
-    };
+      eventType: event.action,
+      checkExistingChainRecord: true,
+    });
 
-    await this.anchor(auditAnchor);
+    return audit;
   }
 
   // blockchain communication and update result status
   async anchor(input: AnchorContext) {
     try {
+      if (input.checkExistingChainRecord) {
+        const existingChainRecord = await this.blockchainAdapter.getAudit(
+          input.auditId,
+        );
+
+        if (existingChainRecord.anchoredAt > 0) {
+          throw new Error(
+            "Audit is already anchored but its blockchain reference is missing",
+          );
+        }
+      }
+
       const result = await this.blockchainAdapter.anchorAudit({
         auditId: input.auditId,
         hashValue: input.hashValue,
@@ -280,6 +393,47 @@ export class AuditTrailService {
       hash_algorithm: input.hashAlgorithm,
       hash_value: input.hashValue,
     });
+  }
+
+  private async persistAuditHash(
+    auditId: string,
+    tenantId: string,
+    hashValue: string,
+  ) {
+    try {
+      await this.createAuditHash({
+        tenantId,
+        auditTrailId: auditId,
+        hashAlgorithm: "SHA-256",
+        hashValue,
+      });
+    } catch (error) {
+      try {
+        await this.repository.updateAuditTrail(auditId, "FAILED");
+      } catch (statusError) {
+        console.error("Failed to update audit status", statusError);
+      }
+
+      throw error;
+    }
+  }
+
+  private isCompletedPurchaseOrderEvent(event: PurchaseOrderAuditEvent) {
+    return (
+      event.entityType === "PURCHASE_ORDER" &&
+      event.action === "COMPLETED" &&
+      event.metadata["previousStatus"] === "ORDERED" &&
+      event.metadata["status"] === "COMPLETED"
+    );
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2002"
+    );
   }
 
   async createAuditBlockchainRef(input: AuditRefsInput) {

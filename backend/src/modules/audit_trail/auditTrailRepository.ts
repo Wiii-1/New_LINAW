@@ -80,17 +80,51 @@ export type ListAuditsInput = {
 
 export class AuditTrailRepository {
   async listAudits(input: ListAuditsInput) {
-    const purchaseOrders = await prisma.purchaseOrder.findMany({
-      where: {
-        tenant_id: input.tenantId,
-        company_id: input.companyId,
-      },
-      select: { id: true },
-    });
+    const [purchaseOrders, rfqs, quotations] = await Promise.all([
+      prisma.purchaseOrder.findMany({
+        where: { tenant_id: input.tenantId, company_id: input.companyId },
+        select: { id: true },
+      }),
+      prisma.rFQ.findMany({
+        where: { tenant_id: input.tenantId, company_id: input.companyId },
+        select: { id: true },
+      }),
+      prisma.supplierQuotation.findMany({
+        where: { tenant_id: input.tenantId, company_id: input.companyId },
+        select: { id: true },
+      }),
+    ]);
 
-    const entityIds = purchaseOrders.map((purchaseOrder) => purchaseOrder.id);
+    const entityScopes = [
+      ...(input.entityType === undefined ||
+      input.entityType === "PURCHASE_ORDER"
+        ? [
+            {
+              entity_type: "PURCHASE_ORDER",
+              entity_id: { in: purchaseOrders.map((record) => record.id) },
+            },
+          ]
+        : []),
+      ...(input.entityType === undefined || input.entityType === "RFQ"
+        ? [
+            {
+              entity_type: "RFQ",
+              entity_id: { in: rfqs.map((record) => record.id) },
+            },
+          ]
+        : []),
+      ...(input.entityType === undefined ||
+      input.entityType === "SUPPLIER_QUOTATION"
+        ? [
+            {
+              entity_type: "SUPPLIER_QUOTATION",
+              entity_id: { in: quotations.map((record) => record.id) },
+            },
+          ]
+        : []),
+    ];
 
-    if (entityIds.length === 0) {
+    if (entityScopes.length === 0) {
       return {
         records: [],
         total: 0,
@@ -99,7 +133,7 @@ export class AuditTrailRepository {
 
     const where = {
       tenant_id: input.tenantId,
-      entity_id: { in: entityIds },
+      OR: entityScopes,
       ...(input.entityType ? { entity_type: input.entityType } : {}),
       ...(input.action ? { action: input.action } : {}),
       ...(input.result ? { result: input.result } : {}),
@@ -145,7 +179,6 @@ export class AuditTrailRepository {
       where: {
         id: auditId,
         tenant_id: tenantId,
-        entity_type: "PURCHASE_ORDER",
       },
     });
 
@@ -153,16 +186,60 @@ export class AuditTrailRepository {
       return null;
     }
 
-    const purchaseOrder = await prisma.purchaseOrder.findFirst({
-      where: {
-        id: audit.entity_id,
-        tenant_id: tenantId,
-        company_id: companyId,
-      },
-      select: { id: true },
-    });
+    const entity =
+      audit.entity_type === "PURCHASE_ORDER"
+        ? await prisma.purchaseOrder.findFirst({
+            where: {
+              id: audit.entity_id,
+              tenant_id: tenantId,
+              company_id: companyId,
+            },
+            select: { id: true },
+          })
+        : audit.entity_type === "RFQ"
+          ? await prisma.rFQ.findFirst({
+              where: {
+                id: audit.entity_id,
+                tenant_id: tenantId,
+                company_id: companyId,
+              },
+              select: { id: true },
+            })
+          : audit.entity_type === "SUPPLIER_QUOTATION"
+            ? await prisma.supplierQuotation.findFirst({
+                where: {
+                  id: audit.entity_id,
+                  tenant_id: tenantId,
+                  company_id: companyId,
+                },
+                select: { id: true },
+              })
+            : null;
 
-    return purchaseOrder ? audit : null;
+    return entity ? audit : null;
+  }
+
+  async findAuditByEvent(
+    tenantId: string,
+    entityType: string,
+    entityId: string,
+    action: string,
+  ) {
+    return prisma.auditTrail.findFirst({
+      where: {
+        tenant_id: tenantId,
+        entity_type: entityType,
+        entity_id: entityId,
+        action,
+      },
+      select: {
+        id: true,
+        result: true,
+        snapshot_json: true,
+        hash: true,
+        blockchain_ref: true,
+      },
+    });
   }
   async findById(userId: string) {
     return prisma.user.findFirst({
@@ -272,7 +349,11 @@ export class AuditTrailRepository {
         tenant_id: tenantId,
         entity_type: "PURCHASE_ORDER",
       },
-      include: {
+      select: {
+        id: true,
+        entity_id: true,
+        result: true,
+        snapshot_json: true,
         hash: true,
         blockchain_ref: true,
       },
@@ -299,11 +380,15 @@ export class AuditTrailRepository {
       data,
       select: {
         id: true,
+        result: true,
+        snapshot_json: true,
+        hash: true,
+        blockchain_ref: true,
       },
     });
   }
 
-  async updateAuditTrail(audit_id: string, result: string) {
+  async updateAuditTrail(audit_id: string, result: string | null) {
     return prisma.auditTrail.update({
       where: {
         id: audit_id,
@@ -315,8 +400,12 @@ export class AuditTrailRepository {
   }
 
   async createAuditHash(data: audit_hashes_input) {
-    return prisma.auditTrailHash.create({
-      data,
+    return prisma.auditTrailHash.upsert({
+      where: {
+        audit_trail_id: data.audit_trail_id,
+      },
+      create: data,
+      update: {},
     });
   }
 

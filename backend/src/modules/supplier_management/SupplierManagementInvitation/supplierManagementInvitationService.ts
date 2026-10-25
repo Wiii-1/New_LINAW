@@ -63,7 +63,7 @@ export class SupplierManagementInvitationService {
   }
 
   private invitationUrl(env: AppEnv, token: string) {
-    const invitationUrl = new URL("/invitations/accept", env.ALLOWED_ORIGIN);
+    const invitationUrl = new URL("/invitations/accept", env.APP_URL);
 
     invitationUrl.searchParams.set("token", token);
 

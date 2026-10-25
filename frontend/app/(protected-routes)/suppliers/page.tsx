@@ -172,6 +172,21 @@ function Governance() {
     void (activeView === "suppliers" ? loadSuppliers() : loadInvitations());
   }, [activeView]);
 
+  useEffect(() => {
+    const refreshOnReturn = () => {
+      if (document.visibilityState !== "visible") return;
+      void (activeView === "suppliers" ? loadSuppliers() : loadInvitations());
+    };
+
+    window.addEventListener("focus", refreshOnReturn);
+    document.addEventListener("visibilitychange", refreshOnReturn);
+
+    return () => {
+      window.removeEventListener("focus", refreshOnReturn);
+      document.removeEventListener("visibilitychange", refreshOnReturn);
+    };
+  }, [activeView]);
+
   async function openSupplier(supplierId: string) {
     setError("");
     try {
@@ -479,7 +494,7 @@ function Governance() {
           if (!open) setSupplierDetail(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>
               {display(

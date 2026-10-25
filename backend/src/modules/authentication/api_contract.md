@@ -328,6 +328,15 @@ The raw token is `<token-id>.<token-secret>`. The database stores the token ID, 
 - Account creation does not log the user in; call login separately.
 - A password reset invalidates existing sessions, so clients must authenticate again after reset.
 
+### Browser authentication coordination
+
+- The supported browser model is one active account per browser profile. Same-origin tabs share the `accessToken` and `refreshToken` cookies; separate browser profiles are required to use different accounts simultaneously.
+- Browser login, signup, logout, explicit refresh, and access-token refresh-and-retry operations use the exclusive `linaw-auth-transition` Web Lock.
+- The generic server-side backend proxy forwards the current access token and returns `401`; it does not independently refresh tokens or emit rotated authentication cookies.
+- Concurrent `401` responses wait for the shared transition. A non-secret local revision marker lets waiting requests reuse a refresh already completed by another same-origin tab instead of rotating the same refresh token again.
+- Browsers without Web Locks fail closed for coordinated authentication transitions and refresh retries. They do not silently fall back to an uncoordinated refresh path.
+- `HttpOnly` cookies remain the only browser credential storage. The coordination marker contains no token or user credential.
+
 ## 9. Contract Gaps and Implementation Discrepancies
 
 1. **The requested documentation location is stale.** The target is `authentication`, while the prompt names the Approval Workflow directory. This contract is stored in the actual target module directory.

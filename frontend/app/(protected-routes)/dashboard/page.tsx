@@ -24,6 +24,7 @@ import {
   type DashboardTransaction,
 } from "@/lib/dashboard-data";
 import { formatCurrency } from "@/lib/currencies";
+import { useAuthState } from "@/components/auth-state-provider";
 
 const toneClasses: Record<string, string> = {
   blue: "ring-1 ring-blue-100 dark:ring-blue-700/50",
@@ -58,6 +59,7 @@ function transactionTone(category: DashboardTransaction["category"]): string {
 }
 
 export default function Page() {
+  const { transitionRevision } = useAuthState();
   const [filter, setFilter] = useState("All activity");
   const [search, setSearch] = useState("");
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -70,10 +72,14 @@ export default function Page() {
 
   useEffect(() => {
     const controller = new AbortController();
+    setDashboard(null);
+    setLoading(true);
+    setRequestError(false);
     setCurrentDate(new Date());
 
     fetchDashboardData(controller.signal)
       .then((result) => {
+        if (controller.signal.aborted) return;
         if (result.authFailed) {
           window.location.assign("/login");
           return;
@@ -86,7 +92,7 @@ export default function Page() {
       .finally(() => setLoading(false));
 
     return () => controller.abort();
-  }, []);
+  }, [transitionRevision]);
 
   const transactions = useMemo(
     () =>

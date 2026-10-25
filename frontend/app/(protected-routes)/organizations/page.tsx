@@ -11,6 +11,8 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { z } from "zod";
+import { authFetch } from "@/lib/auth-client";
+import { useAuthState } from "@/components/auth-state-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -125,12 +127,16 @@ function TextField({
 }
 
 export default function OrganizationsPage() {
+  const { transitionRevision } = useAuthState();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/backend/userManagementRouter/profile", {
+    setProfile(null);
+    setLoading(true);
+    setPageError(null);
+    authFetch("/api/backend/userManagementRouter/profile", {
       cache: "no-store",
       signal: controller.signal,
     })
@@ -159,7 +165,7 @@ export default function OrganizationsPage() {
       })
       .finally(() => setLoading(false));
     return () => controller.abort();
-  }, []);
+  }, [transitionRevision]);
   if (loading) return <LoadingState />;
   if (pageError)
     return (

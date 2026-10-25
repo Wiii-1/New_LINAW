@@ -5,6 +5,7 @@ import * as React from "react";
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
+import { useAuthState } from "@/components/auth-state-provider";
 import {
   Sidebar,
   SidebarContent,
@@ -41,31 +42,12 @@ const data = {
   ],
 };
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [user, setUser] = React.useState({ name: "User", email: "", avatar: "" });
-
-  React.useEffect(() => {
-    const controller = new AbortController();
-    async function loadProfile() {
-      try {
-        const response = await fetch("/api/backend/userManagementRouter/profile", {
-          signal: controller.signal,
-          cache: "no-store",
-        });
-        if (!response.ok) return;
-        const result = (await response.json()) as {
-          data?: { first_name?: string; last_name?: string; email?: string };
-        };
-        const name = [result.data?.first_name?.trim(), result.data?.last_name?.trim()]
-          .filter(Boolean)
-          .join(" ");
-        setUser({ name: name || "User", email: result.data?.email?.trim() ?? "", avatar: "" });
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-      }
-    }
-    void loadProfile();
-    return () => controller.abort();
-  }, []);
+  const { profile } = useAuthState();
+  const user = {
+    name: [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "User",
+    email: profile?.email ?? "",
+    avatar: "",
+  };
 
   return (
     <Sidebar

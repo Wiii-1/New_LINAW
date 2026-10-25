@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-client";
+
 export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 
 export type CreateWorkflowInput = {
@@ -206,7 +208,7 @@ function mapRequest(raw: RawApprovalRequest): ApprovalRequest {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`/api/backend/approval-workflows${path}`, {
+    response = await authFetch(`/api/backend/approval-workflows${path}`, {
       ...init,
       headers: {
         Accept: "application/json",

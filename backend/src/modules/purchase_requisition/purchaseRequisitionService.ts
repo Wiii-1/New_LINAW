@@ -307,6 +307,31 @@ export class purchaseRequisitionService {
       );
     }
 
+    const levels = await this.approvalWorkflowRepository.getLevels(
+      companyId,
+      tenantId,
+      workflow.id,
+    );
+
+    if (!levels.length) {
+      throw new NotFoundError("No approval workflow levels are configured");
+    }
+
+    const matchingLevel = levels.some((level) => {
+      const meetsMinimum =
+        level.min_amount === null || requisition.total_amount >= level.min_amount;
+      const meetsMaximum =
+        level.max_amount === null || requisition.total_amount <= level.max_amount;
+
+      return meetsMinimum && meetsMaximum;
+    });
+
+    if (!matchingLevel) {
+      throw new NotFoundError(
+        "No approval level matches the purchase requisition amount",
+      );
+    }
+
     const submitted_at = new Date();
 
     const acted_at = new Date();

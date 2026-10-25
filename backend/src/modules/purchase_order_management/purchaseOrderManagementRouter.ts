@@ -34,14 +34,19 @@ export function createPurchaseOrderManagement() {
   // POST
 
   router.post(
-    "/",
+    "/rfqs",
+    Authorize(systemPermissions.purchaseOrderManagement.createRFQ),
+    controller.createRFQS,
+  );
+  router.post(
+    "/:poId",
     Authorize(systemPermissions.purchaseOrderManagement.read),
     controller.orderPurchaseOrder,
   );
   router.post(
-    "/rfqs",
-    Authorize(systemPermissions.purchaseOrderManagement.createRFQ),
-    controller.createRFQS,
+    "/:poId/complete",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.completePurchaseOrder,
   );
   router.post(
     "/rfqs/:rfqId/publish",

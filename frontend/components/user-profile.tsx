@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuthState } from "@/components/auth-state-provider";
 
 const profileSchema = z.object({
   first_name: z.string().trim().min(3).max(40),
@@ -40,6 +41,7 @@ function errorMessage(error: unknown): string {
 }
 
 export default function UserProfile() {
+  const { transitionRevision } = useAuthState();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [form, setForm] = useState<ProfileForm | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,10 @@ export default function UserProfile() {
 
   useEffect(() => {
     const controller = new AbortController();
+    setProfile(null);
+    setForm(null);
+    setLoading(true);
+    setError(null);
     getUserProfile().then((data) => {
       if (!controller.signal.aborted) { setProfile(data); setForm(profileForm(data)); }
     }).catch((requestError: unknown) => {
@@ -57,7 +63,7 @@ export default function UserProfile() {
       if (!controller.signal.aborted) setLoading(false);
     });
     return () => controller.abort();
-  }, []);
+  }, [transitionRevision]);
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

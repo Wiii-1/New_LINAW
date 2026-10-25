@@ -58,36 +58,22 @@ export const PurchaseOrderIdParamsSchema = z.object({
 
 // RFQ
 
+const RFQItemSchema = z.object({
+  line_no: z.number().int().positive(),
+  description: z.string().trim().max(5000),
+  quantity: z.number().positive(),
+  unit_of_measure: z.string().trim().min(1).max(50),
+  specification: z.string().trim().max(5000),
+});
+
 export const CreateRFQSchema = z
   .object({
     purchase_requisition_id: z.uuid(),
     title: z.string().trim().min(1).max(255),
     description: z.string().trim().max(5000).optional(),
     closing_date: z.coerce.date(),
-    rfq_items: z
-      .array(
-        z.object({
-          line_no: z.number().int().positive(),
-          description: z.string().trim().max(5000),
-          quantity: z.number().positive(),
-          unit_of_measure: z.string().trim().min(1).max(50),
-          specification: z.string().trim().min(1).max(5000),
-        }),
-      )
-      .min(1)
-      .optional(),
-    items: z
-      .array(
-        z.object({
-          line_no: z.number().int().positive(),
-          description: z.string().trim().max(5000),
-          quantity: z.number().positive(),
-          unit_of_measure: z.string().trim().min(1).max(50),
-          specification: z.string().trim().min(1).max(5000),
-        }),
-      )
-      .min(1)
-      .optional(),
+    rfq_items: z.array(RFQItemSchema).min(1).optional(),
+    items: z.array(RFQItemSchema).min(1).optional(),
   })
   .superRefine((value, context) => {
     if (!value.rfq_items && !value.items) {

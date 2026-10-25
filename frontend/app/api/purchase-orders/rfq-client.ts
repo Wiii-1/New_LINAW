@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-client";
+
 export type RfqStatus = "DRAFT" | "PUBLISHED" | "CLOSED" | "CANCELLED";
 
 export type ProcurementQueueItem = {
@@ -56,19 +58,59 @@ export type Quotation = {
   } | null;
 };
 
+export type RfqValidationDetails = Record<string, string[]>;
+
+type RfqErrorBody = {
+  message?: unknown;
+  error?:
+    | string
+    | {
+        code?: unknown;
+        message?: unknown;
+        details?: unknown;
+      };
+};
+
 export class RfqApiError extends Error {
   readonly status: number;
-  constructor(message: string, status: number) {
+  readonly details?: RfqValidationDetails;
+
+  constructor(
+    message: string,
+    status: number,
+    details?: RfqValidationDetails,
+  ) {
     super(message);
     this.name = "RfqApiError";
     this.status = status;
+    this.details = details;
   }
+}
+
+function validationDetails(value: unknown): RfqValidationDetails | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+
+  const details: RfqValidationDetails = {};
+  for (const [field, messages] of Object.entries(value)) {
+    if (Array.isArray(messages)) {
+      const strings = messages.filter(
+        (message): message is string => typeof message === "string",
+      );
+      if (strings.length > 0) details[field] = strings;
+    }
+  }
+
+  return Object.keys(details).length > 0 ? details : undefined;
+}
+
+function errorMessage(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`/api/purchase-orders${path}`, {
+    response = await authFetch(`/api/purchase-orders${path}`, {
       ...init,
       headers: {
         Accept: "application/json",
@@ -83,15 +125,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       0,
     );
   }
-  const body = (await response.json().catch(() => null)) as {
-    error?: string;
-    message?: string;
-  } | null;
-  if (!response.ok)
+  const body = (await response.json().catch(() => null)) as RfqErrorBody | null;
+  if (!response.ok) {
+    const error = body?.error;
+    const structuredError =
+      error && typeof error === "object" && !Array.isArray(error)
+        ? error
+        : undefined;
+
     throw new RfqApiError(
-      body?.error ?? body?.message ?? "The RFQ request failed.",
+      errorMessage(
+        typeof error === "string" ? error : structuredError?.message,
+        errorMessage(body?.message, "The RFQ request failed."),
+      ),
       response.status,
+      validationDetails(structuredError?.details),
     );
+  }
   return body as T;
 }
 
@@ -141,5 +191,15 @@ export async function listRfqQuotations(id: string) {
         `/rfqs/${encodeURIComponent(id)}/quotations`,
       )
     ).QuotationList ?? []
+  );
+}
+
+export async function selectRfqQuotation(
+  rfqId: string,
+  quotationId: string,
+) {
+  return request<{ selectedSupplier: unknown }>(
+    `/rfqs/${encodeURIComponent(rfqId)}/quotations/${encodeURIComponent(quotationId)}/select`,
+    { method: "POST" },
   );
 }

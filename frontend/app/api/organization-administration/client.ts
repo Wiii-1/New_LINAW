@@ -36,6 +36,8 @@ export type Permission = {
 
 type ApiBody = { success?: boolean; message?: string; [key: string]: unknown };
 
+import { authFetch, refreshWithAuthTransition } from "@/lib/auth-client";
+
 export class OrganizationApiError extends Error {
   readonly status: number;
 
@@ -49,7 +51,7 @@ export class OrganizationApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`/api/organization-administration/${path}`, {
+    response = await authFetch(`/api/organization-administration/${path}`, {
       ...init,
       headers: {
         Accept: "application/json",
@@ -78,25 +80,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function refreshAuthenticationSession() {
-  let response: Response;
   try {
-    response = await fetch("/api/auth/refresh", {
-      method: "POST",
-      credentials: "same-origin",
-      cache: "no-store",
-    });
+    await refreshWithAuthTransition();
   } catch {
     throw new OrganizationApiError(0, "Unable to refresh your session.");
-  }
-
-  const body = (await response.json().catch(() => null)) as ApiBody | null;
-  if (!response.ok || body?.success !== true) {
-    throw new OrganizationApiError(
-      response.status,
-      typeof body?.message === "string"
-        ? body.message
-        : "Your session could not be refreshed.",
-    );
   }
 }
 

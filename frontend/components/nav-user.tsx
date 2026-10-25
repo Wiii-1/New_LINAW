@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import * as React from "react";
+import { markAuthTransition, runAuthTransition } from "@/lib/auth-client";
 
 export function NavUser({
   user,
@@ -49,7 +50,11 @@ export function NavUser({
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
-      const response = await fetch("/api/auth/logout", { method: "POST", headers: { Accept: "application/json" } });
+      const response = await runAuthTransition(async () => {
+        const response = await fetch("/api/auth/logout", { method: "POST", headers: { Accept: "application/json" } });
+        if (response.ok) markAuthTransition();
+        return response;
+      });
       if (!response.ok) {
         setIsLoggingOut(false);
         return;

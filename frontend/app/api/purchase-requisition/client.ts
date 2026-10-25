@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-client";
+
 export type PurchaseRequisitionStatus =
   | "DRAFT"
   | "SUBMITTED"
@@ -78,7 +80,7 @@ type ApiResponse<T> = {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`/api/purchase-requisition${path}`, {
+    response = await authFetch(`/api/purchase-requisition${path}`, {
       ...init,
       headers: {
         Accept: "application/json",

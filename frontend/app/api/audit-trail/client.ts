@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-client";
+
 export type AuditTrailRecord = {
   id: string;
   entityType: string;
@@ -139,7 +141,7 @@ function mapRecord(raw: RawAuditRecord): AuditTrailRecord {
 async function request<T>(path: string, signal?: AbortSignal): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`/api/backend/auditTrail${path}`, {
+    response = await authFetch(`/api/backend/auditTrail${path}`, {
       cache: "no-store",
       headers: { Accept: "application/json" },
       signal,

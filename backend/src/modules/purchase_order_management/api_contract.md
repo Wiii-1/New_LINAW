@@ -69,7 +69,8 @@ The service then scopes resource queries by the authenticated `tenant_id` and `c
 
 | Method | Effective Path                                                    | Purpose                                     | Authentication                   | Authorization                     |
 | ------ | ----------------------------------------------------------------- | ------------------------------------------- | -------------------------------- | --------------------------------- |
-| POST   | `/api/purchase-orders/`                                           | Order an issued purchase order              | Bearer token and company context | `purchase_order:read`             |
+| POST   | `/api/purchase-orders/:poId`                                      | Advance a draft or issued purchase order    | Bearer token and company context | `purchase_order:read`             |
+| POST   | `/api/purchase-orders/:poId/complete`                             | Complete an ordered purchase order          | Bearer token and company context | `purchase_order:read`             |
 | POST   | `/api/purchase-orders/rfqs`                                       | Create a draft RFQ                          | Bearer token and company context | `purchase_order:create_rfq`       |
 | POST   | `/api/purchase-orders/rfqs/:rfqId/publish`                        | Publish a draft RFQ                         | Bearer token and company context | `purchase_order:update_rfq`       |
 | POST   | `/api/purchase-orders/rfqs/:rfqId/quotations/:quotationId/select` | Select a supplier quotation and create a PO | Bearer token and company context | `purchase_order:accept_quotation` |
@@ -89,23 +90,31 @@ The router registers the root child path as `/`; deployed behavior for omitting 
 
 ## 5. Detailed Endpoint Contracts
 
-### POST `/api/purchase-orders/`
+### POST `/api/purchase-orders/:poId`
 
-**Purpose:** Transitions an `ISSUED` purchase order to `ORDERED`.
+**Purpose:** Advances a purchase order through its order lifecycle.
 
 **Implementation:** `purchaseOrderManagementRouter.ts` -> `orderPurchaseOrder` -> `PurchaseOrderManagementService.orderPurchaseOrder` -> `PurchaseOrderManagementRepository.orderPurchaseOrder`.
 
-**Path Parameters:** `poId` is read from the router path, but the route is registered as `/` and does not provide a `:poId` parameter. `PurchaseOrderIdParamsSchema` requires a UUID. As registered, this route cannot supply the required parameter and will fail validation before the service runs.
+**Path Parameters:** `poId` is required and must be a UUID.
 
 **Request Body:** None.
 
-**Success Response:** If reached with a valid parameter through a route change, the controller would return `200` with `createdPO`, containing the purchase order including items.
+**Success Response:** `200` with `createdPO`, containing the purchase order including items and its source relations.
 
-**Errors:** Current registration produces `422` validation failure because `poId` is absent. Service behavior would return `404` for a missing PO, `409` if status is not `ISSUED` or a concurrent transition fails, and `500` for unhandled database errors.
+**Errors:** `404` for a missing PO, `409` if the current status cannot advance or a concurrent transition fails, and `500` for unhandled database errors.
 
-**Business Rules:** Only `ISSUED` orders may become `ORDERED`; this is a state update, not deletion or creation.
+**Business Rules:** `DRAFT` advances to `ISSUED`; `ISSUED` advances to `ORDERED`. Other statuses are rejected. The update is guarded by tenant, company, and current status.
 
-**Discrepancy:** This endpoint is effectively inaccessible under the live route registration. The route likely intended `/:poId`.
+### POST `/api/purchase-orders/:poId/complete`
+
+**Purpose:** Transitions an `ORDERED` purchase order to `COMPLETED`.
+
+**Path Parameters:** `poId` is required and must be a UUID. The request body is empty.
+
+**Success Response:** `200` with `completedPO`, containing the completed purchase order and its source relations.
+
+**Errors:** `404` for a missing or out-of-scope PO; `409` unless the PO is `ORDERED` or a concurrent transition fails; `401`, `403`, or `500` as shared.
 
 ### POST `/api/purchase-orders/rfqs`
 
@@ -163,17 +172,17 @@ The router registers the root child path as `/`; deployed behavior for omitting 
 
 ### POST `/api/purchase-orders/rfqs/:rfqId/quotations/:quotationId/select`
 
-**Purpose:** Selects a posted supplier quotation and creates an issued purchase order.
+**Purpose:** Selects a posted supplier quotation and creates a draft purchase order.
 
 **Path Parameters:** `rfqId` and `quotationId` are required UUIDs.
 
 **Request Body:** None.
 
-**Success Response:** `200` with `{ "success": true, "message": "Supplier has been selected", "selectedSupplier": <created PurchaseOrder including items> }`.
+**Success Response:** `200` with `{ "success": true, "message": "Supplier has been selected", "selectedSupplier": <created draft PurchaseOrder including items> }`.
 
 **Errors:** `404` when RFQ/quotation is absent, mismatched, or outside scope; `409` when RFQ is not `PUBLISHED`, quotation is no longer selectable, or the transaction cannot complete; `422` for invalid IDs; `401`, `403`, or `500` as shared.
 
-**Business Rules and Side Effects:** RFQ must be published; quotation must be `POSTED`, belong to the RFQ/company/tenant, and match an RFQ supplier. The operation is transactional: quotation becomes `SELECTED`, then an `ISSUED` PO and PO items are created from quotation items. A matching supplier assignment is required. Repeated selection is rejected by the posted-status guard.
+**Business Rules and Side Effects:** RFQ must be published; quotation must be `POSTED`, belong to the RFQ/company/tenant, and match an RFQ supplier. The operation is transactional: quotation becomes `SELECTED`, then a `DRAFT` PO and PO items are created from quotation items. A matching supplier assignment is required. Repeated selection is rejected by the posted-status guard.
 
 ### GET `/api/purchase-orders/procurement-queue`
 
@@ -237,7 +246,7 @@ The router registers the root child path as `/`; deployed behavior for omitting 
 
 ### GET `/api/purchase-orders/:poId`
 
-**Purpose:** Retrieves one tenant/company-scoped purchase order with items.
+**Purpose:** Retrieves one tenant/company-scoped purchase order with items, source PR/RFQ/quotation, supplier company, and purchasing company details.
 
 **Path Parameters:** `poId` UUID.
 
@@ -363,7 +372,8 @@ Creation uses `currencyCodeSchema`, defaults to `DEFAULT_CURRENCY_CODE` when omi
 - RFQs must be `DRAFT` to update/cancel and must be `DRAFT` to publish.
 - Quotations are selectable only when the RFQ is `PUBLISHED`, the quotation is `POSTED`, the quotation belongs to the RFQ and supplier, and a matching RFQ supplier assignment exists.
 - Supplier selection and PO creation run in one Prisma transaction and prevent selecting the same quotation twice through the `POSTED` condition.
-- Purchase orders must be `ISSUED` to update or order. PO cancellation is blocked for `ORDERED`, `COMPLETED`, and already `CANCELLED` states.
+- Selecting a quotation creates a `DRAFT` PO. POs advance `DRAFT -> ISSUED -> ORDERED -> COMPLETED`; each transition is guarded by the backend.
+- Purchase orders must be `ISSUED` to update. PO cancellation is blocked for `ORDERED`, `COMPLETED`, and already `CANCELLED` states.
 - RFQ and PO deletion endpoints are soft cancellation operations.
 - List endpoints cap PO/RFQ results at 20 but expose a separate unbounded `total`; no page number or offset is supported.
 - Internal `approvalWorkflow.approved` handling checks for required event fields and verifies the approved requisition has no RFQ, but the registered event handler passes only `purchaseRequisition_id` and `approvalWorkflow_id`, omitting tenant/company values expected by the service. This internal path may therefore fail as currently wired.

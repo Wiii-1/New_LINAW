@@ -45,6 +45,32 @@ export class PurchaseOrderManagementController {
     );
   };
 
+  completePurchaseOrder = async (c: Context<AppContext>) => {
+    const { poId } = PurchaseOrderIdParamsSchema.parse(c.req.param());
+
+    const { user_id, tenant_id, company_id } = c.var.user;
+
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
+    }
+
+    const completedPO = await this.service.completePurchaseOrder({
+      user_id,
+      tenant_id,
+      company_id,
+      poId,
+    });
+
+    return c.json(
+      {
+        success: true,
+        message: "Purchase order completed",
+        completedPO,
+      },
+      200,
+    );
+  };
+
   createRFQS = async (c: Context<AppContext>) => {
     const body = CreateRFQSchema.parse(await c.req.json());
 

@@ -47,6 +47,12 @@ export class SupplierManagementPortalRepository {
       },
       include: {
         items: true,
+        company: {
+          select: {
+            legal_name: true,
+            display_name: true,
+          },
+        },
       },
     });
   }
@@ -70,6 +76,12 @@ export class SupplierManagementPortalRepository {
       },
       include: {
         items: true,
+        company: {
+          select: {
+            legal_name: true,
+            display_name: true,
+          },
+        },
       },
     });
   }

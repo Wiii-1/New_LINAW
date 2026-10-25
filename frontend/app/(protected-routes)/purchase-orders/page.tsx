@@ -34,8 +34,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   cancelPurchaseOrder,
+  completePurchaseOrder,
   getPurchaseOrder,
   listPurchaseOrders,
+  orderPurchaseOrder,
   PurchaseOrderApiError,
   type PurchaseOrder,
   type PurchaseOrderStatus,
@@ -118,7 +120,7 @@ export default function PurchaseOrdersPage() {
   const [selected, setSelected] = useState<PurchaseOrder | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [mutation, setMutation] = useState<"cancel" | null>(null);
+  const [mutation, setMutation] = useState<"cancel" | "order" | "complete" | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
 
   async function loadOrders() {
@@ -161,6 +163,38 @@ export default function PurchaseOrdersPage() {
       setCancelOpen(false);
       setNotice(`${selected.po_number} was cancelled.`);
       setSelected(null);
+      await loadOrders();
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setMutation(null);
+    }
+  }
+
+  async function advanceOrder() {
+    if (!selected) return;
+    setMutation("order");
+    setError(null);
+    try {
+      const updated = await orderPurchaseOrder(selected.id);
+      setSelected(updated);
+      setNotice(`${updated.po_number} is now ${updated.status}.`);
+      await loadOrders();
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setMutation(null);
+    }
+  }
+
+  async function complete() {
+    if (!selected) return;
+    setMutation("complete");
+    setError(null);
+    try {
+      const updated = await completePurchaseOrder(selected.id);
+      setSelected(updated);
+      setNotice(`${updated.po_number} was completed.`);
       await loadOrders();
     } catch (requestError) {
       setError(errorMessage(requestError));
@@ -330,7 +364,9 @@ export default function PurchaseOrdersPage() {
                           {orderItem.po_number}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {orderItem.supplier?.legal_name ??
+                          {orderItem.supplier?.company?.display_name ??
+                            orderItem.supplier?.company?.legal_name ??
+                            orderItem.supplier?.legal_name ??
                             orderItem.supplier?.name ??
                             "Supplier not provided"}
                         </TableCell>
@@ -401,8 +437,34 @@ export default function PurchaseOrdersPage() {
                   <div className="space-y-6">
                     <div className="grid gap-4 rounded-lg border border-border/70 p-4 sm:grid-cols-3">
                       <Info
+                        label="Source PR"
+                        value={
+                          selected.purchase_requisition?.pr_number ??
+                          selected.purchase_requisition_id ??
+                          "Not provided"
+                        }
+                      />
+                      <Info
+                        label="RFQ"
+                        value={
+                          selected.rfq?.rfq_number ??
+                          selected.rfq_id ??
+                          "Not provided"
+                        }
+                      />
+                      <Info
+                        label="Quotation"
+                        value={
+                          selected.supplier_quotation?.quotation_number ??
+                          selected.supplier_quotation_id ??
+                          "Not provided"
+                        }
+                      />
+                      <Info
                         label="Supplier"
                         value={
+                          selected.supplier?.company?.display_name ??
+                          selected.supplier?.company?.legal_name ??
                           selected.supplier?.legal_name ??
                           selected.supplier?.name ??
                           "Not provided"
@@ -425,6 +487,96 @@ export default function PurchaseOrdersPage() {
                       />
                       <Info label="Currency" value={selected.currency_code} />
                     </div>
+                    {selected.purchase_requisition && (
+                      <div>
+                        <h3 className="mb-3 text-sm font-semibold">
+                          Original requisition
+                        </h3>
+                        <p className="mb-3 text-sm text-muted-foreground">
+                          {selected.purchase_requisition.purpose ||
+                            selected.purchase_requisition.justification ||
+                            "No requisition description provided."}
+                        </p>
+                        <div className="divide-y rounded-lg border border-border/70">
+                          {(selected.purchase_requisition.items ?? []).map(
+                            (item) => (
+                              <div
+                                key={item.id ?? item.line_no}
+                                className="flex flex-wrap items-baseline justify-between gap-3 px-4 py-3 text-sm"
+                              >
+                                <div>
+                                  <p className="font-medium">{item.description}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.quantity} {item.unit_of_measure} at {" "}
+                                    {formatMoney(
+                                      item.estimated_unit_cost,
+                                      selected.purchase_requisition?.currency_code ??
+                                        selected.currency_code,
+                                    )}
+                                  </p>
+                                  {item.specification && (
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {item.specification}
+                                    </p>
+                                  )}
+                                </div>
+                                <p className="font-medium tabular-nums">
+                                  {formatMoney(
+                                    item.estimated_total_cost,
+                                    selected.purchase_requisition?.currency_code ??
+                                      selected.currency_code,
+                                  )}
+                                </p>
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {selected.supplier_quotation && (
+                      <div>
+                        <h3 className="mb-3 text-sm font-semibold">
+                          Selected quotation
+                        </h3>
+                        <div className="divide-y rounded-lg border border-border/70">
+                          {(selected.supplier_quotation.items ?? []).map(
+                            (item) => (
+                              <div
+                                key={item.id ?? item.line_no}
+                                className="flex flex-wrap items-baseline justify-between gap-3 px-4 py-3 text-sm"
+                              >
+                                <div>
+                                  <p className="font-medium">
+                                    {item.rfq_item?.description ??
+                                      `Line ${item.line_no}`}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {item.quoted_quantity} {item.rfq_item?.unit_of_measure ?? ""} at {" "}
+                                    {formatMoney(
+                                      item.unit_price,
+                                      selected.supplier_quotation?.currency_code ??
+                                        selected.currency_code,
+                                    )}
+                                  </p>
+                                  {item.rfq_item?.specification && (
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {item.rfq_item.specification}
+                                    </p>
+                                  )}
+                                </div>
+                                <p className="font-medium tabular-nums">
+                                  {formatMoney(
+                                    item.total_price,
+                                    selected.supplier_quotation?.currency_code ??
+                                      selected.currency_code,
+                                  )}
+                                </p>
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <h3 className="mb-3 text-sm font-semibold">Line items</h3>
                       <div className="divide-y rounded-lg border border-border/70">
@@ -466,6 +618,28 @@ export default function PurchaseOrdersPage() {
                         disabled={mutation !== null}
                       >
                         Cancel order
+                      </Button>
+                    )}
+                    {selected && ["DRAFT", "ISSUED"].includes(selected.status) && (
+                      <Button
+                        onClick={() => void advanceOrder()}
+                        disabled={mutation !== null}
+                      >
+                        {mutation === "order" && (
+                          <Loader2Icon className="animate-spin" />
+                        )}
+                        Order
+                      </Button>
+                    )}
+                    {selected?.status === "ORDERED" && (
+                      <Button
+                        onClick={() => void complete()}
+                        disabled={mutation !== null}
+                      >
+                        {mutation === "complete" && (
+                          <Loader2Icon className="animate-spin" />
+                        )}
+                        Complete Order
                       </Button>
                     )}
                     <Button

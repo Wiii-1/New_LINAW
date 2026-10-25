@@ -1,3 +1,5 @@
+import { authFetch } from "@/lib/auth-client";
+
 export type UserProfile = {
   user_id: string;
   first_name: string;
@@ -29,7 +31,7 @@ async function requestProfile(
   method: "GET" | "PATCH",
   body?: UpdateUserProfile,
 ): Promise<UserProfile> {
-  const response = await fetch("/api/user/profile", {
+  const response = await authFetch("/api/user/profile", {
     method,
     headers: {
       Accept: "application/json",

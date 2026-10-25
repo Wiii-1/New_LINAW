@@ -259,30 +259,53 @@ export class PurchaseOrderManagementRepository {
   // Publish / Selection
 
   async publishRfq(data: PublishContext) {
-    const result = await prisma.rFQ.updateMany({
-      where: {
-        id: data.rfq_id,
-        tenant_id: data.tenant_id,
-        company_id: data.company_id,
-        status: RFQStatus.DRAFT,
-      },
-      data: {
-        status: RFQStatus.PUBLISHED,
-        issue_date: new Date(),
-      },
-    });
+    return prisma.$transaction(async (tx) => {
+      const result = await tx.rFQ.updateMany({
+        where: {
+          id: data.rfq_id,
+          tenant_id: data.tenant_id,
+          company_id: data.company_id,
+          status: RFQStatus.DRAFT,
+        },
+        data: {
+          status: RFQStatus.PUBLISHED,
+          issue_date: new Date(),
+        },
+      });
 
-    if (result.count !== 1) {
-      return null;
-    }
+      if (result.count !== 1) {
+        return null;
+      }
 
-    return prisma.rFQ.findFirst({
-      where: {
-        id: data.rfq_id,
-        tenant_id: data.tenant_id,
-        company_id: data.company_id,
-      },
-      include: { items: true },
+      const relationships = await tx.supplierCompanyRelationship.findMany({
+        where: {
+          tenant_id: data.tenant_id,
+          company_id: data.company_id,
+          relationship_status: "ACTIVE",
+        },
+        select: { supplier_id: true },
+      });
+
+      if (relationships.length > 0) {
+        await tx.rFQSupplierAssignment.createMany({
+          data: relationships.map(({ supplier_id }) => ({
+            tenant_id: data.tenant_id,
+            company_id: data.company_id,
+            rfq_id: data.rfq_id,
+            supplier_id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      return tx.rFQ.findFirst({
+        where: {
+          id: data.rfq_id,
+          tenant_id: data.tenant_id,
+          company_id: data.company_id,
+        },
+        include: { items: true },
+      });
     });
   }
 
@@ -400,7 +423,7 @@ export class PurchaseOrderManagementRepository {
 
           po_number: data.po_number,
           issued_by_user_id: data.user_id,
-          status: "ISSUED",
+          status: "DRAFT",
 
           currency_code: quotation.currency_code,
           total_amount: quotation.total_amount,
@@ -462,6 +485,18 @@ export class PurchaseOrderManagementRepository {
       },
       include: {
         items: true,
+        supplier: {
+          select: {
+            id: true,
+            supplier_code: true,
+            company: {
+              select: {
+                legal_name: true,
+                display_name: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -599,6 +634,45 @@ export class PurchaseOrderManagementRepository {
       },
       include: {
         items: true,
+        company: {
+          select: {
+            id: true,
+            legal_name: true,
+            display_name: true,
+          },
+        },
+        supplier: {
+          include: {
+            company: {
+              select: {
+                id: true,
+                legal_name: true,
+                display_name: true,
+              },
+            },
+          },
+        },
+        purchase_requisition: {
+          include: {
+            items: true,
+          },
+        },
+        rfq: {
+          select: {
+            id: true,
+            rfq_number: true,
+            title: true,
+          },
+        },
+        supplier_quotation: {
+          include: {
+            items: {
+              include: {
+                rfq_item: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -753,6 +827,46 @@ export class PurchaseOrderManagementRepository {
       tenant_id: data.tenant_id,
       company_id: data.company_id,
     });
+  }
+
+  async issuePurchaseOrder(data: OrderPurchaseOrderRepositoryContext) {
+    const result = await prisma.purchaseOrder.updateMany({
+      where: {
+        id: data.po_id,
+        tenant_id: data.tenant_id,
+        company_id: data.company_id,
+        status: "DRAFT",
+      },
+      data: {
+        status: "ISSUED",
+      },
+    });
+
+    if (result.count !== 1) {
+      return null;
+    }
+
+    return this.getPO(data);
+  }
+
+  async completePurchaseOrder(data: OrderPurchaseOrderRepositoryContext) {
+    const result = await prisma.purchaseOrder.updateMany({
+      where: {
+        id: data.po_id,
+        tenant_id: data.tenant_id,
+        company_id: data.company_id,
+        status: "ORDERED",
+      },
+      data: {
+        status: "COMPLETED",
+      },
+    });
+
+    if (result.count !== 1) {
+      return null;
+    }
+
+    return this.getPO(data);
   }
 
   // Delete

@@ -40,6 +40,7 @@ import {
   listRfqs,
   publishRfq,
   RfqApiError,
+  selectRfqQuotation,
   type ProcurementQueueItem,
   type Quotation,
   type Rfq,
@@ -78,6 +79,10 @@ function StatusBadge({ status }: { status: string }) {
   const styles =
     status === "PUBLISHED"
       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : status === "POSTED"
+        ? "border-sky-200 bg-sky-50 text-sky-800"
+        : status === "SELECTED"
+          ? "border-blue-200 bg-blue-50 text-blue-800"
       : status === "DRAFT"
         ? "border-amber-200 bg-amber-50 text-amber-800"
         : "border-slate-200 bg-slate-50 text-slate-700";
@@ -144,7 +149,7 @@ export function RfqWorkspace() {
     closingDate: "",
   });
   const [formError, setFormError] = useState<string | null>(null);
-  const [mutation, setMutation] = useState<"post" | null>(null);
+  const [mutation, setMutation] = useState<"post" | "select" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   async function load() {
@@ -172,6 +177,7 @@ export function RfqWorkspace() {
     setSelected(pr);
     setSelectedDetail(null);
     setDetailLoading(true);
+
     setRfqOpen(true);
     setFormError(null);
     setForm({
@@ -238,6 +244,25 @@ export function RfqWorkspace() {
       setQuotations(await listRfqQuotations(rfq.id));
     } catch (requestError) {
       setError(errorMessage(requestError));
+    }
+  }
+
+  async function selectQuotation(quotation: Quotation) {
+    if (!rfqDetail || mutation === "select") return;
+
+    setMutation("select");
+    setError(null);
+    try {
+      await selectRfqQuotation(rfqDetail.id, quotation.id);
+      setNotice(
+        `${quotation.quotation_number} was selected and the purchase order was created.`,
+      );
+      setQuotations(await listRfqQuotations(rfqDetail.id));
+      await load();
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setMutation(null);
     }
   }
 
@@ -510,14 +535,23 @@ export function RfqWorkspace() {
           if (!open) setRfqDetail(null);
         }}
       >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{rfqDetail?.rfq_number}</DialogTitle>
-            <DialogDescription>{rfqDetail?.title}</DialogDescription>
+        <DialogContent className="max-h-[92svh] max-w-4xl overflow-y-auto">
+          <DialogHeader className="border-b border-border/70 pb-5">
+            <div className="flex items-start justify-between gap-4 pr-8">
+              <div className="min-w-0">
+                <DialogTitle className="truncate text-lg">
+                  {rfqDetail?.rfq_number}
+                </DialogTitle>
+                <DialogDescription className="mt-1 truncate">
+                  {rfqDetail?.title}
+                </DialogDescription>
+              </div>
+              {rfqDetail && <StatusBadge status={rfqDetail.status} />}
+            </div>
           </DialogHeader>
           {rfqDetail && (
-            <div className="space-y-5">
-              <div className="grid gap-4 rounded-lg border border-border/70 p-4 sm:grid-cols-3">
+            <div className="space-y-6">
+              <div className="grid gap-4 rounded-xl border border-border/70 bg-muted/20 p-4 sm:grid-cols-3">
                 <Info
                   label="Source PR"
                   value={display(rfqDetail.purchase_requisition_id)}
@@ -529,37 +563,63 @@ export function RfqWorkspace() {
                 <Info label="Status" value={rfqDetail.status} />
               </div>
               <div>
-                <h3 className="mb-3 text-sm font-semibold">
-                  Supplier quotations ({quotations.length})
-                </h3>
+                  <div className="mb-3 flex items-end justify-between gap-3">
+                    <div>
+                      <h3 className="font-heading text-base font-semibold">
+                        Supplier quotations
+                      </h3>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Review submitted offers and select one to issue the purchase order.
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                      {quotations.length} {quotations.length === 1 ? "offer" : "offers"}
+                    </span>
+                  </div>
                 {quotations.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
                     No quotations have been submitted for this RFQ.
                   </p>
                 ) : (
-                  <div className="divide-y rounded-lg border border-border/70">
+                    <div className="space-y-3">
                     {quotations.map((quotation) => (
                       <div
                         key={quotation.id}
-                        className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm"
+                          className="grid gap-4 rounded-xl border border-border/70 bg-background p-4 text-sm shadow-sm transition-colors hover:border-border hover:bg-muted/20 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"
                       >
-                        <div>
-                          <p className="font-medium">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">
                             {quotation.quotation_number}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                            <p className="mt-1 truncate text-xs text-muted-foreground">
                             {quotation.supplier?.legal_name ??
                               quotation.supplier?.name ??
                               quotation.supplier?.supplier_code ??
                               quotation.supplier_id}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">
-                            {quotation.total_amount} {quotation.currency_code}
-                          </p>
-                          <StatusBadge status={quotation.status} />
-                        </div>
+                          <div className="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-center">
+                            <p className="font-heading text-base font-semibold tabular-nums">
+                              {quotation.total_amount} {quotation.currency_code}
+                            </p>
+                            <StatusBadge status={quotation.status} />
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => void selectQuotation(quotation)}
+                            disabled={
+                              quotation.status !== "POSTED" ||
+                              mutation === "select"
+                            }
+                            className="w-full sm:w-auto"
+                          >
+                            {mutation === "select" ? (
+                              <Loader2Icon className="animate-spin" />
+                            ) : null}
+                            {quotation.status === "POSTED"
+                              ? "Select supplier"
+                              : "Unavailable"}
+                          </Button>
                       </div>
                     ))}
                   </div>

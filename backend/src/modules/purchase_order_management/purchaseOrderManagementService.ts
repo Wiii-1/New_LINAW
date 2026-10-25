@@ -15,6 +15,10 @@ import type {
 } from "./purchaseOrderManagementValidator";
 
 import { ConflictError } from "../../shared/errors/appError.js";
+import {
+  PURCHASE_ORDER_AUDIT_EVENT,
+  type PurchaseOrderAuditAction,
+} from "../../shared/events/purchaseOrderEvents.js";
 
 interface OrderPurchaseOrderContext {
   user_id: string;
@@ -115,6 +119,18 @@ export class PurchaseOrderManagementService {
     private eventBus: EventBus,
   ) {}
 
+  private async publishAuditEvent(input: {
+    tenantId: string;
+    companyId: string;
+    actorId: string | null;
+    entityType: "RFQ" | "SUPPLIER_QUOTATION" | "PURCHASE_ORDER";
+    entityId: string;
+    action: PurchaseOrderAuditAction;
+    metadata: Record<string, unknown>;
+  }) {
+    await this.eventBus.publish(PURCHASE_ORDER_AUDIT_EVENT, input);
+  }
+
   private NumberGenerator(
     creationDate: Date,
     uniqueIdentifier: string,
@@ -136,23 +152,89 @@ export class PurchaseOrderManagementService {
       throw new NotFoundError("Purchase order does not exist");
     }
 
-    if (purchaseOrder.status !== "ISSUED") {
-      throw new ConflictError("Only issued purchase orders can be ordered");
+    const orderedPurchaseOrder =
+      purchaseOrder.status === "DRAFT"
+        ? await this.repository.issuePurchaseOrder({
+            po_id: input.poId,
+            tenant_id: input.tenant_id,
+            company_id: input.company_id,
+          })
+        : purchaseOrder.status === "ISSUED"
+          ? await this.repository.orderPurchaseOrder({
+              po_id: input.poId,
+              tenant_id: input.tenant_id,
+              company_id: input.company_id,
+            })
+          : null;
+
+    if (!orderedPurchaseOrder) {
+      throw new ConflictError(
+        "Purchase order cannot be ordered in its current state",
+      );
     }
 
-    const orderedPurchaseOrder = await this.repository.orderPurchaseOrder({
+    await this.publishAuditEvent({
+      tenantId: input.tenant_id,
+      companyId: input.company_id,
+      actorId: input.user_id,
+      entityType: "PURCHASE_ORDER",
+      entityId: input.poId,
+      action: purchaseOrder.status === "DRAFT" ? "ISSUED" : "ORDERED",
+      metadata: {
+        purchaseOrderId: input.poId,
+        previousStatus: purchaseOrder.status,
+        status: orderedPurchaseOrder.status,
+      },
+    });
+
+    return orderedPurchaseOrder;
+  }
+
+  async completePurchaseOrder(input: OrderPurchaseOrderContext) {
+    const purchaseOrder = await this.repository.findPoById({
       po_id: input.poId,
       tenant_id: input.tenant_id,
       company_id: input.company_id,
     });
 
-    if (!orderedPurchaseOrder) {
+    if (!purchaseOrder) {
+      throw new NotFoundError("Purchase order does not exist");
+    }
+
+    if (purchaseOrder.status !== "ORDERED") {
       throw new ConflictError(
-        "Purchase order could not be transitioned to ORDERED",
+        "Only ordered purchase orders can be completed",
       );
     }
 
-    return orderedPurchaseOrder;
+    const completedPurchaseOrder =
+      await this.repository.completePurchaseOrder({
+        po_id: input.poId,
+        tenant_id: input.tenant_id,
+        company_id: input.company_id,
+      });
+
+    if (!completedPurchaseOrder) {
+      throw new ConflictError(
+        "Purchase order could not be transitioned to COMPLETED",
+      );
+    }
+
+    await this.publishAuditEvent({
+      tenantId: input.tenant_id,
+      companyId: input.company_id,
+      actorId: input.user_id,
+      entityType: "PURCHASE_ORDER",
+      entityId: input.poId,
+      action: "COMPLETED",
+      metadata: {
+        purchaseOrderId: input.poId,
+        previousStatus: "ORDERED",
+        status: completedPurchaseOrder.status,
+      },
+    });
+
+    return completedPurchaseOrder;
   }
 
   async createRFQS(input: CreateRFQInput) {
@@ -200,7 +282,23 @@ export class PurchaseOrderManagementService {
       })),
     };
 
-    return await this.repository.createRFQS(data);
+    const createdRfq = await this.repository.createRFQS(data);
+
+    await this.publishAuditEvent({
+      tenantId: input.tenant_id,
+      companyId: input.company_id,
+      actorId: input.user_id,
+      entityType: "RFQ",
+      entityId: createdRfq.id,
+      action: "RFQ_CREATED",
+      metadata: {
+        rfqId: createdRfq.id,
+        rfqNumber: createdRfq.rfq_number,
+        purchaseRequisitionId: input.body.purchase_requisition_id,
+      },
+    });
+
+    return createdRfq;
   }
 
   async publishRFQS(input: ServiceRfqIdParam) {
@@ -303,17 +401,66 @@ export class PurchaseOrderManagementService {
       );
     }
 
+    await this.publishAuditEvent({
+      tenantId: input.tenant_id,
+      companyId: input.company_id,
+      actorId: input.user_id,
+      entityType: "SUPPLIER_QUOTATION",
+      entityId: quotation.id,
+      action: "QUOTATION_SELECTED",
+      metadata: {
+        quotationId: quotation.id,
+        rfqId: rfq.id,
+        purchaseOrderId: purchaseOrder.id,
+      },
+    });
+
+    await this.publishAuditEvent({
+      tenantId: input.tenant_id,
+      companyId: input.company_id,
+      actorId: input.user_id,
+      entityType: "PURCHASE_ORDER",
+      entityId: purchaseOrder.id,
+      action: "PURCHASE_ORDER_CREATED",
+      metadata: {
+        purchaseOrderId: purchaseOrder.id,
+        quotationId: quotation.id,
+        rfqId: rfq.id,
+        purchaseRequisitionId: purchaseOrder.purchase_requisition_id,
+      },
+    });
+
     return purchaseOrder;
   }
 
   async handleSupplierQuotationSubmitted(
     event: SupplierQuotationSubmittedEvent,
   ) {
-    return this.repository.markQuotationPosted({
+    const markedPosted = await this.repository.markQuotationPosted({
       quotation_id: event.quotation_id,
       tenant_id: event.tenant_id,
       company_id: event.company_id,
     });
+
+    if (markedPosted) {
+      await this.publishAuditEvent({
+        tenantId: event.tenant_id,
+        companyId: event.company_id,
+        actorId: null,
+        entityType: "SUPPLIER_QUOTATION",
+        entityId: event.quotation_id,
+        action: "QUOTATION_SUBMITTED",
+        metadata: {
+          quotationId: event.quotation_id,
+          quotationNumber: event.quotation_number,
+          rfqId: event.rfq_id,
+          supplierId: event.supplier_id,
+          submittedAt: event.submitted_at.toISOString(),
+        },
+      });
+    }
+
+    return markedPosted;
   }
 
   async handleApprovedPurchaseRequisition(event: ApprovedPRContext) {

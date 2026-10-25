@@ -2,11 +2,11 @@
 
 ## 1. Overview
 
-The Audit Trail module records completed purchase-order events, stores a purchase-order snapshot, hashes the snapshot with SHA-256, anchors the hash through the blockchain adapter, and exposes authorized listing, lookup, and integrity-verification endpoints.
+The Audit Trail module records POM procurement events, stores an immutable event or purchase-order snapshot, hashes the snapshot with SHA-256, anchors the hash through the existing blockchain adapter, and exposes authorized listing, lookup, and integrity-verification endpoints.
 
 The live module is mounted at `/api/auditTrail`. The application uses Hono and applies CORS, secure headers, logging, and the shared error handler. The audit router applies `criticalRateLimit` and Bearer-token authentication to all routes, followed by route-specific permission checks.
 
-Audit creation is internal: `purchase-order.completed` is subscribed to during application setup and invokes the service. There is no registered public HTTP endpoint for creating an audit record.
+Audit creation is internal: `purchase-order.audit` is subscribed to during application setup and invokes the service. The legacy `purchase-order.completed` subscription remains supported. There is no registered public HTTP endpoint for creating an audit record.
 
 ## 2. Implementation References
 
@@ -25,8 +25,8 @@ Audit creation is internal: `purchase-order.completed` is subscribed to during a
 
 ### Repository
 
-- `backend/src/modules/audit_trail/auditTrailRepository.ts`: queries purchase orders and audit records, selects response fields, builds purchase-order snapshots, and persists audit/hash/blockchain-reference records.
-- `backend/src/modules/audit_trail/auditTrailEventHandler.ts`: subscribes to `purchase-order.completed` and invokes internal audit creation.
+- `backend/src/modules/audit_trail/auditTrailRepository.ts`: scopes RFQ, quotation, and purchase-order records to the authenticated company, selects response fields, builds purchase-order snapshots, and persists audit/hash/blockchain-reference records.
+- `backend/src/modules/audit_trail/auditTrailEventHandler.ts`: subscribes to POM audit events and invokes internal audit creation.
 
 ### Validation schemas
 
@@ -269,7 +269,20 @@ When the fresh snapshot hash differs from the stored hash:
 }
 ```
 
-When the database snapshot matches, the blockchain comparison result is returned:
+When the database snapshot matches and the event was not selected for blockchain anchoring, the service returns `UNANCHORED` (or `ANCHOR_FAILED` when an anchoring attempt failed):
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "UNANCHORED",
+    "databaseHash": "abc123...",
+    "currentHash": "abc123..."
+  }
+}
+```
+
+For an anchored event, the blockchain comparison result is returned:
 
 ```json
 {
@@ -289,11 +302,11 @@ If the stored hash differs from the blockchain hash, the same shape is returned 
 
 - `401` for invalid authentication or `You do not belong to this organization` when the user is missing or belongs to another tenant.
 - `403` with `{ "message": "Forbidden" }` for missing `audit_trail:verify` permission.
-- `404` for `audit not found`, `audit relations not found`, or `purchase order snapshot not found`.
+- `404` for `audit not found`, missing audit hash data, or `purchase order snapshot not found`.
 - `422 INVALID DATA` for a non-UUID `auditId`.
 - `500` for unhandled database or blockchain adapter errors; no explicit `503` mapping is implemented.
 
-**Business Rules:** The audit must be a purchase-order audit in the authenticated tenant and reference a purchase order in the authenticated company. The record must have both a stored hash and blockchain reference. The current snapshot includes purchase order, company, supplier, items, approval actions, and the first goods receipt, and is hashed by JSON serialization followed by SHA-256.
+**Business Rules:** The audit must be a purchase-order audit in the authenticated tenant and reference a purchase order in the authenticated company. The record must have a stored hash. Intermediate lifecycle records may legitimately have no blockchain reference and return `UNANCHORED`; completed records return `VALID` or `INVALID` after blockchain comparison. The current snapshot includes purchase order, company, supplier, items, approval actions, and the first goods receipt, and is hashed by JSON serialization followed by SHA-256.
 
 **Side Effects:** None; verification only reads the database and blockchain adapter.
 
@@ -305,7 +318,7 @@ The list projection contains `id`, `entity_type`, `entity_id`, `action`, nullabl
 
 ### Integrity result
 
-`status` is either `VALID` or `INVALID` in the implemented service. Database-snapshot mismatch includes `reason: "Database snapshot has changed"`; blockchain mismatch does not include a reason. Hash fields are lowercase hexadecimal strings without a leading `0x` after adapter normalization.
+`status` is `UNANCHORED`, `ANCHOR_FAILED`, `VALID`, or `INVALID` in the implemented service. Database-snapshot mismatch includes `reason: "Database snapshot has changed"`; blockchain mismatch does not include a reason. Hash fields are lowercase hexadecimal strings without a leading `0x` after adapter normalization.
 
 ### Internal audit values
 

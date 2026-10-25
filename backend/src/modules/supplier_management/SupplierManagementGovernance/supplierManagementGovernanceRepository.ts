@@ -15,7 +15,6 @@ export class SupplierManagementGovernanceRepository {
   }) {
     const relationshipStatus = input.relationship_status ?? "ACTIVE";
     const where = {
-      tenant_id: input.tenant_id,
       ...(input.status ? { status: input.status } : { status: "ACTIVE" }),
       ...(input.name
         ? {
