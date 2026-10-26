@@ -15,7 +15,6 @@ interface SignupResponse {
 
 const ACCESS_TOKEN_MAX_AGE = 60 * 60;
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
-const CSRF_COOKIE_NAME = "csrfToken";
 
 interface SignupRequest {
   first_name: string;
@@ -23,6 +22,7 @@ interface SignupRequest {
   email: string;
   password: string;
   confirmPassword: string;
+  invitation_token?: string;
 }
 
 function getErrorMessage(data: SignupResponse, fallback: string): string {
@@ -30,35 +30,6 @@ function getErrorMessage(data: SignupResponse, fallback: string): string {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const csrfToken = request.headers.get("X-CSRF-Token");
-  const cookieHeader = request.headers.get("Cookie") ?? "";
-  const csrfCookie = cookieHeader
-    .split(";")
-    .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith(`${CSRF_COOKIE_NAME}=`))
-    ?.slice(CSRF_COOKIE_NAME.length + 1);
-
-  if (!csrfToken || !csrfCookie || csrfToken !== decodeURIComponent(csrfCookie)) {
-    return Response.json(
-      {
-        success: false,
-        message: "Invalid CSRF token.",
-      },
-      { status: 403 },
-    );
-  }
-
-  const origin = request.headers.get("Origin");
-  if (origin && origin !== new URL(request.url).origin) {
-    return Response.json(
-      {
-        success: false,
-        message: "Invalid request origin.",
-      },
-      { status: 403 },
-    );
-  }
-
   let body: unknown;
 
   try {
@@ -157,6 +128,9 @@ export async function POST(request: Request): Promise<Response> {
         email,
         password: input.password,
         confirmPassword: input.confirmPassword,
+        ...(typeof input.invitation_token === "string"
+          ? { invitation_token: input.invitation_token }
+          : {}),
       }),
     });
   } catch {

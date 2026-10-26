@@ -169,10 +169,12 @@ model CompanyInvitation {
   email String
 
   invite_token_hash String @unique
+  status            String  @default("PENDING")
 
   invited_by String @db.Uuid
 
   created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at  DateTime  @db.Timestamptz(6)
   accepted_at DateTime? @db.Timestamptz(6)
 
   company Company @relation(fields: [company_id], references: [id])
@@ -181,6 +183,7 @@ model CompanyInvitation {
   @@index([tenant_id])
   @@index([company_id])
   @@index([email])
+  @@index([status, expires_at])
 }
 
 model UserSession {

@@ -23,6 +23,7 @@ import type { AppEnv } from "../../config/env.js";
 import { resolveAppUrl } from "../../config/env.js";
 import type { AuthNotifier } from "./authNotifications.js";
 import { NoopAuthNotifier } from "./authNotifications.js";
+import { hashToken } from "../../shared/types/cryptoUtility.js";
 
 export class AuthService {
   constructor(
@@ -63,15 +64,27 @@ export class AuthService {
     }
 
     const password_hash = await hashPassword(data.password);
-    const tenant_id = randomUUID();
-
-    await this.repository.registerUser({
-      tenant_id,
-      first_name: data.first_name,
-      last_name: data.last_name,
-      email: data.email,
-      password_hash,
-    });
+    if (data.invitation_token) {
+      const result = await this.repository.registerUserForInvitation({
+        token_hash: await hashToken(data.invitation_token),
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        password_hash,
+      });
+      if (result.status === "invalid") {
+        throw new UnauthorizedAccessError("Invalid or expired invitation");
+      }
+    } else {
+      const tenant_id = randomUUID();
+      await this.repository.registerUser({
+        tenant_id,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        password_hash,
+      });
+    }
 
     return this.login({
       email: data.email,

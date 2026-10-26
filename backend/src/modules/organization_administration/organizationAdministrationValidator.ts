@@ -5,7 +5,11 @@ import { CompanyMembershipStatus } from "../../generated/prisma/client";
 // members
 // ==============
 export const memberEmailSchema = z.object({
-  email: z.email(),
+  email: z.email().trim().toLowerCase(),
+});
+
+export const invitationTokenSchema = z.object({
+  token: z.string().regex(/^[A-Fa-f0-9]{64}$/, "Invalid invitation token"),
 });
 
 export const updateMemberSchema = z

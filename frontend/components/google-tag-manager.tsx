@@ -17,10 +17,34 @@ export function GoogleTagManager({
         nonce={nonce}
         dangerouslySetInnerHTML={{
           __html: `
-            (function(w,l){
-              w[l]=w[l]||[];
-              w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
-            })(window,'dataLayer');
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){window.dataLayer.push(arguments);}
+
+            (function() {
+              try {
+                var url = new URL(window.location.href);
+                var sensitiveParams = ['token', 'access_token', 'resetToken', 'email', 'code'];
+                sensitiveParams.forEach(function(param) {
+                  if (url.searchParams.has(param)) {
+                    url.searchParams.set(param, '[REDACTED]');
+                  }
+                });
+                window.dataLayer.push({ 'page_location_clean': url.toString() });
+              } catch (e) {}
+            })();
+
+            gtag('consent', 'default', {
+              'ad_storage': 'denied',
+              'analytics_storage': 'denied',
+              'ad_user_data': 'denied',
+              'ad_personalization': 'denied',
+              'wait_for_update': 500
+            });
+
+            window.dataLayer.push({
+              'gtm.start': new Date().getTime(),
+              event: 'gtm.js'
+            });
           `,
         }}
       />

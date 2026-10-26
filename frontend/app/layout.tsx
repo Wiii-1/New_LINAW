@@ -7,7 +7,13 @@ import { GoogleTagManager } from "@/components/google-tag-manager";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Tooltip } from "@/components/ui/tooltip";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+  preload: true,
+  fallback: ["system-ui", "sans-serif"],
+});
 
 export const metadata: Metadata = {
   title: "LINAW",

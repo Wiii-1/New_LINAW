@@ -86,6 +86,62 @@ export class AuthRepository {
     });
   }
 
+  async registerUserForInvitation(data: {
+    token_hash: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    password_hash: string;
+  }) {
+    return prisma.$transaction(async (tx) => {
+      const invitation = await tx.companyInvitation.findUnique({
+        where: { invite_token_hash: data.token_hash },
+      });
+      if (
+        !invitation ||
+        invitation.status !== "PENDING" ||
+        invitation.accepted_at ||
+        invitation.expires_at <= new Date() ||
+        invitation.email !== data.email
+      ) {
+        return { status: "invalid" as const };
+      }
+
+      const user = await tx.user.create({
+        data: {
+          tenant_id: invitation.tenant_id,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          email: data.email,
+          status: "ACTIVE",
+          credentials: { create: { password_hash: data.password_hash } },
+        },
+      });
+
+      const claimed = await tx.companyInvitation.updateMany({
+        where: {
+          id: invitation.id,
+          status: "PENDING",
+          accepted_at: null,
+          expires_at: { gt: new Date() },
+        },
+        data: { status: "ACCEPTED", accepted_at: new Date() },
+      });
+      if (claimed.count !== 1) return { status: "invalid" as const };
+
+      await tx.companyMembership.create({
+        data: {
+          tenant_id: invitation.tenant_id,
+          company_id: invitation.company_id,
+          user_id: user.id,
+          employment_status: "ACTIVE",
+        },
+      });
+
+      return { status: "accepted" as const };
+    });
+  }
+
   async findSessionById(session_id: string) {
     return prisma.userSession.findUnique({
       where: {

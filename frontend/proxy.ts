@@ -67,7 +67,7 @@ function buildCsp(nonce: string): string {
   const isDev = process.env.NODE_ENV !== "production";
   const scriptSrc = isDev
     ? "'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com"
-    : `'self' 'nonce-${nonce}' 'strict-dynamic' https://www.googletagmanager.com`;
+    : `'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval' https://www.googletagmanager.com`;
   const cspHeader = `
     default-src 'self';
     script-src ${scriptSrc};

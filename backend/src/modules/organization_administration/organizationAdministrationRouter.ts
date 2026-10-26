@@ -14,6 +14,8 @@ export function createOrganizationAdministration() {
   );
   const controller = new OrganizationAdministrationController(service);
 
+  router.get("/members/validate/:token", controller.validateInvitation);
+
   router.use(authenticate);
 
   // Organization Member Management
@@ -22,6 +24,11 @@ export function createOrganizationAdministration() {
     "/members",
     Authorize(systemPermissions.organizationManagement.inviteMember),
     controller.addMember,
+  );
+  router.post(
+    "/members/accept",
+    Authorize(systemPermissions.organizationManagement.readMember),
+    controller.acceptInvitation,
   );
 
   router.get(
