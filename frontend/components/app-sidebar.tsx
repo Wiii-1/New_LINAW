@@ -32,10 +32,11 @@ const data = {
     { title: "Overview", url: "/dashboard", icon: <LayoutDashboardIcon />, isActive: true },
     { title: "Purchase Requisitions", url: "/purchase-requisitions", icon: <FileTextIcon /> },
     { title: "Approval Workflows", url: "/approval-workflows", icon: <GitBranchIcon /> },
-    { title: "Supplier Management", url: "/suppliers", icon: <UsersRoundIcon /> },
+    { title: "Supplier Management", url: "/supplier-management", icon: <UsersRoundIcon /> },
+    { title: "Supplier Portal", url: "/supplier-portal", icon: <UsersRoundIcon /> },
     { title: "Purchase Orders", url: "/purchase-orders", icon: <FileCheck2Icon /> },
     { title: "Audit Trail", url: "/audit-trail", icon: <ScrollTextIcon /> },
-    { title: "Organization settings", url: "/organizations", icon: <Settings2Icon /> },
+    { title: "Organization settings", url: "/organization-settings", icon: <Settings2Icon /> },
   ],
   navSecondary: [
     { title: "Support center", url: "#", icon: <LifeBuoyIcon /> },

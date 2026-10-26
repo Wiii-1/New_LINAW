@@ -13,6 +13,7 @@ import {
   memberEmailSchema,
   updateMemberSchema,
   updateSettingsSchema,
+  invitationTokenSchema,
 } from "./organizationAdministrationValidator";
 
 export class OrganizationAdministrationController {
@@ -42,6 +43,38 @@ export class OrganizationAdministrationController {
         message: "invitation sent",
         member,
       },
+      200,
+    );
+  };
+
+  validateInvitation = async (c: Context<AppContext>) => {
+    const { token } = invitationTokenSchema.parse({
+      token: c.req.param("token"),
+    });
+    const data = await this.service.validateInvitation(token);
+
+    return c.json(
+      { success: true, message: "Invitation is valid", data },
+      200,
+    );
+  };
+
+  acceptInvitation = async (c: Context<AppContext>) => {
+    const { user_id, tenant_id } = c.var.user;
+    const { token } = invitationTokenSchema.parse(await c.req.json());
+    const user = await this.service.getUserIdentity(user_id, tenant_id);
+
+    if (!user) throw new NotFoundError("User not found");
+
+    const data = await this.service.acceptInvitation({
+      user_id,
+      tenant_id,
+      email: user.email,
+      token,
+    });
+
+    return c.json(
+      { success: true, message: "Invitation accepted", data },
       200,
     );
   };

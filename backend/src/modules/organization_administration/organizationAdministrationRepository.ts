@@ -52,6 +52,8 @@ export interface CreateInvitationContext {
   email: string;
   invited_by: string;
   invite_token_hash: string;
+  expires_at: Date;
+  status: string;
 }
 
 export interface CreateRoleContext {
@@ -106,6 +108,121 @@ export class OrganizationAdministrationRepository {
           tenant_id: input.tenant_id,
         },
       },
+    });
+  }
+
+  async findUserIdentity(user_id: string, tenant_id: string) {
+    return prisma.user.findFirst({
+      where: { id: user_id, tenant_id },
+      select: { id: true, email: true },
+    });
+  }
+
+  async findInvitationByEmail(
+    input: CompanyContext & TenantContext & { email: string },
+  ) {
+    return prisma.companyInvitation.findFirst({
+      where: {
+        tenant_id: input.tenant_id,
+        company_id: input.company_id,
+        email: input.email,
+        status: "PENDING",
+        expires_at: { gt: new Date() },
+      },
+    });
+  }
+
+  async findInvitationByTokenHash(token_hash: string) {
+    return prisma.companyInvitation.findUnique({
+      where: { invite_token_hash: token_hash },
+    });
+  }
+
+  async markInvitationStatus(input: {
+    id: string;
+    status: string;
+    accepted_at?: Date | null;
+  }) {
+    return prisma.companyInvitation.update({
+      where: { id: input.id },
+      data: {
+        status: input.status,
+        ...(input.accepted_at !== undefined
+          ? { accepted_at: input.accepted_at }
+          : {}),
+      },
+    });
+  }
+
+  async acceptInvitation(input: {
+    token_hash: string;
+    user_id: string;
+    tenant_id: string;
+    email: string;
+  }) {
+    return prisma.$transaction(async (tx) => {
+      const invitation = await tx.companyInvitation.findUnique({
+        where: { invite_token_hash: input.token_hash },
+      });
+
+      if (
+        !invitation ||
+        invitation.status !== "PENDING" ||
+        invitation.accepted_at ||
+        invitation.expires_at <= new Date() ||
+        invitation.tenant_id !== input.tenant_id ||
+        invitation.email !== input.email
+      ) {
+        return { status: "invalid" as const };
+      }
+
+      const claimed = await tx.companyInvitation.updateMany({
+        where: {
+          id: invitation.id,
+          status: "PENDING",
+          accepted_at: null,
+          expires_at: { gt: new Date() },
+        },
+        data: { status: "ACCEPTED", accepted_at: new Date() },
+      });
+
+      if (claimed.count !== 1) return { status: "invalid" as const };
+
+      const activeMemberships = await tx.companyMembership.findMany({
+        where: {
+          user_id: input.user_id,
+          tenant_id: invitation.tenant_id,
+          employment_status: "ACTIVE",
+        },
+        select: { company_id: true },
+      });
+
+      if (
+        activeMemberships.some(
+          (membership) => membership.company_id !== invitation.company_id,
+        )
+      ) {
+        return { status: "invalid" as const };
+      }
+
+      const membership = await tx.companyMembership.upsert({
+        where: {
+          tenant_id_company_id_user_id: {
+            tenant_id: invitation.tenant_id,
+            company_id: invitation.company_id,
+            user_id: input.user_id,
+          },
+        },
+        create: {
+          tenant_id: invitation.tenant_id,
+          company_id: invitation.company_id,
+          user_id: input.user_id,
+          employment_status: "ACTIVE",
+        },
+        update: {},
+      });
+
+      return { status: "accepted" as const, membership };
     });
   }
 
@@ -217,6 +334,8 @@ export class OrganizationAdministrationRepository {
         email: input.email,
         invited_by: input.invited_by,
         invite_token_hash: input.invite_token_hash,
+        status: input.status,
+        expires_at: input.expires_at,
       },
     });
   }

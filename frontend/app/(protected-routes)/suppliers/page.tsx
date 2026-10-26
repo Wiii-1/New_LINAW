@@ -128,7 +128,7 @@ function Notice({
   );
 }
 
-function Governance() {
+export function Governance() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -462,8 +462,8 @@ function Governance() {
               and deliver the onboarding email.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={invite} className="space-y-4">
-            <label className="space-y-2 text-sm font-medium">
+          <form onSubmit={invite} className="space-y-5">
+            <label className="block space-y-2 text-sm font-medium">
               Recipient email
               <Input
                 required
@@ -473,7 +473,7 @@ function Governance() {
                 placeholder="supplier@example.com"
               />
             </label>
-            <DialogFooter>
+            <DialogFooter className="pt-1">
               <Button
                 type="button"
                 variant="outline"
@@ -536,7 +536,7 @@ function Governance() {
   );
 }
 
-function Portal() {
+export function Portal() {
   const [rfqs, setRfqs] = useState<Rfq[]>([]);
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [loading, setLoading] = useState(false);

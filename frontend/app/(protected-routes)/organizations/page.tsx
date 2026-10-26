@@ -23,6 +23,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   Field,
   FieldContent,
   FieldGroup,
@@ -510,27 +516,54 @@ function AdministrationView({
             {notice}
           </p>
         )}
-        <SettingsSection
-          settings={settings}
-          onSaved={(value) => {
-            setSettings(value);
-            setNotice("Company settings saved.");
-          }}
-        />
-        <MembersSection
-          members={members}
-          roles={roles}
-          currentUserId={currentUserId}
-          onChanged={() => void refresh("Memberships updated.")}
-        />
-        <RolesSection
-          roles={roles}
-          permissions={permissions}
-          selectedRole={selectedRole}
-          rolePermissions={rolePermissions}
-          onSelectRole={selectRole}
-          onChanged={() => void refresh("Roles and permissions updated.")}
-        />
+        <Tabs defaultValue="roles-and-permissions" className="space-y-6">
+          <TabsList className="grid h-auto w-full grid-cols-1 gap-1 border bg-muted/40 p-1 sm:grid-cols-3">
+            <TabsTrigger value="roles-and-permissions">
+              Roles and permissions
+            </TabsTrigger>
+            <TabsTrigger value="user-management">
+              User management
+            </TabsTrigger>
+            <TabsTrigger value="organization-management">
+              Organization management
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent
+            value="roles-and-permissions"
+            className="space-y-6"
+            keepMounted
+          >
+            <RolesSection
+              roles={roles}
+              permissions={permissions}
+              selectedRole={selectedRole}
+              rolePermissions={rolePermissions}
+              onSelectRole={selectRole}
+              onChanged={() => void refresh("Roles and permissions updated.")}
+            />
+          </TabsContent>
+          <TabsContent value="user-management" className="space-y-6" keepMounted>
+            <MembersSection
+              members={members}
+              roles={roles}
+              currentUserId={currentUserId}
+              onChanged={() => void refresh("Memberships updated.")}
+            />
+          </TabsContent>
+          <TabsContent
+            value="organization-management"
+            className="space-y-6"
+            keepMounted
+          >
+            <SettingsSection
+              settings={settings}
+              onSaved={(value) => {
+                setSettings(value);
+                setNotice("Company settings saved.");
+              }}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </main>
   );

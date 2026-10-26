@@ -68,6 +68,10 @@ The service generally scopes records by the authenticated `tenant_id` and `compa
 | GET    | `/api/organizationManagement/members/:userId`                         | Retrieve one company member     | Bearer token and company context | `organization_member:read`            |
 | PATCH  | `/api/organizationManagement/members/:userId`                         | Update membership fields        | Bearer token and company context | `organization_member:update`          |
 | DELETE | `/api/organizationManagement/members/:userId`                         | Remove company membership       | Bearer token and company context | `organization_member:remove`          |
+| GET    | `/api/organizationManagement/members/validate/:token`
+ | Validate a pending invitation  | Public                         | None                                  |
+| POST   | `/api/organizationManagement/members/accept`
+ | Accept an invitation           | Bearer token and tenant context | `organization_member:read`           |
 | POST   | `/api/organizationManagement/roles`                                   | Create a company role           | Bearer token and company context | `organization_role:create`            |
 | POST   | `/api/organizationManagement/members/:userId/roles`                   | Assign a role to a member       | Bearer token and company context | `organization_member:update`          |
 | POST   | `/api/organizationManagement/roles/:roleId/permissions`               | Add permissions to a role       | Bearer token and company context | `organization_role_permission:add`    |
@@ -88,7 +92,8 @@ Unless an endpoint says otherwise, the required header is `Authorization: Bearer
 
 ### POST `/api/organizationManagement/members`
 
-**Purpose:** Creates a company invitation for an existing tenant user.
+**Purpose:** Creates a company invitation for an email recipient. The recipient
+may already have a LINAW account or may register through the invitation link.
 
 **Implementation:** Router -> `addMember` -> `OrganizationAdministrationService.addMember` -> `createInvitation`; `EmailService` sends the invitation.
 
@@ -98,7 +103,9 @@ Unless an endpoint says otherwise, the required header is `Authorization: Bearer
 { "email": "member@example.com" }
 ```
 
-`email` is required and must be a valid email. The controller adds authenticated user, tenant, and company IDs; clients must not send them.
+`email` is required, normalized to lowercase, and must be a valid email. The
+controller adds authenticated user, tenant, and company IDs; clients must not
+send them.
 
 **Success Response:** `200`:
 
@@ -106,9 +113,57 @@ Unless an endpoint says otherwise, the required header is `Authorization: Bearer
 { "success": true, "message": "invitation sent", "member": { "success": true } }
 ```
 
-**Errors:** `404` if no company context or the email is not an application user; `409` if already a member; `422` for invalid email; `401`, `403`, or `500` from shared middleware/error handling.
+**Errors:** `404` if no company context; `409` if already a member or a pending
+invitation already exists; `422` for invalid email; `503` if delivery fails;
+`401`, `403`, or `500` from shared middleware/error handling.
 
-**Business Rules and Side Effects:** The user must already exist in the authenticated tenant. A random token is generated, only its hash is persisted in `CompanyInvitation`, and the raw token is placed in the emailed invitation URL. The invitation stores the inviter, tenant, company, and email. Email failure occurs after invitation creation and is not converted to a module-specific error.
+**Business Rules and Side Effects:** The invitation is bound to the authenticated
+tenant and company. A random 32-byte token is generated, only its SHA-256 hash is
+persisted in `CompanyInvitation`, and the raw token is placed in the email URL.
+Invitations expire after 72 hours and transition through `SENDING` to `PENDING`.
+Delivery failure marks the invitation `REVOKED` and returns `503`. The token is
+never returned by the API.
+
+### GET `/api/organizationManagement/members/validate/:token`
+
+**Purpose:** Publicly verifies that an organization invitation is pending and
+unexpired. The response contains only the expiry timestamp; it does not expose
+the email, tenant, company, or token.
+
+**Errors:** `401` for malformed, expired, revoked, or consumed invitations.
+
+### POST `/api/organizationManagement/members/accept`
+
+**Purpose:** Accepts an invitation for the authenticated recipient.
+
+**Request Body:**
+
+```json
+{ "token": "64-character-token" }
+```
+
+The recipient's user ID, tenant ID, and email are taken from the authenticated
+session and server-side user record. The client cannot select a tenant or
+company. The invitation email must match the authenticated user's email and the
+invitation tenant must match the authenticated user's tenant.
+
+Acceptance atomically claims the pending invitation and upserts one active
+`CompanyMembership` for the invitation's company. It does not grant a role or
+organization-administrator privileges. A claimed invitation cannot be replayed.
+
+**Errors:** `401` for missing/invalid authentication or token; `403` for missing
+member permission; `401` for expired, revoked, consumed, cross-tenant, or
+email-mismatched invitations.
+
+### Invitation registration handoff
+
+The existing `/api/auth/signup` request accepts an optional `invitation_token`.
+When present, the server validates the hashed token and invited email, creates
+the new user in the invitation's existing tenant, creates the intended company
+membership, and consumes the invitation in one transaction. Without a token,
+signup retains its existing behavior of creating a new tenant. A globally
+existing email remains ineligible for a second user account and must use the
+authenticated acceptance flow instead.
 
 ### GET `/api/organizationManagement/members`
 

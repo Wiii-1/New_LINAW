@@ -17,17 +17,26 @@ function getSafeReturnTo() {
   return value?.startsWith("/invitations/accept?token=") ? value : null;
 }
 
+function getInvitationToken() {
+  if (typeof window === "undefined") return null;
+  const token = new URLSearchParams(window.location.search).get(
+    "invitationToken",
+  );
+  return token && /^[A-Fa-f0-9]{64}$/.test(token) ? token : null;
+}
+
 export function SignupForm({ className, ...props }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const safeReturnTo = getSafeReturnTo();
+  const invitationToken = getInvitationToken();
   const form = useForm<SignUpFormValues>({ resolver: zodResolver(signUpSchema), defaultValues: { firstName: "", lastName: "", email: "", password: "", confirmPassword: "" } });
 
   async function onSubmit(values: SignUpFormValues) {
     setIsLoading(true);
     try {
       const { response, data } = await runAuthTransition(async () => {
-        const response = await fetch("/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ first_name: values.firstName, last_name: values.lastName, email: values.email, password: values.password, confirmPassword: values.confirmPassword }) });
+        const response = await fetch("/api/auth/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ first_name: values.firstName, last_name: values.lastName, email: values.email, password: values.password, confirmPassword: values.confirmPassword, ...(invitationToken ? { invitation_token: invitationToken } : {}) }) });
         const data = (await response.json()) as { success?: boolean; message?: string };
         if (response.ok && data.success === true) markAuthTransition();
         return { response, data };

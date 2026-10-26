@@ -112,6 +112,31 @@ export async function inviteMember(email: string) {
   });
 }
 
+export async function validateMemberInvitation(token: string) {
+  const response = await authFetch(
+    `/api/organization-administration/members/validate/${encodeURIComponent(token)}`,
+    { cache: "no-store" },
+    { retryOnUnauthorized: false },
+  );
+  const body = (await response.json().catch(() => ({}))) as ApiBody & {
+    data?: { expires_at?: string };
+  };
+  if (!response.ok || body.success !== true) {
+    throw new OrganizationApiError(
+      response.status,
+      body.message ?? "This invitation is no longer valid.",
+    );
+  }
+  return body.data;
+}
+
+export async function acceptMemberInvitation(token: string) {
+  return request("members/accept", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
 export async function updateMember(
   userId: string,
   input: Record<string, unknown>,

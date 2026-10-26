@@ -22,6 +22,7 @@ interface SignupRequest {
   email: string;
   password: string;
   confirmPassword: string;
+  invitation_token?: string;
 }
 
 function getErrorMessage(data: SignupResponse, fallback: string): string {
@@ -127,6 +128,9 @@ export async function POST(request: Request): Promise<Response> {
         email,
         password: input.password,
         confirmPassword: input.confirmPassword,
+        ...(typeof input.invitation_token === "string"
+          ? { invitation_token: input.invitation_token }
+          : {}),
       }),
     });
   } catch {

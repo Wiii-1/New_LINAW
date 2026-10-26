@@ -9,6 +9,10 @@ import {
   type InvitationPreview,
 } from "@/app/api/suppliers/client";
 import {
+  acceptMemberInvitation,
+  validateMemberInvitation,
+} from "@/app/api/organization-administration/client";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -44,6 +48,7 @@ export default function InvitationAcceptPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token") ?? "";
+  const isOrganizationInvitation = /^[A-Fa-f0-9]{64}$/.test(token);
   const [preview, setPreview] = useState<InvitationPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,21 +57,30 @@ export default function InvitationAcceptPage() {
   const [accepted, setAccepted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasCompany, setHasCompany] = useState(false);
+  const [organizationValid, setOrganizationValid] = useState(false);
+  const [organizationAccepted, setOrganizationAccepted] = useState(false);
 
   const returnPath = useMemo(() => invitationReturnPath(token), [token]);
 
   useEffect(() => {
-    if (!/^[A-Za-z0-9_-]{32,512}$/.test(token)) {
+    if (
+      !/^[A-Za-z0-9_-]{32,512}$/.test(token) &&
+      !isOrganizationInvitation
+    ) {
       setError("This invitation link is malformed or incomplete.");
       setIsLoading(false);
       return;
     }
 
     let cancelled = false;
-    validateInvitation(token)
-      .then((result) => {
-        if (!cancelled) setPreview(result);
-      })
+    const validation = isOrganizationInvitation
+      ? validateMemberInvitation(token).then(() => {
+          if (!cancelled) setOrganizationValid(true);
+        })
+      : validateInvitation(token).then((result) => {
+          if (!cancelled) setPreview(result);
+        });
+    validation
       .catch((cause: unknown) => {
         if (!cancelled) {
           setError(cause instanceof Error ? friendlyError(cause.message) : "This invitation is unavailable.");
@@ -79,10 +93,10 @@ export default function InvitationAcceptPage() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [isOrganizationInvitation, token]);
 
   useEffect(() => {
-    if (!preview) return;
+    if (!preview && !organizationValid) return;
 
     let cancelled = false;
     setIsCheckingAccount(true);
@@ -96,7 +110,11 @@ export default function InvitationAcceptPage() {
       .catch((cause: unknown) => {
         if (cancelled) return;
 
-        if (cause instanceof UserProfileApiError && cause.status === 401) {
+        if (
+          cause instanceof UserProfileApiError &&
+          cause.status === 401 &&
+          !isOrganizationInvitation
+        ) {
           router.push(`/login?returnTo=${encodeURIComponent(returnPath)}`);
           return;
         }
@@ -110,16 +128,21 @@ export default function InvitationAcceptPage() {
     return () => {
       cancelled = true;
     };
-  }, [preview, returnPath, router]);
+  }, [isOrganizationInvitation, organizationValid, preview, returnPath, router]);
 
   async function handleAccept() {
-    if (!preview || isSubmitting) return;
+    if ((!preview && !organizationValid) || isSubmitting) return;
     setIsSubmitting(true);
     setError(null);
 
     try {
-      await acceptInvitation(preview.invitation_id, token);
-      setAccepted(true);
+      if (isOrganizationInvitation) {
+        await acceptMemberInvitation(token);
+        setOrganizationAccepted(true);
+      } else {
+        await acceptInvitation(preview!.invitation_id, token);
+        setAccepted(true);
+      }
     } catch (cause: unknown) {
       const message = cause instanceof Error ? cause.message : "";
       if (/session|sign in|authentication/i.test(message)) {
@@ -132,7 +155,13 @@ export default function InvitationAcceptPage() {
     }
   }
 
-  const heading = accepted ? "Supplier relationship connected" : "You have been invited";
+  const heading = isOrganizationInvitation
+    ? organizationAccepted
+      ? "Organization membership connected"
+      : "You have been invited to join an organization"
+    : accepted
+      ? "Supplier relationship connected"
+      : "You have been invited";
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-muted/30 p-4 sm:p-8">
@@ -144,7 +173,9 @@ export default function InvitationAcceptPage() {
             </div>
             <DialogTitle className="text-xl">{heading}</DialogTitle>
             <DialogDescription>
-              {accepted
+              {organizationAccepted
+                ? "Your organization membership is now ready in LINAW."
+                : accepted
                 ? "Your supplier relationship is now ready in LINAW."
                 : "A company has invited your account to connect as a supplier in LINAW."}
             </DialogDescription>
@@ -163,6 +194,18 @@ export default function InvitationAcceptPage() {
                 Verifying your account and company access...
               </p>
             )}
+            {isOrganizationInvitation && organizationValid && !isAuthenticated && !organizationAccepted && (
+              <div className="space-y-3 rounded-lg border bg-muted/20 p-4 text-sm">
+                <p className="font-medium">Sign in or create your account</p>
+                <p className="text-muted-foreground">
+                  Use the invited email address when signing in or registering.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => router.push(`/signup?invitationToken=${encodeURIComponent(token)}&returnTo=${encodeURIComponent(returnPath)}`)}>Create account</Button>
+                  <Button onClick={() => router.push(`/login?returnTo=${encodeURIComponent(returnPath)}`)}>Sign in</Button>
+                </div>
+              </div>
+            )}
             {preview && isAuthenticated && !hasCompany && !accepted && (
               <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
                 <p className="font-medium">Company membership required</p>
@@ -178,7 +221,8 @@ export default function InvitationAcceptPage() {
                 </p>
               </div>
             )}
-            {preview && isAuthenticated && hasCompany && !accepted && (
+            {((preview && isAuthenticated && hasCompany && !accepted) ||
+              (isOrganizationInvitation && isAuthenticated && organizationValid && !organizationAccepted)) && (
               <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Invitation status</p>
@@ -191,11 +235,13 @@ export default function InvitationAcceptPage() {
                 <p className="text-xs text-muted-foreground">The inviting company name is not included in the current invitation response.</p>
               </div>
             )}
+            {organizationAccepted && <p className="text-sm text-muted-foreground">You can continue to organization settings to manage your membership.</p>}
             {accepted && <p className="text-sm text-muted-foreground">You can continue to the supplier portal to manage your connected procurement work.</p>}
           </div>
 
           <DialogFooter className="border-t px-5 py-4 sm:px-6">
-            {!accepted && preview && isAuthenticated && hasCompany && (
+            {!accepted && !organizationAccepted && ((preview && isAuthenticated && hasCompany) ||
+              (isOrganizationInvitation && isAuthenticated && organizationValid)) && (
               <>
                 <Button variant="outline" type="button" onClick={() => router.push("/")} disabled={isSubmitting}>
                   Leave for now
@@ -205,6 +251,7 @@ export default function InvitationAcceptPage() {
                 </Button>
               </>
             )}
+            {organizationAccepted && <Button type="button" onClick={() => router.push("/organization-settings")}>Open organization settings</Button>}
             {accepted && <Button type="button" onClick={() => router.push("/suppliers")}>Open supplier portal</Button>}
           </DialogFooter>
         </DialogContent>

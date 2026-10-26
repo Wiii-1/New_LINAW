@@ -72,6 +72,11 @@ export const signupSchema = z
       .max(128, "Password is too long"),
 
     confirmPassword: z.string(),
+
+    invitation_token: z
+      .string()
+      .regex(/^[A-Fa-f0-9]{64}$/)
+      .optional(),
   })
   .refine(
     (data: {

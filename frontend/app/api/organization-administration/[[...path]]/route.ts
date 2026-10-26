@@ -29,6 +29,12 @@ function allowedMethod(path: string, method: HttpMethod): boolean {
   if (path === "organizationManagement/members") {
     return method === "GET" || method === "POST";
   }
+  if (/^organizationManagement\/members\/validate\/[^/]+$/.test(path)) {
+    return method === "GET";
+  }
+  if (path === "organizationManagement/members/accept") {
+    return method === "POST";
+  }
   if (/^organizationManagement\/members\/[^/]+$/.test(path)) {
     return method === "PATCH" || method === "DELETE";
   }
@@ -74,6 +80,7 @@ async function forward(
     path,
     method,
     (candidate) => candidate === path,
+    !path.startsWith("organizationManagement/members/validate/"),
   );
 }
 

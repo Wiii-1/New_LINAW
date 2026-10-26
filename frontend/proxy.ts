@@ -8,10 +8,13 @@ const protectedRoutes = [
   "/deliveries",
   "/invoices",
   "/organizations",
+  "/organization-settings",
   "/purchase-orders",
   "/audit-trail",
   "/purchase-requisitions",
   "/suppliers",
+  "/supplier-management",
+  "/supplier-portal",
   "/users",
   "/profile",
 ];
@@ -47,6 +50,17 @@ async function hasValidSession(accessToken: string): Promise<boolean> {
   }
 }
 
+function addSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+  );
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isProtectedRoute = protectedRoutes.some((route) =>
@@ -54,16 +68,19 @@ export async function proxy(request: NextRequest) {
   );
   const isAuthRoute = authRoutes.some((route) => matchesRoute(pathname, route));
 
-  if (!isProtectedRoute && !isAuthRoute) return NextResponse.next();
+  if (!isProtectedRoute && !isAuthRoute)
+    return addSecurityHeaders(NextResponse.next());
 
   const accessToken = request.cookies.get("accessToken")?.value;
   const hasSession = accessToken ? await hasValidSession(accessToken) : false;
 
   if (isProtectedRoute && !hasSession) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return addSecurityHeaders(
+      NextResponse.redirect(new URL("/login", request.url)),
+    );
   }
 
-  return NextResponse.next();
+  return addSecurityHeaders(NextResponse.next());
 }
 
 export const config = {
