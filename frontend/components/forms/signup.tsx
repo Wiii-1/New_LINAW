@@ -14,13 +14,35 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { signUpSchema, type SignUpFormValues } from "@/validators/auth";
+import { markAuthTransition, runAuthTransition } from "@/lib/auth-client";
+
+function getSafeReturnTo() {
+  if (typeof window === "undefined") return null;
+  const value = new URLSearchParams(window.location.search).get("returnTo");
+  return value?.startsWith("/invitations/accept?token=") ? value : null;
+}
+
+function getInvitationToken() {
+  if (typeof window === "undefined") return null;
+  const token = new URLSearchParams(window.location.search).get(
+    "invitationToken",
+  );
+  return token && /^[A-Fa-f0-9]{64}$/.test(token) ? token : null;
+}
 
 export function SignupForm({
   csrfToken,
   className,
   ...props
-}: React.ComponentProps<"div"> & { csrfToken: string }) {
+}: React.ComponentProps<"div"> & { csrfToken: string } & {
+  csrfToken: string;
+}) {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const safeReturnTo = getSafeReturnTo();
+  const invitationToken = getInvitationToken();
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
@@ -32,40 +54,36 @@ export function SignupForm({
     },
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-
   async function onSubmit(values: SignUpFormValues) {
     setIsLoading(true);
-
     try {
-      const response = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
-        },
-        body: JSON.stringify({
-          first_name: values.firstName,
-          last_name: values.lastName,
-          email: values.email,
-          password: values.password,
-          confirmPassword: values.confirmPassword,
-        }),
+      const { response, data } = await runAuthTransition(async () => {
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            first_name: values.firstName,
+            last_name: values.lastName,
+            email: values.email,
+            password: values.password,
+            confirmPassword: values.confirmPassword,
+            ...(invitationToken ? { invitation_token: invitationToken } : {}),
+          }),
+        });
+        const data = (await response.json()) as {
+          success?: boolean;
+          message?: string;
+        };
+        if (response.ok && data.success === true) markAuthTransition();
+        return { response, data };
       });
-      const data = (await response.json()) as {
-        success?: boolean;
-        message?: string;
-      };
-
       if (!response.ok || data.success !== true) {
         form.setError("root", {
           message: data.message ?? "Unable to create your account.",
         });
         return;
       }
-
-      router.push("/administration");
+      router.push(safeReturnTo ?? "/administration");
     } catch {
       form.setError("root", {
         message: "Unable to reach the signup service. Please try again.",
@@ -77,20 +95,23 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form
-        id="signup-form"
-        method="post"
-        action="/api/auth/signup"
-        onSubmit={form.handleSubmit(onSubmit)}
-      >
+      <form id="signup-form" onSubmit={form.handleSubmit(onSubmit)}>
         <input type="hidden" name="CSRFToken" value={csrfToken} />
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-xl font-bold">Welcome to LINAW</h1>
             <FieldDescription>
-              Already have an account? <a href="/login">Login</a>
+              Already have an account?{" "}
+              <a
+                href={
+                  safeReturnTo
+                    ? `/login?returnTo=${encodeURIComponent(safeReturnTo)}`
+                    : "/login"
+                }
+              >
+                Login
+              </a>
             </FieldDescription>
-            <FieldError>{form.formState.errors.root?.message}</FieldError>
           </div>
           <Controller
             name="firstName"
@@ -101,7 +122,6 @@ export function SignupForm({
                 <Input
                   {...field}
                   id="first-name"
-                  type="text"
                   required
                   className="bg-background"
                 />
@@ -118,7 +138,6 @@ export function SignupForm({
                 <Input
                   {...field}
                   id="last-name"
-                  type="text"
                   required
                   className="bg-background"
                 />
@@ -139,6 +158,7 @@ export function SignupForm({
                   required
                   className="bg-background"
                 />
+                <FieldError>{fieldState.error?.message}</FieldError>
               </Field>
             )}
           />
@@ -148,10 +168,9 @@ export function SignupForm({
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor="password">Password</FieldLabel>
-                <Input
+                <PasswordInput
                   {...field}
                   id="password"
-                  type="password"
                   required
                   className="bg-background"
                 />
@@ -170,10 +189,9 @@ export function SignupForm({
                 <FieldLabel htmlFor="confirm-password">
                   Confirm Password
                 </FieldLabel>
-                <Input
+                <PasswordInput
                   {...field}
                   id="confirm-password"
-                  type="password"
                   required
                   className="bg-background"
                 />
@@ -183,7 +201,7 @@ export function SignupForm({
           />
           <Field>
             <Button type="submit" disabled={isLoading} form="signup-form">
-              {isLoading ? "Creating account..." : "Create Account"}
+              Create Account
             </Button>
           </Field>
           <FieldSeparator>Or</FieldSeparator>

@@ -3,80 +3,96 @@
 import { cn } from "cn";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-//import { useRouter } from "next/navigation";
-//import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
   FieldDescription,
-  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { loginSchema, type LoginFormValues } from "@/validators/auth";
+import { markAuthTransition, runAuthTransition } from "@/lib/auth-client";
+
+function getSafeReturnTo() {
+  if (typeof window === "undefined") return null;
+  const value = new URLSearchParams(window.location.search).get("returnTo");
+  return value?.startsWith("/invitations/accept?token=") ? value : null;
+}
 
 export function LoginForm({
   csrfToken,
   className,
   ...props
 }: React.ComponentProps<"div"> & { csrfToken: string }) {
-  //const [isLoading, setIsLoading] = useState(false);
-  //const router = useRouter();
-
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const safeReturnTo = getSafeReturnTo();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   });
 
-  /*
-    async function onSubmit(values: LoginFormValues) {
+  async function onSubmit(values: LoginFormValues) {
     setIsLoading(true);
-
-    const { success, message } = await signIn(
-      values.email,
-      values.password,
-    );
-
-    if (success) {
-      toast.success(
-        `${message as string} Related to login success.`,
-      );
-      router.push("/dashboard");
-    } else {
-      toast.error(message as string);
+    try {
+      const { response, data } = await runAuthTransition(async () => {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+        const data = (await response.json()) as {
+          success?: boolean;
+          message?: string;
+        };
+        if (response.ok && data.success === true) markAuthTransition();
+        return { response, data };
+      });
+      if (!response.ok || data.success !== true) {
+        form.setError("root", {
+          message: data.message ?? "Login failed. Please try again.",
+        });
+        return;
+      }
+      router.push(safeReturnTo ?? "/administration");
+    } catch {
+      form.setError("root", {
+        message: "Unable to reach the login service. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   }
-  */
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form
-        id="login-form"
-        method="post"
-        onSubmit={(event) => event.preventDefault()}
-        //onSubmit={form.handleSubmit(onSubmit)}
-      >
-        <input type="hidden" name="CSRFToken" value={csrfToken} />
+      <form id="login-form" onSubmit={form.handleSubmit(onSubmit)}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-xl font-bold">Welcome to LINAW</h1>
             <FieldDescription>
-              Don&apos;t have an account? <a href="/signup">Sign up</a>
+              Don&apos;t have an account?{" "}
+              <a
+                href={
+                  safeReturnTo
+                    ? `/signup?returnTo=${encodeURIComponent(safeReturnTo)}`
+                    : "/signup"
+                }
+              >
+                Sign up
+              </a>
             </FieldDescription>
-            <FieldError>{form.formState.errors.root?.message}</FieldError>
           </div>
           <Controller
             name="email"
             control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+            render={({ field }) => (
+              <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   {...field}
@@ -91,8 +107,8 @@ export function LoginForm({
           <Controller
             name="password"
             control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+            render={({ field }) => (
+              <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                   <a
@@ -102,10 +118,9 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input
+                <PasswordInput
                   {...field}
                   id="password"
-                  type="password"
                   required
                   className="bg-background"
                 />
@@ -113,7 +128,7 @@ export function LoginForm({
             )}
           />
           <Field>
-            <Button type="submit" /* disabled={isLoading} */ form="login-form">
+            <Button type="submit" disabled={isLoading} form="login-form">
               Login
             </Button>
           </Field>
@@ -148,6 +163,11 @@ export function LoginForm({
           </Field>
         </FieldGroup>
       </form>
+      <FieldDescription className="px-6 text-center">
+        By logging in, you agree to our{" "}
+        <a href="/terms-of-service">Terms of Service</a> and{" "}
+        <a href="/privacy-policy">Privacy Policy</a>.
+      </FieldDescription>
     </div>
   );
 }

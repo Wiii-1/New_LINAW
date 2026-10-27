@@ -1,13 +1,16 @@
 {
   "name": "backend",
   "version": "1.0.0",
+  "packageManager": "pnpm@12.16.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "wrangler dev",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "dev": "wrangler dev --env local",
     "dev:express": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit",
-    "build": "tsc",
+    "build": "pnpm prisma generate && tsc -b",
+    "lint": "oxlint",
     "db:seed": "prisma db seed",
     "predb:seed": "pnpm exec prisma generate",
     "start": "wrangler dev",
