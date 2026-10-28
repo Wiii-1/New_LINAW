@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const protectedRoutes = [
-  "/administration",
   "/approval-workflows",
   "/audit-trail",
   "/dashboard",
@@ -11,6 +10,7 @@ const protectedRoutes = [
   "/profile",
   "/purchase-orders",
   "/purchase-requisitions",
+  "/suppliers",
   "/supplier-management",
   "/supplier-portal",
   "/user-management",
@@ -31,18 +31,20 @@ async function hasValidSession(accessToken: string): Promise<boolean> {
     return false;
   }
 
+  let cleanApiUrl = apiUrl;
+  while (cleanApiUrl.endsWith("/")) {
+    cleanApiUrl = cleanApiUrl.slice(0, -1);
+  }
+
   try {
-    const response = await fetch(
-      `${apiUrl.replace(/\/+$/, "")}/api/auth/validate_token`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
-        },
-        cache: "no-store",
+    const response = await fetch(`${cleanApiUrl}/api/auth/validate_token`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
       },
-    );
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       return false;
@@ -91,14 +93,14 @@ function applySecurityHeaders(
   response: NextResponse,
   csp: string,
 ): NextResponse {
-  const isProd = env.NODE_ENV === "production";
+  const isDev = env.NODE_ENV === "production";
 
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
-  if (isProd) {
+  if (isDev) {
     response.headers.set(
       "Strict-Transport-Security",
       "max-age=31536000; includeSubDomains; preload",

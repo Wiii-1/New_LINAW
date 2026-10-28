@@ -83,7 +83,7 @@ export function SignupForm({
         });
         return;
       }
-      router.push(safeReturnTo ?? "/administration");
+      router.push(safeReturnTo ?? "/organization-settings");
     } catch {
       form.setError("root", {
         message: "Unable to reach the signup service. Please try again.",
