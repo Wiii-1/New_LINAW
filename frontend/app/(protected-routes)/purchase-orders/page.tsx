@@ -114,7 +114,9 @@ export default function PurchaseOrdersPage() {
   const [selected, setSelected] = useState<PurchaseOrder | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [mutation, setMutation] = useState<"cancel" | "order" | "complete" | null>(null);
+  const [mutation, setMutation] = useState<
+    "cancel" | "order" | "complete" | null
+  >(null);
   const [cancelOpen, setCancelOpen] = useState(false);
 
   const columns = useMemo(() => {
@@ -123,7 +125,9 @@ export default function PurchaseOrdersPage() {
     return columnHelper.columns([
       columnHelper.accessor("po_number", {
         header: "PO number",
-        cell: ({ row }) => <span className="font-medium">{row.original.po_number}</span>,
+        cell: ({ row }) => (
+          <span className="font-medium">{row.original.po_number}</span>
+        ),
       }),
       columnHelper.accessor("supplier", {
         header: "Supplier",
@@ -267,38 +271,32 @@ export default function PurchaseOrdersPage() {
       className="min-h-[calc(100svh-var(--header-height))] bg-background"
     >
       <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 px-4 py-7 sm:px-6 lg:px-10 lg:py-9">
-        <TabsList
-          variant="line"
-          className="w-full justify-start border-b border-border/70"
-        >
+        <header className="flex flex-col gap-5 border-b border-border/70 pb-7 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+              Purchase Orders
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Issue, track, and manage legally binding orders with your
+              suppliers
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void loadOrders()}
+            >
+              <RefreshCwIcon />
+              Refresh
+            </Button>
+          </div>
+        </header>
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 border bg-muted/40 p-1 sm:grid-cols-2">
           <TabsTrigger value="purchase-orders">Purchase orders</TabsTrigger>
           <TabsTrigger value="rfqs">RFQs &amp; quotations</TabsTrigger>
         </TabsList>
         <TabsContent value="purchase-orders">
-          <header className="flex flex-col gap-5 border-b border-border/70 pb-7 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">
-                Procurement / Operations
-              </p>
-              <h1 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-                Purchase orders
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                Issue, track, and manage legally binding orders with your
-                suppliers.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void loadOrders()}
-              >
-                <RefreshCwIcon />
-                Refresh
-              </Button>
-            </div>
-          </header>
           {notice && (
             <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
               <span className="flex items-center gap-2">
@@ -497,12 +495,15 @@ export default function PurchaseOrdersPage() {
                                 className="flex flex-wrap items-baseline justify-between gap-3 px-4 py-3 text-sm"
                               >
                                 <div>
-                                  <p className="font-medium">{item.description}</p>
+                                  <p className="font-medium">
+                                    {item.description}
+                                  </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {item.quantity} {item.unit_of_measure} at {" "}
+                                    {item.quantity} {item.unit_of_measure} at{" "}
                                     {formatMoney(
                                       item.estimated_unit_cost,
-                                      selected.purchase_requisition?.currency_code ??
+                                      selected.purchase_requisition
+                                        ?.currency_code ??
                                         selected.currency_code,
                                     )}
                                   </p>
@@ -515,8 +516,8 @@ export default function PurchaseOrdersPage() {
                                 <p className="font-medium tabular-nums">
                                   {formatMoney(
                                     item.estimated_total_cost,
-                                    selected.purchase_requisition?.currency_code ??
-                                      selected.currency_code,
+                                    selected.purchase_requisition
+                                      ?.currency_code ?? selected.currency_code,
                                   )}
                                 </p>
                               </div>
@@ -543,10 +544,12 @@ export default function PurchaseOrdersPage() {
                                       `Line ${item.line_no}`}
                                   </p>
                                   <p className="text-xs text-muted-foreground">
-                                    {item.quoted_quantity} {item.rfq_item?.unit_of_measure ?? ""} at {" "}
+                                    {item.quoted_quantity}{" "}
+                                    {item.rfq_item?.unit_of_measure ?? ""} at{" "}
                                     {formatMoney(
                                       item.unit_price,
-                                      selected.supplier_quotation?.currency_code ??
+                                      selected.supplier_quotation
+                                        ?.currency_code ??
                                         selected.currency_code,
                                     )}
                                   </p>
@@ -559,8 +562,8 @@ export default function PurchaseOrdersPage() {
                                 <p className="font-medium tabular-nums">
                                   {formatMoney(
                                     item.total_price,
-                                    selected.supplier_quotation?.currency_code ??
-                                      selected.currency_code,
+                                    selected.supplier_quotation
+                                      ?.currency_code ?? selected.currency_code,
                                   )}
                                 </p>
                               </div>
@@ -612,17 +615,18 @@ export default function PurchaseOrdersPage() {
                         Cancel order
                       </Button>
                     )}
-                    {selected && ["DRAFT", "ISSUED"].includes(selected.status) && (
-                      <Button
-                        onClick={() => void advanceOrder()}
-                        disabled={mutation !== null}
-                      >
-                        {mutation === "order" && (
-                          <Loader2Icon className="animate-spin" />
-                        )}
-                        Order
-                      </Button>
-                    )}
+                    {selected &&
+                      ["DRAFT", "ISSUED"].includes(selected.status) && (
+                        <Button
+                          onClick={() => void advanceOrder()}
+                          disabled={mutation !== null}
+                        >
+                          {mutation === "order" && (
+                            <Loader2Icon className="animate-spin" />
+                          )}
+                          Order
+                        </Button>
+                      )}
                     {selected?.status === "ORDERED" && (
                       <Button
                         onClick={() => void complete()}

@@ -215,7 +215,10 @@ export default function PurchaseRequisitionsPage() {
   const [cancelRemarks, setCancelRemarks] = useState("");
 
   const columns = useMemo(() => {
-    const columnHelper = createColumnHelper<DataTableFeatures, PurchaseRequisitionSummary>();
+    const columnHelper = createColumnHelper<
+      DataTableFeatures,
+      PurchaseRequisitionSummary
+    >();
 
     return columnHelper.columns([
       columnHelper.accessor("requisition_number", {
@@ -250,12 +253,16 @@ export default function PurchaseRequisitionsPage() {
       }),
       columnHelper.accessor("requisition_status", {
         header: "Status",
-        cell: ({ row }) => <StatusBadge status={row.original.requisition_status} />,
+        cell: ({ row }) => (
+          <StatusBadge status={row.original.requisition_status} />
+        ),
       }),
       columnHelper.display({
         id: "actions",
         header: "",
-        cell: () => <ChevronRightIcon className="size-4 text-muted-foreground" />,
+        cell: () => (
+          <ChevronRightIcon className="size-4 text-muted-foreground" />
+        ),
       }),
     ]);
   }, []);
@@ -501,6 +508,8 @@ export default function PurchaseRequisitionsPage() {
               columns={columns}
               data={requisitions}
               enableExport
+              searchKey="workflow_code"
+              searchPlaceholder="Search workflow code..."
               exportFileName="purchase-requisitions"
               onRowClick={(item) => void openDetail(item.requisition_id)}
               density="comfortable"

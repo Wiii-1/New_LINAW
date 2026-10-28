@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpRightIcon,
-  CalendarDaysIcon,
   CheckCircle2Icon,
   ChevronRightIcon,
   Clock3Icon,
   FilePlus2Icon,
-  FilterIcon,
   MoreHorizontalIcon,
   PackageCheckIcon,
   PlusIcon,
@@ -25,9 +23,7 @@ import {
 } from "@/lib/dashboard-data";
 import { formatCurrency } from "@/lib/currencies";
 import { useAuthState } from "@/components/auth-state-provider";
-import {
-  CompletedProcurementReportDialog,
-} from "./completed-procurement-report-dialog";
+import { CompletedProcurementReportDialog } from "./completed-procurement-report-dialog";
 import {
   getMonthlyCompletedProcurementReport,
   type CompletedProcurementReport,
@@ -69,7 +65,7 @@ function getTransactionTone(
   return "blue";
 }
 
-export default function Page() {
+export default function DashboardPage() {
   const { transitionRevision } = useAuthState();
   const [filter, setFilter] = useState("All activity");
   const [search, setSearch] = useState("");
@@ -81,7 +77,8 @@ export default function Page() {
     null,
   );
   const [reportOpen, setReportOpen] = useState(false);
-  const [currentReport, setCurrentReport] = useState<CompletedProcurementReport | null>(null);
+  const [currentReport, setCurrentReport] =
+    useState<CompletedProcurementReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState(false);
 
@@ -97,7 +94,9 @@ export default function Page() {
 
     Promise.allSettled([
       fetchDashboardData(controller.signal),
-      getMonthlyCompletedProcurementReport(new Date().toISOString().slice(0, 7)),
+      getMonthlyCompletedProcurementReport(
+        new Date().toISOString().slice(0, 7),
+      ),
     ])
       .then(([dashboardResult, reportResult]) => {
         if (controller.signal.aborted) return;
@@ -172,19 +171,15 @@ export default function Page() {
     .join(" ");
   const stats = [
     {
-      label: "Purchase requisitions",
+      label: "Purchase Requisitions",
       value: dashboard?.requisitionTotal ?? dashboard?.requisitions.length ?? 0,
-      change: "Live",
-      note: "authorized records",
       icon: FilePlus2Icon,
       tone: "blue",
       href: "/purchase-requisitions",
     },
     {
-      label: "Pending approvals",
+      label: "Pending Approvals",
       value: dashboard?.approvalTotal ?? dashboard?.approvals.length ?? 0,
-      change: "Live",
-      note: "assigned to you",
       icon: Clock3Icon,
       tone: "amber",
       href: "/approval-workflows",
@@ -192,17 +187,14 @@ export default function Page() {
     {
       label: "Active RFQs",
       value: dashboard?.rfqTotal ?? dashboard?.rfqs.length ?? 0,
-      change: "Live",
-      note: "published RFQs",
       icon: SendIcon,
       tone: "violet",
       href: "/purchase-orders",
     },
     {
-      label: "Purchase orders",
-      value: dashboard?.purchaseOrderTotal ?? dashboard?.purchaseOrders.length ?? 0,
-      change: "Live",
-      note: "all authorized statuses",
+      label: "Purchase Orders",
+      value:
+        dashboard?.purchaseOrderTotal ?? dashboard?.purchaseOrders.length ?? 0,
       icon: WalletCardsIcon,
       tone: "green",
       href: "/purchase-orders",
@@ -213,7 +205,7 @@ export default function Page() {
     <main className="min-h-[calc(100svh-var(--header-height))] flex-1 ">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-7 px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
         {requestError && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/10 dark:text-amber-200">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/10 dark:text-amber-200">
             Some dashboard sections could not be loaded. Displayed values may be
             partial.
           </div>
@@ -245,20 +237,11 @@ export default function Page() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
-              variant="outline"
-              className="shadow-sm"
-              disabled
-              title="Date-range filtering is not supported by the procurement APIs."
-            >
-              <CalendarDaysIcon className="size-4" />
-              This month
-            </Button>
-            <Button
               className="shadow-[0_6px_16px_rgba(28,99,242,0.2)]"
               onClick={() => window.location.assign("/purchase-requisitions")}
             >
               <PlusIcon className="size-4" />
-              New requisition
+              New Requisition
             </Button>
           </div>
         </section>
@@ -269,8 +252,12 @@ export default function Page() {
             return (
               <div
                 key={stat.label}
-                className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/50 ${stat.href ? "cursor-pointer transition-colors hover:border-emerald-300 dark:hover:border-emerald-700" : ""}`}
-                onClick={stat.href ? () => window.location.assign(stat.href) : undefined}
+                className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/50 ${stat.href ? "cursor-pointer transition-colors hover:border-blue-300 dark:hover:border-blue-700" : ""}`}
+                onClick={
+                  stat.href
+                    ? () => window.location.assign(stat.href)
+                    : undefined
+                }
                 onKeyDown={
                   stat.href
                     ? (event) => {
@@ -290,15 +277,11 @@ export default function Page() {
                   >
                     <Icon className="size-4" />
                   </div>
-                  <span className="rounded-full px-2 py-1 text-[11px] font-semibold">
-                    {stat.change}
-                  </span>
                 </div>
                 <p className="mt-5 text-2xl font-semibold tracking-tight">
                   {stat.value}
                 </p>
                 <p className="mt-1 text-xs font-medium">{stat.label}</p>
-                <p className="mt-3 text-[11px]">{stat.note}</p>
               </div>
             );
           })}
@@ -307,9 +290,9 @@ export default function Page() {
         <section className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/50 sm:px-6">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-semibold">Procurement pipeline</p>
+              <p className="text-sm font-semibold">Procurement Pipeline</p>
               <p className="mt-1 text-xs">
-                Track activity from request to purchase order.
+                Track activity from request to purchase order
               </p>
             </div>
             <Link
@@ -391,14 +374,6 @@ export default function Page() {
                     className="h-8 w-32 rounded-md border border-slate-200 pl-8 pr-2 text-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 border-slate-200 text-xs"
-                >
-                  <FilterIcon className="size-3.5" />
-                  Filter
-                </Button>
               </div>
             </div>
             <div className="flex gap-4 overflow-x-auto border-b border-slate-100 px-5 pt-3 dark:border-slate-800/60 sm:px-6">
@@ -513,7 +488,7 @@ export default function Page() {
                 <p className="text-sm font-semibold">Needs your review</p>
                 <p className="mt-1 text-xs">Approvals waiting in your queue.</p>
               </div>
-              <span className="flex size-7 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-amber-50 dark:ring-amber-700/50">
+              <span className="flex size-7 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-blue-50 dark:ring-blue-700/50">
                 {dashboard?.approvals.length ?? 0}
               </span>
             </div>
@@ -577,7 +552,9 @@ export default function Page() {
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-semibold">Completed Procurement Value</p>
+                <p className="text-sm font-semibold">
+                  Completed Procurement Value
+                </p>
                 <p className="mt-1 text-xs">
                   Total value of completed purchase orders this month.
                 </p>
@@ -586,12 +563,17 @@ export default function Page() {
             </div>
             <div className="mt-7 flex items-end gap-3">
               {reportLoading ? (
-                <span className="text-3xl font-semibold tracking-tight">Loading...</span>
+                <span className="text-3xl font-semibold tracking-tight">
+                  Loading...
+                </span>
               ) : currentReport?.summary.values_by_currency.length === 1 ? (
                 <span className="text-3xl font-semibold tracking-tight">
                   {formatCurrency(
-                    Number(currentReport.summary.values_by_currency[0]?.value ?? 0),
-                    currentReport.summary.values_by_currency[0]?.currency_code ?? "",
+                    Number(
+                      currentReport.summary.values_by_currency[0]?.value ?? 0,
+                    ),
+                    currentReport.summary.values_by_currency[0]
+                      ?.currency_code ?? "",
                   )}
                 </span>
               ) : currentReport ? (
@@ -604,7 +586,9 @@ export default function Page() {
                 </span>
               )}
             </div>
-            <p className="mt-5 text-xs">{currentReport?.period.month ?? "Current month"}</p>
+            <p className="mt-5 text-xs">
+              {currentReport?.period.month ?? "Current month"}
+            </p>
           </button>
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
             <div className="flex items-start justify-between">

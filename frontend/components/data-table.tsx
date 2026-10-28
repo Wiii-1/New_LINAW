@@ -11,7 +11,7 @@ import {
   type ColumnFiltersState,
   type ColumnVisibilityState,
 } from "@tanstack/react-table";
-import { DownloadIcon, Loader2 } from "lucide-react";
+import { Search, X, DownloadIcon, Loader2, Inbox, SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -64,7 +64,14 @@ export const sanitizeCsvValue = (value: unknown): string => {
   if (value === null || value === undefined) return "";
 
   const text = typeof value === "string" ? value : String(value);
-  const trimmed = text.replace(/^[\s\u0000-\u001F\u007F]+/, "");
+  let start = 0;
+  while (start < text.length) {
+    const character = text.charAt(start);
+    const code = character.charCodeAt(0);
+    if (code > 31 && code !== 127 && !/\s/.test(character)) break;
+    start += 1;
+  }
+  const trimmed = text.slice(start);
 
   if (!trimmed || trimmed.startsWith("'")) return text;
 
@@ -153,6 +160,10 @@ export function DataTable<TData extends RowData>({
     },
   });
 
+  const searchValue = searchKey
+    ? ((table.getColumn(searchKey)?.getFilterValue() as string) ?? "")
+    : "";
+
   const handleExport = async (format: ExportFormat) => {
     try {
       setIsExporting(true);
@@ -168,7 +179,9 @@ export function DataTable<TData extends RowData>({
         return;
       }
 
-      const rawData = table.getFilteredRowModel().rows.map((row) => row.original);
+      const rawData = table
+        .getFilteredRowModel()
+        .rows.map((row) => row.original);
       const flatExportData = rawData.map((row) =>
         flattenExportData(row as Record<string, unknown>),
       );
@@ -237,16 +250,29 @@ export function DataTable<TData extends RowData>({
         }
       >
         {searchKey && (
-          <Input
-            placeholder={searchPlaceholder}
-            value={
-              (table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
-            }
-            onChange={(event) =>
-              table.getColumn(searchKey)?.setFilterValue(event.target.value)
-            }
-            className={density === "comfortable" ? "w-full sm:max-w-sm" : "max-w-sm"}
-          />
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={searchPlaceholder}
+              value={searchValue}
+              onChange={(event) =>
+                table.getColumn(searchKey)?.setFilterValue(event.target.value)
+              }
+              className="h-8 w-full pl-8 pr-8"
+            />
+
+            {searchValue && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-8 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => table.getColumn(searchKey)?.setFilterValue("")}
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Clear search</span>
+              </Button>
+            )}
+          </div>
         )}
 
         <div className="ml-auto flex items-center gap-2">
@@ -334,9 +360,51 @@ export function DataTable<TData extends RowData>({
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
-                    className={density === "comfortable" ? "h-28 px-4 text-center" : "h-24 text-center"}
+                    className={
+                      density === "comfortable"
+                        ? "h-28 px-4 text-center"
+                        : "h-24 text-center"
+                    }
                   >
-                    No results.
+                    <div className="flex flex-col items-center justify-center text-center">
+                      {searchValue ? (
+                        <>
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted/50 mb-4">
+                            <SearchX className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                          <h3 className="text-lg font-semibold">
+                            No results found
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                            We couldn't find anything matching "{searchValue}".{" "}
+                            <br />
+                            Try adjusting your search or filters.
+                          </p>
+                          <Button
+                            variant="outline"
+                            className="mt-4"
+                            onClick={() =>
+                              table.getColumn(searchKey!)?.setFilterValue("")
+                            }
+                          >
+                            Clear search
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted/50 mb-4">
+                            <Inbox className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                          <h3 className="text-lg font-semibold">
+                            No data available
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                            There are no records to display here yet. <br />
+                            Get started by creating a new one.
+                          </p>
+                        </>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
