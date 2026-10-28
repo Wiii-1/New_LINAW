@@ -75,7 +75,7 @@ function buildCsp(nonce: string): string {
     script-src ${scriptSrc};
     script-src-elem 'self' 'nonce-${nonce}' https://www.googletagmanager.com https://static.cloudflareinsights.com;
     style-src 'self' ${isDev ? "'unsafe-inline'" : `'nonce-${nonce}'`};
-    img-src 'self' blob: data: https://storage.efferd.com https://www.googletagmanager.com https://static.cloudflareinsights.com;
+    img-src 'self' blob: data: https://www.googletagmanager.com https://static.cloudflareinsights.com;
     connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://cloudflareinsights.com https://*.cloudflareinsights.com;
     frame-src 'self' https://www.googletagmanager.com;
     font-src 'self';
