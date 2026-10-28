@@ -25,13 +25,24 @@ import {
 } from "@/lib/dashboard-data";
 import { formatCurrency } from "@/lib/currencies";
 import { useAuthState } from "@/components/auth-state-provider";
+import {
+  CompletedProcurementReportDialog,
+} from "./completed-procurement-report-dialog";
+import {
+  getMonthlyCompletedProcurementReport,
+  type CompletedProcurementReport,
+} from "@/app/api/purchase-orders/report-client";
 
 const toneClasses: Record<string, string> = {
-  blue: "ring-1 ring-blue-100 dark:ring-blue-700/50",
-  amber: "ring-1 ring-amber-100 dark:ring-amber-700/50",
-  violet: "ring-1 ring-violet-100 dark:ring-violet-700/50",
-  green: "ring-1 ring-emerald-100 dark:ring-emerald-700/50",
-  slate: "ring-1 ring-slate-200 dark:ring-slate-700/50",
+  blue: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200/50 dark:bg-blue-500/10 dark:text-blue-400 dark:ring-blue-500/20",
+  amber:
+    "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200/50 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20",
+  violet:
+    "bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200/50 dark:bg-violet-500/10 dark:text-violet-400 dark:ring-violet-500/20",
+  green:
+    "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20",
+  slate:
+    "bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-200/50 dark:bg-slate-500/10 dark:text-slate-400 dark:ring-slate-500/20",
 };
 
 function formatAmount(transaction: DashboardTransaction): string {
@@ -50,12 +61,12 @@ function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
-function transactionTone(category: DashboardTransaction["category"]): string {
-  return category === "Purchase order"
-    ? (toneClasses["green"] ?? "")
-    : category === "RFQ"
-      ? (toneClasses["violet"] ?? "")
-      : (toneClasses["blue"] ?? "");
+function getTransactionTone(
+  category: DashboardTransaction["category"],
+): string {
+  if (category === "Purchase order") return "green";
+  if (category === "RFQ") return "violet";
+  return "blue";
 }
 
 export default function Page() {
@@ -69,6 +80,10 @@ export default function Page() {
   const [selectedTransaction, setSelectedTransaction] = useState<string | null>(
     null,
   );
+  const [reportOpen, setReportOpen] = useState(false);
+  const [currentReport, setCurrentReport] = useState<CompletedProcurementReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,22 +91,44 @@ export default function Page() {
     setLoading(true);
     setRequestError(false);
     setCurrentDate(new Date());
+    setCurrentReport(null);
+    setReportLoading(true);
+    setReportError(false);
 
-    fetchDashboardData(controller.signal)
-      .then((result) => {
+    Promise.allSettled([
+      fetchDashboardData(controller.signal),
+      getMonthlyCompletedProcurementReport(new Date().toISOString().slice(0, 7)),
+    ])
+      .then(([dashboardResult, reportResult]) => {
         if (controller.signal.aborted) return;
-        if (result.authFailed) {
+        if (
+          dashboardResult.status === "fulfilled" &&
+          dashboardResult.value.authFailed
+        ) {
           window.location.assign("/login");
           return;
         }
 
-        setDashboard(result);
-        setRequestError(result.errors.length > 0);
+        if (dashboardResult.status === "fulfilled") {
+          setDashboard(dashboardResult.value);
+          setRequestError(dashboardResult.value.errors.length > 0);
+        } else {
+          setRequestError(true);
+        }
+
+        if (reportResult.status === "fulfilled") {
+          setCurrentReport(reportResult.value);
+        } else {
+          setReportError(true);
+        }
+        setReportLoading(false);
       })
-      .catch(() => setRequestError(true))
       .finally(() => setLoading(false));
 
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      setReportLoading(false);
+    };
   }, [transitionRevision]);
 
   const transactions = useMemo(
@@ -141,6 +178,7 @@ export default function Page() {
       note: "authorized records",
       icon: FilePlus2Icon,
       tone: "blue",
+      href: "/purchase-requisitions",
     },
     {
       label: "Pending approvals",
@@ -149,6 +187,7 @@ export default function Page() {
       note: "assigned to you",
       icon: Clock3Icon,
       tone: "amber",
+      href: "/approval-workflows",
     },
     {
       label: "Active RFQs",
@@ -157,14 +196,16 @@ export default function Page() {
       note: "published RFQs",
       icon: SendIcon,
       tone: "violet",
+      href: "/purchase-orders",
     },
     {
-      label: "Open commitments",
-      value: "Unavailable",
-      change: "N/A",
-      note: "no budget API available",
+      label: "Purchase orders",
+      value: dashboard?.purchaseOrderTotal ?? dashboard?.purchaseOrders.length ?? 0,
+      change: "Live",
+      note: "all authorized statuses",
       icon: WalletCardsIcon,
       tone: "green",
+      href: "/purchase-orders",
     },
   ];
 
@@ -172,14 +213,14 @@ export default function Page() {
     <main className="min-h-[calc(100svh-var(--header-height))] flex-1 ">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-7 px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
         {requestError && (
-          <div className="rounded-lg border border-amber-200 px-4 py-3 text-sm">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/10 dark:text-amber-200">
             Some dashboard sections could not be loaded. Displayed values may be
             partial.
           </div>
         )}
         <section className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] ">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
               {currentDate?.toLocaleDateString("en-US", {
                 weekday: "long",
                 month: "long",
@@ -187,7 +228,7 @@ export default function Page() {
                 year: "numeric",
               }) ?? ""}
             </p>
-            <h1 className="text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
               {currentDate
                 ? currentDate.getHours() < 12
                   ? "Good morning"
@@ -197,7 +238,7 @@ export default function Page() {
                 : "Welcome"}
               {userName ? `, ${userName}` : ""}
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-6">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
               Here&apos;s what&apos;s happening across{" "}
               {dashboard?.companyName ?? "your procurement workspace"}.
             </p>
@@ -228,7 +269,20 @@ export default function Page() {
             return (
               <div
                 key={stat.label}
-                className="rounded-xl border border-slate-200/80 p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+                className={`rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/50 ${stat.href ? "cursor-pointer transition-colors hover:border-emerald-300 dark:hover:border-emerald-700" : ""}`}
+                onClick={stat.href ? () => window.location.assign(stat.href) : undefined}
+                onKeyDown={
+                  stat.href
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          window.location.assign(stat.href);
+                        }
+                      }
+                    : undefined
+                }
+                role={stat.href ? "link" : undefined}
+                tabIndex={stat.href ? 0 : undefined}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div
@@ -250,7 +304,7 @@ export default function Page() {
           })}
         </section>
 
-        <section className="rounded-xl border border-slate-200/80 px-5 py-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] sm:px-6">
+        <section className="rounded-xl border border-slate-200 bg-white px-5 py-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/50 sm:px-6">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold">Procurement pipeline</p>
@@ -318,8 +372,8 @@ export default function Page() {
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.45fr_0.8fr]">
-          <div className="min-w-0 rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-            <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+            <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 dark:border-slate-800/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div>
                 <p className="text-sm font-semibold">Recent transactions</p>
                 <p className="mt-1 text-xs">
@@ -347,7 +401,7 @@ export default function Page() {
                 </Button>
               </div>
             </div>
-            <div className="flex gap-1 overflow-x-auto border-b border-slate-100 px-5 pt-3 sm:px-6">
+            <div className="flex gap-4 overflow-x-auto border-b border-slate-100 px-5 pt-3 dark:border-slate-800/60 sm:px-6">
               {["All activity", "Pending", "Published", "ORDERED"].map(
                 (item) => (
                   <button
@@ -374,7 +428,7 @@ export default function Page() {
                     <th className="px-5 py-3 sm:px-6" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {loading ? (
                     <tr>
                       <td
@@ -411,7 +465,7 @@ export default function Page() {
                         </td>
                         <td className="px-3 py-4">
                           <span
-                            className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold ${transactionTone(transaction.category)}`}
+                            className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold ${toneClasses[getTransactionTone(transaction.category)]}`}
                           >
                             {transaction.status}
                           </span>
@@ -453,8 +507,8 @@ export default function Page() {
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-            <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 sm:px-6">
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
+            <div className="flex items-start justify-between border-b border-slate-100 px-5 py-5 dark:border-slate-800/60 sm:px-6">
               <div>
                 <p className="text-sm font-semibold">Needs your review</p>
                 <p className="mt-1 text-xs">Approvals waiting in your queue.</p>
@@ -463,7 +517,7 @@ export default function Page() {
                 {dashboard?.approvals.length ?? 0}
               </span>
             </div>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {loading ? (
                 <div className="px-5 py-10 text-center text-sm">
                   Loading approvals...
@@ -516,29 +570,43 @@ export default function Page() {
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-          <div className="rounded-xl border border-slate-200/80 p-6 shadow-[0_10px_28px_rgba(19,34,56,0.12)]">
+          <button
+            type="button"
+            onClick={() => setReportOpen(true)}
+            className="rounded-xl border border-slate-200 bg-white p-6 text-left shadow-sm transition-colors hover:border-blue-300 dark:border-slate-800 dark:bg-slate-900/50 dark:hover:border-blue-700"
+          >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-semibold">Spend overview</p>
+                <p className="text-sm font-semibold">Completed Procurement Value</p>
                 <p className="mt-1 text-xs">
-                  Budget and authoritative commitment data are not available.
+                  Total value of completed purchase orders this month.
                 </p>
               </div>
               <WalletCardsIcon className="size-5" />
             </div>
             <div className="mt-7 flex items-end gap-3">
-              <span className="text-3xl font-semibold tracking-tight">
-                Unavailable
-              </span>
-              <span className="mb-1 rounded-full px-2 py-1 text-[11px] font-semibold">
-                N/A
-              </span>
+              {reportLoading ? (
+                <span className="text-3xl font-semibold tracking-tight">Loading...</span>
+              ) : currentReport?.summary.values_by_currency.length === 1 ? (
+                <span className="text-3xl font-semibold tracking-tight">
+                  {formatCurrency(
+                    Number(currentReport.summary.values_by_currency[0]?.value ?? 0),
+                    currentReport.summary.values_by_currency[0]?.currency_code ?? "",
+                  )}
+                </span>
+              ) : currentReport ? (
+                <span className="text-3xl font-semibold tracking-tight">
+                  {currentReport ? "Multiple currencies" : "Unavailable"}
+                </span>
+              ) : (
+                <span className="text-3xl font-semibold tracking-tight">
+                  {reportError ? "Unavailable" : "No completed orders"}
+                </span>
+              )}
             </div>
-            <p className="mt-5 text-xs">
-              No financial reporting endpoint is implemented for this workspace.
-            </p>
-          </div>
-          <div className="rounded-xl border border-slate-200/80 p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+            <p className="mt-5 text-xs">{currentReport?.period.month ?? "Current month"}</p>
+          </button>
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/50">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-semibold">Quick actions</p>
@@ -548,7 +616,7 @@ export default function Page() {
               </div>
               <CheckCircle2Icon className="size-5" />
             </div>
-            <div className="mt-6 grid grid-cols-2 gap-2">
+            <div className="mt-6 grid grid-cols-2 gap-3">
               <Link
                 href="/purchase-requisitions"
                 className="group rounded-lg border border-slate-200 p-3 transition-colors"
@@ -571,6 +639,11 @@ export default function Page() {
           </div>
         </section>
       </div>
+      <CompletedProcurementReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        onReportLoaded={setCurrentReport}
+      />
     </main>
   );
 }

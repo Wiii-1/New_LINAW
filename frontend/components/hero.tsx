@@ -5,6 +5,9 @@ import { FullWidthDivider } from "@/components/full-width-divider";
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 
+const dashboardLight = "/dashboard-light.webp";
+const dashboardDark = "/dashboard-dark.webp";
+
 export function HeroSection() {
   return (
     <section>
@@ -70,14 +73,14 @@ export function HeroSection() {
             alt="light app screen"
             className="dark:hidden"
             height="auto"
-            src="https://storage.efferd.com/screen/dashboard-light.webp"
+            src={dashboardLight}
             width="auto"
           />
           <img
             alt="dark app screen"
             className="hidden dark:block"
             height="auto"
-            src="https://storage.efferd.com/screen/dashboard-dark.webp"
+            src={dashboardDark}
             width="auto"
           />
         </div>

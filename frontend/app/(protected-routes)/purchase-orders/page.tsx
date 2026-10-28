@@ -6,14 +6,15 @@ import {
   ArchiveIcon,
   CheckCircle2Icon,
   ChevronRightIcon,
-  FileDownIcon,
   Loader2Icon,
   RefreshCwIcon,
   SearchIcon,
   SlidersHorizontalIcon,
 } from "lucide-react";
+import { createColumnHelper } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/data-table";
 import {
   Dialog,
   DialogContent,
@@ -23,14 +24,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   cancelPurchaseOrder,
@@ -43,6 +36,7 @@ import {
   type PurchaseOrderStatus,
 } from "@/app/api/purchase-orders/client";
 import { RfqWorkspace } from "./rfq-workspace";
+import { type DataTableFeatures } from "@/types/data-table-features";
 
 const statuses: Array<PurchaseOrderStatus | "ALL"> = [
   "ALL",
@@ -122,6 +116,59 @@ export default function PurchaseOrdersPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [mutation, setMutation] = useState<"cancel" | "order" | "complete" | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
+
+  const columns = useMemo(() => {
+    const columnHelper = createColumnHelper<DataTableFeatures, PurchaseOrder>();
+
+    return columnHelper.columns([
+      columnHelper.accessor("po_number", {
+        header: "PO number",
+        cell: ({ row }) => <span className="font-medium">{row.original.po_number}</span>,
+      }),
+      columnHelper.accessor("supplier", {
+        header: "Supplier",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {row.original.supplier?.company?.display_name ??
+              row.original.supplier?.company?.legal_name ??
+              row.original.supplier?.legal_name ??
+              row.original.supplier?.name ??
+              "Supplier not provided"}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("expected_delivery_date", {
+        header: "Delivery date",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {formatDate(row.original.expected_delivery_date)}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("total_amount", {
+        header: "Total amount",
+        cell: ({ row }) => (
+          <span className="font-medium tabular-nums">
+            {formatMoney(row.original.total_amount, row.original.currency_code)}
+          </span>
+        ),
+      }),
+      columnHelper.accessor("status", {
+        header: "Status",
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      }),
+      columnHelper.display({
+        id: "actions",
+        header: "",
+        cell: ({ row }) => (
+          <ChevronRightIcon
+            className="size-4 text-muted-foreground"
+            aria-label={`View ${row.original.po_number}`}
+          />
+        ),
+      }),
+    ]);
+  }, []);
 
   async function loadOrders() {
     setLoading(true);
@@ -242,10 +289,6 @@ export default function PurchaseOrdersPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled>
-                <FileDownIcon />
-                Export
-              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -341,65 +384,14 @@ export default function PurchaseOrdersPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="pl-5">PO number</TableHead>
-                      <TableHead>Supplier</TableHead>
-                      <TableHead>Delivery date</TableHead>
-                      <TableHead>Total amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-12 pr-5" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orders.map((orderItem) => (
-                      <TableRow
-                        key={orderItem.id}
-                        className="group cursor-pointer"
-                        onClick={() => void openDetail(orderItem.id)}
-                      >
-                        <TableCell className="pl-5 font-medium">
-                          {orderItem.po_number}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {orderItem.supplier?.company?.display_name ??
-                            orderItem.supplier?.company?.legal_name ??
-                            orderItem.supplier?.legal_name ??
-                            orderItem.supplier?.name ??
-                            "Supplier not provided"}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(orderItem.expected_delivery_date)}
-                        </TableCell>
-                        <TableCell className="font-medium tabular-nums">
-                          {formatMoney(
-                            orderItem.total_amount,
-                            orderItem.currency_code,
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={orderItem.status} />
-                        </TableCell>
-                        <TableCell className="pr-5">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={`View ${orderItem.po_number}`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void openDetail(orderItem.id);
-                            }}
-                          >
-                            <ChevronRightIcon />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <DataTable
+                columns={columns}
+                data={orders}
+                enableExport
+                exportFileName="purchase-orders"
+                onRowClick={(orderItem) => void openDetail(orderItem.id)}
+                density="comfortable"
+              />
             )}
           </section>
           <p className="text-right text-xs text-muted-foreground">
