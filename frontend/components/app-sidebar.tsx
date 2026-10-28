@@ -35,8 +35,8 @@ const data = {
   },
   navMain: [
     {
-      title: "Administration",
-      url: "/administration",
+      title: "Dashboard",
+      url: "/dashboard",
       icon: <LayoutDashboardIcon />,
       isActive: true,
     },
