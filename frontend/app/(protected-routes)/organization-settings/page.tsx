@@ -6,8 +6,6 @@ import {
   Loader2Icon,
   MailPlusIcon,
   PlusIcon,
-  SaveIcon,
-  ShieldCheckIcon,
   Trash2Icon,
 } from "lucide-react";
 import { z } from "zod";
@@ -171,7 +169,7 @@ export default function OrganizationsPage() {
   if (pageError)
     return (
       <PageMessage
-        title="Organization administration unavailable"
+        title="Organization settings unavailable"
         message={pageError}
       />
     );
@@ -299,15 +297,15 @@ function RegistrationView({
       <div className="mx-auto flex w-full max-w-[900px] flex-col gap-7 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <header>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Organization administration
+            ORGANIZATION SETTINGS
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Register your company
+            Register your Company
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
             Create the organization that will anchor your procurement workspace.
             Your account will become its initial organization administrator
-            after the backend confirms registration.
+            after the backend confirms registration
           </p>
         </header>
         {registeredCompany ? (
@@ -337,27 +335,19 @@ function RegistrationView({
                   busy={refreshBusy}
                   onClick={() => void refreshRegisteredCompany()}
                 >
-                  <ShieldCheckIcon className="size-4" />
-                  Retry Session Refresh
+                  Refresh Session
                 </BusyButton>
               </div>
             </CardContent>
           </Card>
         ) : (
           <Card>
-            <CardHeader>
-              <CardTitle>Company details</CardTitle>
-              <CardDescription>
-                These details are stored by the existing company registration
-                service.
-              </CardDescription>
-            </CardHeader>
             <CardContent>
               <form onSubmit={submit}>
                 <FieldGroup className="gap-5">
                   <div className="grid gap-5 md:grid-cols-2">
                     <TextField
-                      label="Legal name"
+                      label="Legal Name"
                       required
                       value={form.legal_name}
                       onChange={(value) =>
@@ -365,7 +355,7 @@ function RegistrationView({
                       }
                     />
                     <TextField
-                      label="Display name"
+                      label="Display Name"
                       required
                       value={form.display_name}
                       onChange={(value) =>
@@ -378,7 +368,7 @@ function RegistrationView({
                       onChange={(value) => setForm({ ...form, tax_id: value })}
                     />
                     <TextField
-                      label="Contact phone"
+                      label="Contact Number"
                       value={form.contact_phone}
                       onChange={(value) =>
                         setForm({ ...form, contact_phone: value })
@@ -386,13 +376,13 @@ function RegistrationView({
                     />
                   </div>
                   <TextField
-                    label="Address"
+                    label="Company Address"
                     required
                     value={form.address}
                     onChange={(value) => setForm({ ...form, address: value })}
                   />
                   <TextField
-                    label="Contact email"
+                    label="Company Email"
                     required
                     type="email"
                     value={form.contact_email}
@@ -412,8 +402,7 @@ function RegistrationView({
                     </p>
                   )}
                   <BusyButton type="submit" busy={busy}>
-                    <ShieldCheckIcon className="size-4" />
-                    Register company
+                    Register Company
                   </BusyButton>
                 </FieldGroup>
               </form>
@@ -488,19 +477,15 @@ function AdministrationView({
         <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Organization administration
+              ORGANIZATION SETTINGS
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
               {companyName}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Manage company information, members, and organization-scoped
-              access.
+              Manage company information, members, and access <br /> Access is
+              enforced by your organization permissions
             </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <ShieldCheckIcon className="size-4" />
-            Access is enforced by your organization permissions
           </div>
         </header>
         {sectionError && (
@@ -520,11 +505,11 @@ function AdministrationView({
         <Tabs defaultValue="roles-and-permissions" className="space-y-6">
           <TabsList className="grid h-auto w-full grid-cols-1 gap-1 border bg-muted/40 p-1 sm:grid-cols-3">
             <TabsTrigger value="roles-and-permissions">
-              Roles and permissions
+              Roles and Permissions
             </TabsTrigger>
-            <TabsTrigger value="user-management">User management</TabsTrigger>
+            <TabsTrigger value="user-management">User Management</TabsTrigger>
             <TabsTrigger value="organization-management">
-              Organization management
+              Organization Management
             </TabsTrigger>
           </TabsList>
           <TabsContent
@@ -615,7 +600,7 @@ function SettingsSection({
       <CardHeader>
         <CardTitle>Company settings</CardTitle>
         <CardDescription>
-          Keep the organization identity and contact details current.
+          Keep the organization identity and contact details current
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -623,31 +608,31 @@ function SettingsSection({
           <FieldGroup className="gap-5">
             <div className="grid gap-5 md:grid-cols-2">
               <TextField
-                label="Display name"
+                label="Display Name"
                 required
                 value={form.displayName}
                 onChange={(value) => setForm({ ...form, displayName: value })}
               />
               <TextField
-                label="Legal name"
+                label="Legal Name"
                 required
                 value={form.legalName}
                 onChange={(value) => setForm({ ...form, legalName: value })}
               />
               <TextField
-                label="Company email"
+                label="Company Email"
                 type="email"
                 value={form.companyEmail}
                 onChange={(value) => setForm({ ...form, companyEmail: value })}
               />
               <TextField
-                label="Contact number"
+                label="Contact Number"
                 value={form.contactNumber}
                 onChange={(value) => setForm({ ...form, contactNumber: value })}
               />
             </div>
             <TextField
-              label="Address"
+              label="Company Address"
               value={form.address}
               onChange={(value) => setForm({ ...form, address: value })}
             />
@@ -657,8 +642,7 @@ function SettingsSection({
               </p>
             )}
             <BusyButton type="submit" busy={busy}>
-              <SaveIcon className="size-4" />
-              Save settings
+              Save Company Information
             </BusyButton>
           </FieldGroup>
         </form>
@@ -730,14 +714,14 @@ function MembersSection({
           <div>
             <CardTitle>Members</CardTitle>
             <CardDescription>
-              Invite existing LINAW users and manage company memberships.
+              Invite existing LINAW users and manage company memberships
             </CardDescription>
           </div>
           <form onSubmit={invite} className="flex gap-2">
             <Input
-              aria-label="Member email"
+              aria-label="Email"
               type="email"
-              placeholder="member@example.com"
+              placeholder="Email Address"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               required
@@ -912,7 +896,7 @@ function RolesSection({
         <CardTitle>Roles and permissions</CardTitle>
         <CardDescription>
           Create organization-scoped roles and configure their available
-          permissions.
+          permissions
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -941,14 +925,14 @@ function RolesSection({
           />
           <Button type="submit">
             <PlusIcon className="size-4" />
-            Create role
+            Create Role
           </Button>
         </form>
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-2">
             {roles.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No roles were returned.
+                No roles were returned
               </p>
             ) : (
               roles.map((role) => (
