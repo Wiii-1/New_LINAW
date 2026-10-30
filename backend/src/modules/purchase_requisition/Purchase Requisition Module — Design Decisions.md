@@ -283,7 +283,7 @@ Authenticated Purchase Requisition endpoints should use `AuthRequest`.
 The authenticated user's ID must come from the authentication middleware:
 
 ```ts
-req.user
+req.user;
 ```
 
 It should not be accepted from:
@@ -312,8 +312,8 @@ The values may then be bundled before being passed to the service:
 
 ```ts
 const input = {
-    requisitionId,
-    userId
+  requisitionId,
+  userId,
 };
 ```
 
@@ -327,7 +327,7 @@ Example:
 
 ```ts
 const purchaseRequisitionIdParamsSchema = z.object({
-    id: z.string().uuid()
+  id: z.string().uuid(),
 });
 ```
 

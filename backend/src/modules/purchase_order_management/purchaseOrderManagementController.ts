@@ -1,402 +1,470 @@
-import type { AppContext } from "../../shared/types/hono";
-import { Context } from "hono"
-import { PurchaseOrderManagementService } from "./purchaseOrderManagementService"
-import { CreateRFQSchema, ListPurchaseOrdersQuerySchema, ListRFQsQuerySchema, ProcurementQueueQuerySchema, PurchaseOrderIdParamsSchema, QuotationParamsSchema, RFQIdParamsSchema, UpdatePurchaseOrderSchema, UpdateRFQSchema } from "./purchaseOrderManagementValidator";
-import { NotFoundError } from "../../shared/errors";
-
+import type { AppContext } from "../../shared/types/hono.js";
+import { Context } from "hono";
+import { PurchaseOrderManagementService } from "./purchaseOrderManagementService";
+import {
+  CreateRFQSchema,
+  ListPurchaseOrdersQuerySchema,
+  ListRFQsQuerySchema,
+  ProcurementQueueQuerySchema,
+  PurchaseOrderIdParamsSchema,
+  QuotationParamsSchema,
+  RFQIdParamsSchema,
+  UpdatePurchaseOrderSchema,
+  UpdateRFQSchema,
+  MonthlyCompletedProcurementQuerySchema,
+} from "./purchaseOrderManagementValidator";
+import { NotFoundError } from "../../shared/errors/appError.js";
 
 export class PurchaseOrderManagementController {
-    constructor ( 
-        private service : PurchaseOrderManagementService
-    ) {}
+  constructor(private service: PurchaseOrderManagementService) {}
 
-    orderPurchaseOrder = async (
-        c: Context<AppContext>
-    ) => {
+  orderPurchaseOrder = async (c: Context<AppContext>) => {
+    const { poId } = await PurchaseOrderIdParamsSchema.parse(c.req.param());
 
-        const { poId } = await PurchaseOrderIdParamsSchema.parse(c.req.param())
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        const { user_id, tenant_id, company_id } = c.var.user
-
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }         
-
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            poId
-        }
-
-        const createdPO = await this.service.orderPurchaseOrder(input)
-
-        return c.json({
-            success: true,
-            message: "Successfully Created Purchase Order",
-            createdPO
-        }, 200)
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    createRFQS  = async (
-        c: Context<AppContext>
-    ) => {
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      poId,
+    };
 
-        const body = CreateRFQSchema.parse( await c.req.json())
+    const createdPO = await this.service.orderPurchaseOrder(input);
 
-        const { user_id, tenant_id, company_id } = c.var.user
+    return c.json(
+      {
+        success: true,
+        message: "Successfully Created Purchase Order",
+        createdPO,
+      },
+      200,
+    );
+  };
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        } 
+  completePurchaseOrder = async (c: Context<AppContext>) => {
+    const { poId } = PurchaseOrderIdParamsSchema.parse(c.req.param());
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            body
-        }
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        const createRfq = await this.service.createRFQS(input)
-
-        return c.json({
-            success: true, 
-            message: "Successful",
-            createRfq
-        }, 201)
-
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    publishRfqs = async (
-        c: Context<AppContext>
-    ) => {
+    const completedPO = await this.service.completePurchaseOrder({
+      user_id,
+      tenant_id,
+      company_id,
+      poId,
+    });
 
-        const params = RFQIdParamsSchema.parse(c.req.param())
+    return c.json(
+      {
+        success: true,
+        message: "Purchase order completed",
+        completedPO,
+      },
+      200,
+    );
+  };
 
-        const { user_id, tenant_id, company_id } = c.var.user
+  createRFQS = async (c: Context<AppContext>) => {
+    const body = CreateRFQSchema.parse(await c.req.json());
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }         
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            params
-        }
-
-        const published = await this.service.publishRFQS(input)
-
-        return c.json({
-            success: true,
-            message: "Successfully published RFQS",
-            published
-        }, 200)
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    selectSupplier = async (
-        c: Context<AppContext>
-    ) => {
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      body,
+    };
 
-        const params = QuotationParamsSchema.parse(c.req.param())
+    const createRfq = await this.service.createRFQS(input);
 
-        const { user_id, tenant_id, company_id } = c.var.user
+    return c.json(
+      {
+        success: true,
+        message: "Successful",
+        createRfq,
+      },
+      201,
+    );
+  };
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }         
+  publishRfqs = async (c: Context<AppContext>) => {
+    const params = RFQIdParamsSchema.parse(c.req.param());
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            params
-        }
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        const selectedSupplier = await this.service.selectSupplier(input)
-
-        return c.json({
-            success: true,
-            message: "Supplier has been selected",
-            selectedSupplier
-        }, 200)
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    getList = async (
-        c: Context<AppContext>
-    ) => {
-        const query = ListPurchaseOrdersQuerySchema.parse(c.req.query())
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      params,
+    };
 
-        const { user_id, tenant_id, company_id } = c.var.user
+    const published = await this.service.publishRFQS(input);
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }         
+    return c.json(
+      {
+        success: true,
+        message: "Successfully published RFQS",
+        published,
+      },
+      200,
+    );
+  };
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            query
-        }
+  selectSupplier = async (c: Context<AppContext>) => {
+    const params = QuotationParamsSchema.parse(c.req.param());
 
-        const list = await this.service.getList(input)
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        return c.json({
-            success: true,
-            message: "Success list is returned",
-            list
-        }, 200)
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    getApprovedPurchaseRequisition = async (
-        c: Context<AppContext>
-    ) => {
-        const query = ProcurementQueueQuerySchema.parse(c.req.query())
-        const { tenant_id, company_id } = c.var.user
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      params,
+    };
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }
+    const selectedSupplier = await this.service.selectSupplier(input);
 
-        const ApprovedPR = await this.service.getProcurementQueue({
-            tenant_id,
-            company_id,
-            query,
-        })
+    return c.json(
+      {
+        success: true,
+        message: "Supplier has been selected",
+        selectedSupplier,
+      },
+      200,
+    );
+  };
 
-        return c.json({
-            success: true,
-            message: "Success list is returned",
-            ApprovedPR
-        }, 200)
+  getList = async (c: Context<AppContext>) => {
+    const query = ListPurchaseOrdersQuerySchema.parse(c.req.query());
+
+    const { user_id, tenant_id, company_id } = c.var.user;
+
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    getRfqs = async (
-        c: Context<AppContext>
-    ) => {
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      query,
+    };
 
-        const query = ListRFQsQuerySchema.parse(c.req.query())
+    const list = await this.service.getList(input);
+    const total = await this.service.countList(input);
 
-        const { user_id, tenant_id, company_id } = c.var.user
+    return c.json(
+      {
+        success: true,
+        message: "Success list is returned",
+        list,
+        total,
+      },
+      200,
+    );
+  };
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }        
+  getMonthlyCompletedProcurementReport = async (c: Context<AppContext>) => {
+    const query = MonthlyCompletedProcurementQuerySchema.parse(c.req.query());
+    const { tenant_id, company_id } = c.var.user;
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            query
-        }
-
-        const list = await this.service.getRFQS(input)
-
-        return c.json({
-            success: true,
-            list
-        }, 200)
-
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    getQuotationList = async (
-        c: Context<AppContext>
-    ) => {
-        
-        const params = RFQIdParamsSchema.parse(c.req.param())
-        
-        const { user_id, tenant_id, company_id } = c.var.user
+    return c.json({
+      success: true,
+      report: await this.service.getMonthlyCompletedProcurementReport({
+        tenant_id,
+        company_id,
+        query,
+      }),
+    });
+  };
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }
+  getApprovedPurchaseRequisition = async (c: Context<AppContext>) => {
+    const query = ProcurementQueueQuerySchema.parse(c.req.query());
+    const { tenant_id, company_id } = c.var.user;
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            params
-        }
-
-        const QuotationList = await this.service.getQuotationList(input)
-
-        return c.json({
-            success: true,
-            QuotationList
-        }, 200)
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    getQuotation = async (
-        c: Context<AppContext>
-    ) => {
+    const ApprovedPR = await this.service.getProcurementQueue({
+      tenant_id,
+      company_id,
+      query,
+    });
 
-        const params = QuotationParamsSchema.parse(c.req.param())
+    return c.json(
+      {
+        success: true,
+        message: "Success list is returned",
+        ApprovedPR,
+      },
+      200,
+    );
+  };
 
-        const {user_id, tenant_id, company_id } = c.var.user
+  getRfqs = async (c: Context<AppContext>) => {
+    const query = ListRFQsQuerySchema.parse(c.req.query());
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }        
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            params
-        }
-
-        const Quotation = await this.service.getQuotation(input)
-
-        return c.json({
-            success: true,
-            Quotation
-        }, 200)
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    getPO= async (
-        c: Context<AppContext>
-    ) => {
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      query,
+    };
 
-        const params = PurchaseOrderIdParamsSchema.parse(c.req.param())
+    const list = await this.service.getRFQS(input);
+    const total = await this.service.countRFQS(input);
 
-        const { user_id, tenant_id, company_id } = c.var.user
+    return c.json(
+      {
+        success: true,
+        list,
+        total,
+      },
+      200,
+    );
+  };
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }
+  getQuotationList = async (c: Context<AppContext>) => {
+    const params = RFQIdParamsSchema.parse(c.req.param());
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            params
-        }
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        const PO = await this.service.getPO(input)
-
-        return c.json({
-            success: true,
-            PO
-        }, 200)
-
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    updateRfq = async (
-        c: Context<AppContext>
-    ) => {
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      params,
+    };
 
-        const params = RFQIdParamsSchema.parse(c.req.param())
+    const QuotationList = await this.service.getQuotationList(input);
 
-        const body = UpdateRFQSchema.parse( await c.req.json())
+    return c.json(
+      {
+        success: true,
+        QuotationList,
+      },
+      200,
+    );
+  };
 
-        const { user_id, tenant_id, company_id } = c.var.user
+  getAllQuotations = async (c: Context<AppContext>) => {
+    const { tenant_id, company_id } = c.var.user;
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }        
-
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            params,
-            body
-        }
-
-        const updated = await this.service.updateRFQS(input)
-
-        return c.json({
-            success: true,
-            message: "Sucessful",
-            updated
-        }, 200)
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    updatePo = async (
-        c: Context<AppContext>
-    ) => {
+    const quotations = await this.service.getAllQuotations({
+      tenant_id,
+      company_id,
+    });
 
-        const params = PurchaseOrderIdParamsSchema.parse(c.req.param())
+    return c.json({ success: true, ...quotations }, 200);
+  };
 
-        const body = UpdatePurchaseOrderSchema.parse(await c.req.json())
+  getQuotation = async (c: Context<AppContext>) => {
+    const params = QuotationParamsSchema.parse(c.req.param());
 
-        const { user_id, tenant_id, company_id } = c.var.user
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }        
-
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            body,
-            params
-        }
-
-        const updated = await this.service.updatePO(input)
-
-        return c.json({
-            success: true,
-            updated
-        }, 200)
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    deleteRfq = async (
-        c: Context<AppContext>
-    ) => {
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      params,
+    };
 
-        const params = RFQIdParamsSchema.parse(c.req.param())
+    const Quotation = await this.service.getQuotation(input);
 
-        const { user_id, tenant_id, company_id } = c.var.user
+    return c.json(
+      {
+        success: true,
+        Quotation,
+      },
+      200,
+    );
+  };
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }        
+  getPO = async (c: Context<AppContext>) => {
+    const params = PurchaseOrderIdParamsSchema.parse(c.req.param());
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            params
-        }
-        
-        const deleted = await this.service.deleteRfq(input)
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        return c.json({
-            success: true,
-            deleted
-        }, 200)
-
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
 
-    deletePurchaseOrder = async (
-        c: Context<AppContext>
-    ) => {
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      params,
+    };
 
-        const  params = PurchaseOrderIdParamsSchema.parse(c.req.param())
+    const PO = await this.service.getPO(input);
 
-        const { user_id, tenant_id, company_id } = c.var.user
+    return c.json(
+      {
+        success: true,
+        PO,
+      },
+      200,
+    );
+  };
 
-        if (!company_id) {
-            throw new NotFoundError("User does not belong to a company")
-        }        
+  updateRfq = async (c: Context<AppContext>) => {
+    const params = RFQIdParamsSchema.parse(c.req.param());
 
-        const input = {
-            user_id,
-            tenant_id,
-            company_id,
-            params
-        }
+    const body = UpdateRFQSchema.parse(await c.req.json());
 
-        const deletedPO = await this.service.deletePurchaseOrder(input)
+    const { user_id, tenant_id, company_id } = c.var.user;
 
-        return c.json({
-            success: true,
-            deletedPO
-        }, 200)
-
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
     }
+
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      params,
+      body,
+    };
+
+    const updated = await this.service.updateRFQS(input);
+
+    return c.json(
+      {
+        success: true,
+        message: "Sucessful",
+        updated,
+      },
+      200,
+    );
+  };
+
+  updatePo = async (c: Context<AppContext>) => {
+    const params = PurchaseOrderIdParamsSchema.parse(c.req.param());
+
+    const body = UpdatePurchaseOrderSchema.parse(await c.req.json());
+
+    const { user_id, tenant_id, company_id } = c.var.user;
+
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
+    }
+
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      body,
+      params,
+    };
+
+    const updated = await this.service.updatePO(input);
+
+    return c.json(
+      {
+        success: true,
+        updated,
+      },
+      200,
+    );
+  };
+
+  deleteRfq = async (c: Context<AppContext>) => {
+    const params = RFQIdParamsSchema.parse(c.req.param());
+
+    const { user_id, tenant_id, company_id } = c.var.user;
+
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
+    }
+
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      params,
+    };
+
+    const deleted = await this.service.deleteRfq(input);
+
+    return c.json(
+      {
+        success: true,
+        deleted,
+      },
+      200,
+    );
+  };
+
+  deletePurchaseOrder = async (c: Context<AppContext>) => {
+    const params = PurchaseOrderIdParamsSchema.parse(c.req.param());
+
+    const { user_id, tenant_id, company_id } = c.var.user;
+
+    if (!company_id) {
+      throw new NotFoundError("User does not belong to a company");
+    }
+
+    const input = {
+      user_id,
+      tenant_id,
+      company_id,
+      params,
+    };
+
+    const deletedPO = await this.service.deletePurchaseOrder(input);
+
+    return c.json(
+      {
+        success: true,
+        deletedPO,
+      },
+      200,
+    );
+  };
 }

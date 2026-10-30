@@ -1,9 +1,9 @@
 import type { Redis } from "@upstash/redis";
 
 import type {
-    RateLimitContext,
-    RateLimitResult
-} from "./rate-limiter.types.js"
+  RateLimitContext,
+  RateLimitResult,
+} from "./rate-limiter.types.js";
 
 const WINDOW_SECONDS = 60;
 
@@ -11,7 +11,7 @@ const SESSION_LIMIT = 100;
 const USER_LIMIT = 500;
 const IP_LIMIT = 1000;
 
-const RATE_LIMIT_SCRIPT =`
+const RATE_LIMIT_SCRIPT = `
 local sessionKey = KEYS[1]
 local userKey = KEYS[2]
 local ipKey = KEYS[3]
@@ -58,70 +58,58 @@ return {
     sessionLimit - sessionCount,
     0
 }
-`
+`;
 
 export async function checkRateLimit(
   redis: Redis,
   context: RateLimitContext,
 ): Promise<RateLimitResult> {
-
   console.log("[RateLimit] Starting");
 
-  const sessionKey =
-    `rate-limit:session:${context.sessionId}:${context.endpoint}`;
+  const sessionKey = `rate-limit:session:${context.sessionId}:${context.endpoint}`;
 
-  const userKey =
-    `rate-limit:user:${context.userId}:${context.endpoint}`;
+  const userKey = `rate-limit:user:${context.userId}:${context.endpoint}`;
 
-  const ipKey =
-    `rate-limit:ip:${context.ip}:${context.endpoint}`;
+  const ipKey = `rate-limit:ip:${context.ip}:${context.endpoint}`;
 
   console.log("[RateLimit] Executing Redis script...");
 
-  const result = await redis.eval(
-      RATE_LIMIT_SCRIPT,
-      [
-          sessionKey,
-          userKey,
-          ipKey,
-      ],
-      [
-          SESSION_LIMIT.toString(),
-          USER_LIMIT.toString(),
-          IP_LIMIT.toString(),
-          WINDOW_SECONDS.toString(),
-      ],
-  ) as [number, number, number];
+  const result = (await redis.eval(
+    RATE_LIMIT_SCRIPT,
+    [sessionKey, userKey, ipKey],
+    [
+      SESSION_LIMIT.toString(),
+      USER_LIMIT.toString(),
+      IP_LIMIT.toString(),
+      WINDOW_SECONDS.toString(),
+    ],
+  )) as [number, number, number];
   console.log("[RateLimit] Redis script completed:", result);
 
   const [allowed, remaining, reasonCode] = result;
 
   console.log("[RateLimit] Parsed result:", {
-      allowed,
-      remaining,
-      reasonCode,
+    allowed,
+    remaining,
+    reasonCode,
   });
 
   if (allowed === 1) {
-      console.log("[RateLimit] Returning allowed result");
+    console.log("[RateLimit] Returning allowed result");
 
-      const output = {
-          allowed: true as const,
-          remaining,
-      };
+    const output = {
+      allowed: true as const,
+      remaining,
+    };
 
-      console.log("[RateLimit] Output:", output);
+    console.log("[RateLimit] Output:", output);
 
-      return output;
+    return output;
   }
 
   type RateLimitReason = "session" | "user" | "ip";
 
-  const reasons: readonly RateLimitReason[] = [
-      "session",
-      "user",
-      "ip",
-  ];
+  const reasons: readonly RateLimitReason[] = ["session", "user", "ip"];
 
   const reason = reasons[reasonCode];
 
@@ -130,11 +118,7 @@ export async function checkRateLimit(
   }
 
   const retryAfter = await redis.ttl(
-    reason === "session"
-      ? sessionKey
-      : reason === "user"
-        ? userKey
-        : ipKey,
+    reason === "session" ? sessionKey : reason === "user" ? userKey : ipKey,
   );
 
   return {

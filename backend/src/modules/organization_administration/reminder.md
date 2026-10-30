@@ -27,11 +27,11 @@ Once the frontend/dashboard is being implemented, determine whether the Organiza
 
 If needed, the root endpoint could return dashboard-level information such as:
 
-* Total members
-* Active members
-* Pending invitations
-* Total roles
-* Other organization-level statistics
+- Total members
+- Active members
+- Pending invitations
+- Total roles
+- Other organization-level statistics
 
 Example:
 

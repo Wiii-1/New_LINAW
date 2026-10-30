@@ -3,7 +3,6 @@
 import { cn } from "cn";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,59 +14,55 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { loginSchema, type LoginFormValues } from "@/validators/auth";
+import { markAuthTransition, runAuthTransition } from "@/lib/auth-client";
 
-const formSchema = z.object({
-  email: z.email().min(1, "Please enter a valid email address."),
-  password: z.string().min(12, "Password must be at least 12 characters."),
-});
+function getSafeReturnTo() {
+  if (typeof window === "undefined") return null;
+  const value = new URLSearchParams(window.location.search).get("returnTo");
+  return value?.startsWith("/invitations/accept?token=") ? value : null;
+}
 
 export function LoginForm({
   className,
   ...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<"div"> & { csrfToken: string }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
   const router = useRouter();
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+  const safeReturnTo = getSafeReturnTo();
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: LoginFormValues) {
     setIsLoading(true);
-    setLoginError(null);
-
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        credentials: "same-origin",
-        body: JSON.stringify(values),
+      const { response, data } = await runAuthTransition(async () => {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+        const data = (await response.json()) as {
+          success?: boolean;
+          message?: string;
+        };
+        if (response.ok && data.success === true) markAuthTransition();
+        return { response, data };
       });
-
-      const data: {
-        success: boolean;
-        message?: string;
-      } = await response.json();
-
-      if (!response.ok || !data.success) {
-        setLoginError(data.message ?? "Unable to log in. Please try again.");
+      if (!response.ok || data.success !== true) {
+        form.setError("root", {
+          message: data.message ?? "Login failed. Please try again.",
+        });
         return;
       }
-
-      router.push("/dashboard");
-      router.refresh();
+      router.push(safeReturnTo ?? "/dashboard");
     } catch {
-      setLoginError(
-        "Unable to connect to the server. Please try again.",
-      );
+      form.setError("root", {
+        message: "Unable to reach the login service. Please try again.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -75,30 +70,28 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form
-        id="login-form"
-        onSubmit={form.handleSubmit(onSubmit)}
-      >
+      <form id="login-form" onSubmit={form.handleSubmit(onSubmit)}>
         <FieldGroup>
-          {loginError && (
-            <div
-              role="alert"
-              className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            >
-              {loginError}
-            </div>
-          )}
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-xl font-bold">Welcome to LINAW</h1>
             <FieldDescription>
-              Don&apos;t have an account? <a href="/signup">Sign up</a>
+              Don&apos;t have an account?{" "}
+              <a
+                href={
+                  safeReturnTo
+                    ? `/signup?returnTo=${encodeURIComponent(safeReturnTo)}`
+                    : "/signup"
+                }
+              >
+                Sign up
+              </a>
             </FieldDescription>
           </div>
           <Controller
             name="email"
             control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+            render={({ field }) => (
+              <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   {...field}
@@ -113,8 +106,8 @@ export function LoginForm({
           <Controller
             name="password"
             control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+            render={({ field }) => (
+              <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
                   <a
@@ -124,10 +117,9 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input
+                <PasswordInput
                   {...field}
                   id="password"
-                  type="password"
                   required
                   className="bg-background"
                 />
@@ -142,7 +134,11 @@ export function LoginForm({
           <FieldSeparator>Or</FieldSeparator>
           <Field className="grid gap-4 sm:grid-cols-2">
             <Button variant="outline" type="button">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <svg
+                aria-hidden
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
                 <path
                   d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"
                   fill="currentColor"
@@ -151,7 +147,11 @@ export function LoginForm({
               Continue with Apple
             </Button>
             <Button variant="outline" type="button">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <svg
+                aria-hidden
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
                 <path
                   d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
                   fill="currentColor"

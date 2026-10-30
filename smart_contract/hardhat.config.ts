@@ -34,15 +34,22 @@ export default defineConfig({
 
   networks: {
 
-    besu: {
+    // besu: {
+    //   type: "http",
+    //   chainType: "l1",
+    //   url: "http://localhost:8545",
+    //   accounts: [
+    //     configVariable("BESU_PRIVATE_KEY"),
+    //     process.env.DEPLOYER_PRIVATE_KEY!
+    //   ],
+    // },
+
+    sepolia: {
       type: "http",
       chainType: "l1",
-      url: "http://localhost:8545",
-      accounts: [
-        configVariable("BESU_PRIVATE_KEY"),
-        process.env.DEPLOYER_PRIVATE_KEY!
-      ],
-    },
-
+      chainId: 11155111,
+      url: process.env.SEPOLIA_RPC_URL!,
+      accounts: [process.env.SEPOLIA_PRIVATE_KEY!],
+    },   
   },
 });

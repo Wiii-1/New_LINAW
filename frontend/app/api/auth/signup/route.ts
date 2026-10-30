@@ -7,8 +7,14 @@ interface SignupResponse {
     message?: string;
     details?: unknown;
   };
-  result?: unknown;
+  result?: {
+    accessToken?: string;
+    refreshToken?: string;
+  };
 }
+
+const ACCESS_TOKEN_MAX_AGE = 60 * 60;
+const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
 
 interface SignupRequest {
   first_name: string;
@@ -16,6 +22,7 @@ interface SignupRequest {
   email: string;
   password: string;
   confirmPassword: string;
+  invitation_token?: string;
 }
 
 function getErrorMessage(data: SignupResponse, fallback: string): string {
@@ -89,9 +96,7 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const apiUrl = (
-    env as typeof env & { LINAW_API_URL?: string }
-  ).LINAW_API_URL;
+  const apiUrl = (env as typeof env & { LINAW_API_URL?: string }).LINAW_API_URL;
 
   if (!apiUrl) {
     return Response.json(
@@ -123,6 +128,9 @@ export async function POST(request: Request): Promise<Response> {
         email,
         password: input.password,
         confirmPassword: input.confirmPassword,
+        ...(typeof input.invitation_token === "string"
+          ? { invitation_token: input.invitation_token }
+          : {}),
       }),
     });
   } catch {
@@ -168,14 +176,44 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  return Response.json(
-    {
+  const accessToken = data.result?.accessToken;
+  const refreshToken = data.result?.refreshToken;
+
+  if (
+    typeof accessToken !== "string" ||
+    !accessToken ||
+    typeof refreshToken !== "string" ||
+    !refreshToken
+  ) {
+    return Response.json(
+      {
+        success: false,
+        message: "Invalid response from authentication service.",
+      },
+      { status: 502 },
+    );
+  }
+
+  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+  });
+
+  headers.append(
+    "Set-Cookie",
+    `accessToken=${encodeURIComponent(accessToken)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${ACCESS_TOKEN_MAX_AGE}${secure}`,
+  );
+  headers.append(
+    "Set-Cookie",
+    `refreshToken=${encodeURIComponent(refreshToken)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${REFRESH_TOKEN_MAX_AGE}${secure}`,
+  );
+
+  return new Response(
+    JSON.stringify({
       success: true,
       message: data.message ?? "Account created successfully.",
-    },
-    {
-      status: 201,
-      headers: { "Cache-Control": "no-store" },
-    },
+    }),
+    { status: 201, headers },
   );
 }

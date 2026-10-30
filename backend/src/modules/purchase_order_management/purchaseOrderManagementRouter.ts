@@ -8,62 +8,125 @@ import { eventBus } from "../../shared/events/eventBus";
 import { Authorize } from "../../shared/Authorization/authorize";
 import { systemPermissions } from "../../shared/Authorization/seeds/systemPermissions";
 import {
-    approvedPrIncoming,
-    supplierQuotationSubmittedIncoming,
+  approvedPrIncoming,
+  supplierQuotationSubmittedIncoming,
 } from "./purchaseOrderManagementEventHandler";
 
 const service = new PurchaseOrderManagementService(
-    new PurchaseOrderManagementRepository(),
-    eventBus,
+  new PurchaseOrderManagementRepository(),
+  eventBus,
 );
 let eventsRegistered = false;
 
 export function createPurchaseOrderManagement() {
-    const router = new Hono<AppContext>();
+  const router = new Hono<AppContext>();
 
-    const controller = new PurchaseOrderManagementController(service);
+  const controller = new PurchaseOrderManagementController(service);
 
-    if (!eventsRegistered) {
-        approvedPrIncoming(service);
-        supplierQuotationSubmittedIncoming(service);
-        eventsRegistered = true;
-    }
+  if (!eventsRegistered) {
+    approvedPrIncoming(service);
+    supplierQuotationSubmittedIncoming(service);
+    eventsRegistered = true;
+  }
 
-    router.use(authenticate);
+  router.use(authenticate);
 
-    // POST
+  // POST
 
-    router.post("/", Authorize(systemPermissions.purchaseOrderManagement.read), controller.orderPurchaseOrder);
-    router.post("/rfqs", Authorize(systemPermissions.purchaseOrderManagement.createRFQ), controller.createRFQS);
-    router.post("/rfqs/:rfqId/publish", Authorize(systemPermissions.purchaseOrderManagement.updateRFQ), controller.publishRfqs);
-    router.post(
-        "/rfqs/:rfqId/quotations/:quotationId/select",
-        Authorize(systemPermissions.purchaseOrderManagement.acceptQuotation),
-        controller.selectSupplier,
-    );
+  router.post(
+    "/rfqs",
+    Authorize(systemPermissions.purchaseOrderManagement.createRFQ),
+    controller.createRFQS,
+  );
+  router.post(
+    "/:poId",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.orderPurchaseOrder,
+  );
+  router.post(
+    "/:poId/complete",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.completePurchaseOrder,
+  );
+  router.post(
+    "/rfqs/:rfqId/publish",
+    Authorize(systemPermissions.purchaseOrderManagement.updateRFQ),
+    controller.publishRfqs,
+  );
+  router.post(
+    "/rfqs/:rfqId/quotations/:quotationId/select",
+    Authorize(systemPermissions.purchaseOrderManagement.acceptQuotation),
+    controller.selectSupplier,
+  );
 
-    // GET
+  // GET
 
-    router.get("/procurement-queue", Authorize(systemPermissions.purchaseOrderManagement.read), controller.getApprovedPurchaseRequisition);
-    router.get("/", Authorize(systemPermissions.purchaseOrderManagement.read), controller.getList);
-    router.get("/rfqs", Authorize(systemPermissions.purchaseOrderManagement.read), controller.getRfqs);
-    router.get("/rfqs/:rfqId/quotations", Authorize(systemPermissions.purchaseOrderManagement.read), controller.getQuotationList);
-    router.get(
-        "/rfqs/:rfqId/quotations/:quotationId",
-        Authorize(systemPermissions.purchaseOrderManagement.read),
-        controller.getQuotation,
-    );
-    router.get("/:poId", Authorize(systemPermissions.purchaseOrderManagement.read), controller.getPO);
+  router.get(
+    "/procurement-queue",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.getApprovedPurchaseRequisition,
+  );
+  router.get(
+    "/reports/monthly-completed",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.getMonthlyCompletedProcurementReport,
+  );
+  router.get(
+    "/",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.getList,
+  );
+  router.get(
+    "/rfqs",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.getRfqs,
+  );
+  router.get(
+    "/quotations",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.getAllQuotations,
+  );
+  router.get(
+    "/rfqs/:rfqId/quotations",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.getQuotationList,
+  );
+  router.get(
+    "/rfqs/:rfqId/quotations/:quotationId",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.getQuotation,
+  );
+  router.get(
+    "/:poId",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.getPO,
+  );
 
-    // PATCH
+  // PATCH
 
-    router.patch("/rfqs/:rfqId", Authorize(systemPermissions.purchaseOrderManagement.updateRFQ), controller.updateRfq);
-    router.patch("/:poId", Authorize(systemPermissions.purchaseOrderManagement.read), controller.updatePo);
+  router.patch(
+    "/rfqs/:rfqId",
+    Authorize(systemPermissions.purchaseOrderManagement.updateRFQ),
+    controller.updateRfq,
+  );
+  router.patch(
+    "/:poId",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.updatePo,
+  );
 
-    // DELETE
+  // DELETE
 
-    router.delete("/rfqs/:rfqId", Authorize(systemPermissions.purchaseOrderManagement.deleteRFQ), controller.deleteRfq);
-    router.delete("/:poId", Authorize(systemPermissions.purchaseOrderManagement.read), controller.deletePurchaseOrder);
+  router.delete(
+    "/rfqs/:rfqId",
+    Authorize(systemPermissions.purchaseOrderManagement.deleteRFQ),
+    controller.deleteRfq,
+  );
+  router.delete(
+    "/:poId",
+    Authorize(systemPermissions.purchaseOrderManagement.read),
+    controller.deletePurchaseOrder,
+  );
 
-    return router;
+  return router;
 }

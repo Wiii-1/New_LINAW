@@ -5,9 +5,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "frontend",
-  "vars": {
-    "LINAW_API_URL": "http://127.0.0.1:8787",
-  },
   "compatibility_date": "2026-09-24",
   "main": "vinext/server/fetch-handler",
   "workers_dev": false,
@@ -20,7 +17,7 @@
     "binding": "IMAGES",
   },
   "secrets": {
-    "required": [],
+    "required": ["LINAW_API_URL", "NODE_ENV"],
   },
   "observability": {
     "logs": {
